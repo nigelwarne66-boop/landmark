@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.ui;
 
+import javafx.geometry.Bounds;
 import javafx.geometry.VPos;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -22,6 +23,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.transform.Scale;
+import javafx.scene.transform.Translate;
 
 /**
  * Vector reproduction of the Landmark Software logo, built from JavaFX
@@ -46,20 +48,13 @@ public final class LandmarkLogo {
     public static final Color BLUE      = Color.web("#4D90D6");
     public static final Color BLUE_DARK = Color.web("#3878C0");
 
-    /** Source SVG icon viewBox is 0 0 400 460. */
-    private static final double ICON_VB_HEIGHT = 460;
-    /** Source SVG full-logo viewBox is 0 0 680 350. */
-    private static final double FULL_VB_HEIGHT = 350;
-
     private LandmarkLogo() {}
 
     // ── Public factories ─────────────────────────────────────────────────
 
     /** Pin mark only, scaled so its on-screen height matches {@code height}. */
     public static Node iconMark(double height) {
-        Group g = buildIconShapes();
-        applyScale(g, height, ICON_VB_HEIGHT);
-        return g;
+        return wrapAndScale(buildIconShapes(), height);
     }
 
     /**
@@ -67,9 +62,7 @@ public final class LandmarkLogo {
      * combined on-screen height matches {@code height}.
      */
     public static Node fullLogo(double height) {
-        Group g = buildFullLogoShapes();
-        applyScale(g, height, FULL_VB_HEIGHT);
-        return g;
+        return wrapAndScale(buildFullLogoShapes(), height);
     }
 
     // ── Shape builders (coordinates copied verbatim from source SVGs) ────
@@ -137,8 +130,22 @@ public final class LandmarkLogo {
         return t;
     }
 
-    private static void applyScale(Group g, double targetHeight, double svgHeight) {
-        double s = targetHeight / svgHeight;
-        g.getTransforms().add(new Scale(s, s));
+    /**
+     * Translates the inner shapes so their bounding box top-left sits at
+     * (0, 0), then scales to the requested height, and wraps the result in
+     * an outer Group. The outer Group's layoutBounds reflects the SCALED
+     * size (because Group bounds = union of children's boundsInParent,
+     * which includes child transforms) — so HBox/VBox lay it out correctly
+     * instead of allocating the unscaled SVG-coord size.
+     */
+    private static Node wrapAndScale(Group inner, double targetHeight) {
+        Bounds bb = inner.getLayoutBounds();
+        double scale = targetHeight / bb.getHeight();
+        // Order in JavaFX transforms list is applied highest-index first.
+        // We want: translate FIRST (move to origin), then scale.
+        // So Scale at index 0, Translate at index 1.
+        inner.getTransforms().add(new Scale(scale, scale));
+        inner.getTransforms().add(new Translate(-bb.getMinX(), -bb.getMinY()));
+        return new Group(inner);
     }
 }
