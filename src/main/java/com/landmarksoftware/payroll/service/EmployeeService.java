@@ -21,6 +21,7 @@ import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,11 +36,6 @@ import java.util.Optional;
  *
  * Banking, super, and LSL hour breakdowns are stored on other tables
  * (paempay, paemsup, etc.) and are not edited from this screen.
- *
- * INSERT is intentionally not implemented — pastaff has 121 columns,
- * many NOT NULL, and a successful Add requires more wiring than the
- * subset the UI currently exposes. Update/Terminate are sufficient
- * for Wave 1 maintenance.
  */
 @Service
 public class EmployeeService {
@@ -97,6 +93,17 @@ public class EmployeeService {
         return n != null && n > 0;
     }
 
+    /** MAX(employee_no)+1 for this company — used to pre-fill the Add dialog. */
+    public int nextEmployeeNo(int companyNo) {
+        try {
+            Integer n = jdbc.queryForObject(
+                PayrollSql.FIND_NEXT_EMPLOYEE_NO, Integer.class, companyNo);
+            return n == null ? 1 : n;
+        } catch (Exception ignored) {
+            return 1;
+        }
+    }
+
     /** Whether the employee has any pay history — blocks hard delete. */
     public boolean hasPayHistory(int companyNo, int employeeNo) {
         try {
@@ -132,6 +139,74 @@ public class EmployeeService {
     }
 
     // ── Write operations ──────────────────────────────────────────────────
+
+    /**
+     * Insert a new pastaff row.
+     * Binds all 120 columns (see PayrollSql.INSERT_EMPLOYEE) — UI-exposed
+     * fields come from {@code e}, audit fields from {@code userId} + now,
+     * date columns get DATE_ZERO when blank, everything else gets a
+     * sentinel default ("", "N", 0, BigDecimal.ZERO).
+     * Caller must verify no duplicate employeeNo exists.
+     */
+    @Transactional
+    public void insert(int companyNo, Employee e, String userId) {
+        java.sql.Date today = java.sql.Date.valueOf(LocalDate.now());
+        LocalTime now = LocalTime.now();
+        int hr  = now.getHour();
+        int min = now.getMinute();
+        int sec = now.getSecond();
+        BigDecimal Z = BigDecimal.ZERO;
+        java.sql.Date Z_DATE = sqlDate(null);
+
+        jdbc.update(PayrollSql.INSERT_EMPLOYEE,
+            //  1- 6 identity / name / dept / paygroup
+            companyNo, trimUp(e.surname, 30), trim(e.firstName, 30),
+            e.employeeNo, trimUp(e.paygroup, 10), trimUp(e.dept, 10),
+            //  7-10 paygroup_employee_no / award / job_class / award_employee_no
+            0, trimUp(e.award, 10), trimUp(e.jobClass, 10), 0,
+            // 11-17 second_name + address + auth_level
+            trim(e.secondName, 30), trim(e.addr1, 30), trim(e.addr2, 30),
+            trim(e.city, 30), trimUp(e.state, 4), trim(e.postcode, 10), 0,
+            // 18-21 status / type / dates
+            statusOrA(e.employeeStatus), trimUp(e.employeeType, 1),
+            sqlDate(e.dateStarted), sqlDate(e.dateTerminated),
+            // 22-25 termination_code / pay-history / over_award / use_award
+            "", "N", "N", "N",
+            // 26-32 pay_freq + salary/hours/rates
+            payFreqOrW(e.payFreq), nz(e.annualSalary), e.stdHrs, nz(e.stdRatePerHr),
+            Z, Z, Z,
+            // 33-39 tax_scale_no / hecs / rebates / extra / zone / family / medicare
+            trimUp(e.taxScaleNo, 4), "N", Z, nz(e.extraTaxAmt), Z, Z, Z,
+            // 40-43 no_of_children / tfn / payment_summary_type / group_cert_no
+            0, digits(e.taxFileNo, 11), "", 0,
+            // 44-48 last_grp_cert_date / paid_thru_to_date / payrun nos / timesheets
+            Z_DATE, Z_DATE, 0, 0, 0,
+            // 49-56 al accrual block
+            Z_DATE, Z, "", Z, Z, 0, 0, 0,
+            // 57-63 lsl accrual block
+            Z_DATE, 0, 0, 0, Z, Z, Z,
+            // 64-72 sick / rdo / accrual codes
+            0, 0, 0, 0, "", Z, 0, 0, 0L,
+            // 73-76 sex / DOB / title / std_rate_code
+            "", Z_DATE, "", "",
+            // 77-80 ret_comm + retainer/commission/ret_deducted
+            "N", Z, Z, Z,
+            // 81-87 super block
+            Z_DATE, "", "", 0, 0, Z_DATE, 0,
+            // 88-93 force_pay / doc_dir / slip_forms_*
+            "N", "", "N", "", "N", "N",
+            // 94-97 email / payment_summary_abn / use_ext_super / kiosk
+            trim(e.emailAddress, 80), "", "N", "N",
+            // 98-103 summ_forms_* / disabilities / al_loading_pay_code_ex
+            "N", "", "N", "N", "N", "",
+            // 104-110 al/sl/lsl_use_actual_rate / payment_summary_b / accrue_al_by_hrs / cdep
+            "N", "N", "N", "", "N", "N", "N",
+            // 111-114 mobile / phone_area / phone_no / note_no
+            trim(e.mobile, 20), digits(e.phoneArea, 4), trim(e.phoneNo, 20), 0L,
+            // 115-120 audit
+            userId, today, hr, min, sec, 0
+        );
+    }
 
     /**
      * Update an existing employee row.

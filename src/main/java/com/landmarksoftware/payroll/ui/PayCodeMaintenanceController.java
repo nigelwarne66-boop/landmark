@@ -132,14 +132,12 @@ public class PayCodeMaintenanceController {
         });
 
         // Toolbar
-        Button btnAdd  = btnSecondary("+ Add");
-        Button btnEdit = btnPrimary("✎ Edit");
+        Button btnAdd  = btnPrimary("+ Add");
+        Button btnEdit = btnSecondary("✎ Edit");
         Button btnDel  = btnDanger("✕ Delete");
         Button btnRef  = btnSecondary("↺");
 
-        btnAdd.setDisable(true);
-        btnAdd.setTooltip(new Tooltip(
-            "Adding new pay codes not yet supported — use Edit to maintain existing codes."));
+        btnAdd.setOnAction(e -> openDialog(null, stage));
 
         btnEdit.setOnAction(e -> {
             PayCode sel = table.getSelectionModel().getSelectedItem();
@@ -251,16 +249,26 @@ public class PayCodeMaintenanceController {
     // ── Edit dialog ───────────────────────────────────────────────────────
 
     private void openDialog(PayCode existing, Window owner) {
+        boolean isAdd = (existing == null);
         Stage dlg = new Stage();
         dlg.initOwner(owner);
         dlg.initModality(Modality.WINDOW_MODAL);
-        dlg.setTitle("Edit Pay Code — PACD01");
+        dlg.setTitle(isAdd ? "Add Pay Code — PACD01" : "Edit Pay Code — PACD01");
         dlg.setResizable(false);
 
-        PayCode pc = existing;
+        PayCode pc = isAdd ? new PayCode() : existing;
+        if (isAdd) {
+            // Sensible defaults for a fresh pay code
+            pc.payType            = 1;       // Income
+            pc.printOnPayslipFlag = "Y";
+            pc.superFlag          = "N";
+            pc.wcompFlag          = "N";
+            pc.termEFlag          = "N";
+        }
 
         TextField fCode    = tf(pc.payCode, 10);
-        fCode.setEditable(false); fCode.setDisable(true);
+        fCode.setEditable(isAdd);
+        fCode.setDisable(!isAdd);
         TextField fDesc    = tf(pc.desc1, 30);
         TextField fPayslip = tf(pc.payslipDesc, 30);
         TextField fAbbrev  = tf(pc.abbrevDesc, 10);
@@ -330,12 +338,18 @@ public class PayCodeMaintenanceController {
         addFormRow(form, r++,         "Dedn Amt:",   fDednAmt);
 
         // ── Buttons ───────────────────────────────────────────────────────
-        Button btnSave   = btnPrimary("Save");
+        Button btnSave   = btnPrimary(isAdd ? "Add" : "Save");
         Button btnCancel = btnSecondary("Cancel");
         btnSave.setDefaultButton(true);
         btnCancel.setOnAction(e -> dlg.close());
 
         btnSave.setOnAction(e -> {
+            String code = fCode.getText().trim().toUpperCase();
+            if (isAdd) {
+                if (code.isEmpty()) { markError(fCode, "Pay Code is required."); return; }
+                if (code.length() > 10) { markError(fCode, "Pay Code must be 10 chars or fewer."); return; }
+                clearError(fCode);
+            }
             String desc = fDesc.getText().trim();
             if (desc.isEmpty()) { markError(fDesc, "Description is required."); return; }
             clearError(fDesc);
@@ -348,7 +362,7 @@ public class PayCodeMaintenanceController {
             BigDecimal dednAmt   = parseDec(fDednAmt,   "Dedn Amt");   if (dednAmt   == null) return;
 
             PayCode out = new PayCode();
-            out.payCode            = pc.payCode;
+            out.payCode            = isAdd ? code : pc.payCode;
             out.desc1              = desc;
             out.payslipDesc        = fPayslip.getText().trim();
             out.abbrevDesc         = fAbbrev.getText().trim();
@@ -365,12 +379,22 @@ public class PayCodeMaintenanceController {
             out.dednAmt            = dednAmt;
 
             int coNo = appSession.getCompanyNo();
+            String userId = appSession.getUserId();
 
             exec.submit(() -> {
                 try {
-                    payCodeService.update(coNo, out);
+                    if (isAdd) {
+                        if (payCodeService.exists(coNo, out.payCode)) {
+                            Platform.runLater(() ->
+                                status("Pay code " + out.payCode + " already exists.", true));
+                            return;
+                        }
+                        payCodeService.insert(coNo, out, userId);
+                    } else {
+                        payCodeService.update(coNo, out);
+                    }
                     Platform.runLater(() -> {
-                        status("Updated: " + pc.payCode, false);
+                        status((isAdd ? "Added: " : "Updated: ") + out.payCode, false);
                         dlg.close();
                         loadList();
                     });

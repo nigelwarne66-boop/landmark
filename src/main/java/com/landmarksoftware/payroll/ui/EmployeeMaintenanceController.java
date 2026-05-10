@@ -150,16 +150,13 @@ public class EmployeeMaintenanceController {
         });
 
         // Toolbar
-        Button btnAdd   = btnSecondary("+ Add");
-        Button btnEdit  = btnPrimary("✎ Edit");
+        Button btnAdd   = btnPrimary("+ Add");
+        Button btnEdit  = btnSecondary("✎ Edit");
         Button btnTerm  = btnDanger("⏻ Terminate");
         Button btnLeave = btnSecondary("⏱ Leave Balances");
         Button btnRef   = btnSecondary("↺");
 
-        // Add not yet wired — the INSERT for pastaff requires 100+ columns.
-        btnAdd.setDisable(true);
-        btnAdd.setTooltip(new Tooltip(
-            "Adding new employees not yet supported — use Edit to maintain existing records."));
+        btnAdd.setOnAction(e -> openDialog(null, stage));
 
         fSearch = new TextField();
         fSearch.setPromptText("Search name or emp #…");
@@ -348,17 +345,29 @@ public class EmployeeMaintenanceController {
     // ── Edit dialog ───────────────────────────────────────────────────────
 
     private void openDialog(Employee existing, Window owner) {
+        boolean isAdd = (existing == null);
         Stage dlg = new Stage();
         dlg.initOwner(owner);
         dlg.initModality(Modality.WINDOW_MODAL);
-        dlg.setTitle("Edit Employee — PAEM01");
+        dlg.setTitle(isAdd ? "Add Employee — PAEM01" : "Edit Employee — PAEM01");
         dlg.setResizable(false);
 
-        Employee e = existing;
+        Employee e;
+        if (isAdd) {
+            e = new Employee();
+            e.employeeNo     = employeeService.nextEmployeeNo(appSession.getCompanyNo());
+            e.employeeStatus = "A";
+            e.employeeType   = "F";
+            e.payFreq        = "W";
+            e.dateStarted    = LocalDate.now();
+        } else {
+            e = existing;
+        }
 
         // ── Personal tab ──────────────────────────────────────────────────
         TextField fEmpNo   = tf(String.valueOf(e.employeeNo), 8);
-        fEmpNo.setEditable(false); fEmpNo.setDisable(true);
+        fEmpNo.setEditable(isAdd);
+        fEmpNo.setDisable(!isAdd);
         TextField fSurname  = tf(e.surname,    30);
         TextField fFirst    = tf(e.firstName,  30);
         TextField fSecond   = tf(e.secondName, 30);
@@ -463,12 +472,25 @@ public class EmployeeMaintenanceController {
             tab("Pay & Tax",  gPay));
 
         // ── Save ──────────────────────────────────────────────────────────
-        Button btnSave   = btnPrimary("Save");
+        Button btnSave   = btnPrimary(isAdd ? "Add" : "Save");
         Button btnCancel = btnSecondary("Cancel");
         btnSave.setDefaultButton(true);
         btnCancel.setOnAction(ev -> dlg.close());
 
         btnSave.setOnAction(ev -> {
+            int empNo = e.employeeNo;
+            if (isAdd) {
+                try { empNo = Integer.parseInt(fEmpNo.getText().trim()); }
+                catch (NumberFormatException nfe) {
+                    markError(fEmpNo, "Employee # must be a whole number.");
+                    tabs.getSelectionModel().select(0); return;
+                }
+                if (empNo <= 0) {
+                    markError(fEmpNo, "Employee # must be positive.");
+                    tabs.getSelectionModel().select(0); return;
+                }
+                clearError(fEmpNo);
+            }
             if (fSurname.getText().trim().isEmpty()) {
                 markError(fSurname, "Surname is required.");
                 tabs.getSelectionModel().select(0); return;
@@ -491,7 +513,7 @@ public class EmployeeMaintenanceController {
             }
 
             Employee out = new Employee();
-            out.employeeNo       = e.employeeNo;
+            out.employeeNo       = empNo;
             out.surname          = fSurname.getText().trim();
             out.firstName        = fFirst.getText().trim();
             out.secondName       = fSecond.getText().trim();
@@ -521,12 +543,24 @@ public class EmployeeMaintenanceController {
             out.extraTaxAmt      = extra;
 
             int coNo = appSession.getCompanyNo();
+            String userId = appSession.getUserId();
+            int finalEmpNo = out.employeeNo;
 
             exec.submit(() -> {
                 try {
-                    employeeService.update(coNo, out);
+                    if (isAdd) {
+                        if (employeeService.exists(coNo, finalEmpNo)) {
+                            Platform.runLater(() ->
+                                status("Employee " + finalEmpNo + " already exists.", true));
+                            return;
+                        }
+                        employeeService.insert(coNo, out, userId);
+                    } else {
+                        employeeService.update(coNo, out);
+                    }
                     Platform.runLater(() -> {
-                        status("Updated: " + e.employeeNo + " " + out.fullName(), false);
+                        status((isAdd ? "Added: " : "Updated: ")
+                            + finalEmpNo + " " + out.fullName(), false);
                         dlg.close();
                         loadList();
                     });
@@ -545,7 +579,8 @@ public class EmployeeMaintenanceController {
             "-fx-border-color:rgba(0,0,0,.10) transparent transparent transparent;" +
             "-fx-border-width:0.5 0 0 0;");
 
-        VBox top = new VBox(2, headerLine("Edit Employee #" + e.employeeNo));
+        VBox top = new VBox(2, headerLine(
+            isAdd ? "New Employee" : "Edit Employee #" + e.employeeNo));
         top.setPadding(new Insets(16, 20, 8, 20));
 
         VBox root = new VBox(0, top, tabs, btnBar);

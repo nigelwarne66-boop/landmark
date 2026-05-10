@@ -125,6 +125,10 @@ public final class PayrollSql {
     public static final String COUNT_EMPLOYEE_PAY_HISTORY =
         "SELECT COUNT(*) FROM paehist WHERE company_no=? AND employee_no=?";
 
+    /** MAX(employee_no)+1 for the company (suggests next employee_no on Add). Params: companyNo. */
+    public static final String FIND_NEXT_EMPLOYEE_NO =
+        "SELECT COALESCE(MAX(employee_no),0)+1 FROM pastaff WHERE company_no=?";
+
     /**
      * Read just the leave-balance columns for a single employee (display refresh).
      * Params: companyNo, employeeNo.
@@ -165,4 +169,134 @@ public final class PayrollSql {
     public static final String TERMINATE_EMPLOYEE =
         "UPDATE pastaff SET employee_status='T', date_terminated=? " +
         "WHERE company_no=? AND employee_no=?";
+
+    // ─── pacodes — full INSERT (122 columns) ────────────────────────────
+
+    /**
+     * Insert a new pacodes row. ALL 122 columns supplied — pacodes has no
+     * DB-level defaults so a partial INSERT fails on NOT NULL columns.
+     * Service.insert() fills the ~16 UI-exposed columns from the user's
+     * PayCode and uses sentinel defaults for the remaining ~106:
+     *   varchar→""   Y/N flag→"N"   int/decimal→0   date→1899-12-31.
+     * Param order matches column order — see PayCodeService.insert().
+     */
+    public static final String INSERT_PAYCODE =
+        "INSERT INTO pacodes (" +
+        "company_no, pay_code, type, desc1, payslip_desc, abbrev_desc, " +
+        "print_on_payslip_flag, wcomp_flag, super_flag, term_e_flag, " +
+        "allow_rate, allow_amt, allow_unit_per_desc, " +
+        "allow_lsl_return_flag, allow_payroll_tax_flag, allow_lsl_accrual_flag, " +
+        "allow_al_accrual_flag, allow_sl_accrual_flag, allow_rdo_accrual_flag, " +
+        "allow_include_for_rdo, allow_ret_comm_ind, allow_include_for_gc, " +
+        "cg_costing_split_flag, allow_lsl_cas_accrual, allow_fbt_flag, " +
+        "allow_rpt_inc_flag, allow_gst_flag, allow_gst_code, allow_cdep_flag, " +
+        "dedn_perc, dedn_amt, dedn_pay_method, dedn_remittance_freq, " +
+        "dedn_clear_acct_main, dedn_clear_acct_sub, dedn_reportable_flag, " +
+        "dedn_wplace_give_flag, dedn_union_fees_flag, dedn_used_for_super, " +
+        "super_employee_perc, super_pay_method, super_remittance_freq, " +
+        "super_clear_acct_main, super_clear_acct_sub, super_tfr_file_flag, " +
+        "super_payroll_tax_flag, " +
+        "fund_name, fund_addr_1, fund_addr_2, fund_addr_3, " +
+        "bank_bsb, bank_acct_no, contact_name, contact_phone, " +
+        "plan_no, bank_code, acct_name, " +
+        "super_reportable_flag, super_before_after_tax, max_super_ytd, " +
+        "pay_factor, pay_rate, pay_payable_flag, " +
+        "pay_lsl_accrual_flag, pay_al_accrual_flag, pay_sick_accrual_flag, " +
+        "pay_rdo_accrual_flag, pay_include_for_rdo, pay_ret_comm_ind, " +
+        "pay_lsl_return_flag, pay_usual_paid_flag, pay_lsl_cas_accrual, " +
+        "pay_cdep_flag, " +
+        "leave_max_taken, leave_lsl_accrual_flag, leave_al_accrual_flag, " +
+        "leave_sl_accrual_flag, leave_rdo_accrual_flag, leave_payable_flag, " +
+        "leave_include_for_rdo, leave_pay_factor, leave_lsl_return_flag, " +
+        "leave_term_pay_flag, leave_max_period, leave_usual_paid_flag, " +
+        "leave_lsl_cas_accrual, leave_cdep_flag, " +
+        "contrib_paid_flag, contrib_remit_freq, contrib_pay_method, " +
+        "contrib_fbt_flag, contrib_rpt_inc_flag, contrib_clear_main, " +
+        "contrib_clear_sub, contrib_report_flag, contrib_deduct_taxable, " +
+        "contrib_pay_tax_flag, contrib_gst_flag, contrib_gst_code, " +
+        "contrib_used_for_super, " +
+        "tax_remit_freq, tax_pay_method, eft_reference, " +
+        "fund_abn, fund_usi, fund_esa, " +
+        "apra_smsf_fund_ind, superstream_enabled, super_guarantee_flag, " +
+        "superstream_category, other_data, ku_calc_method, " +
+        "su_jl_post_qty_flag, vs_payslip_desc, note_no, " +
+        "audit_user_id, audit_date, audit_time_hr, audit_time_min, " +
+        "audit_time_sec, audit_time_hun" +
+        ") VALUES (" +
+        "?,?,?,?,?,?,?,?,?,?," +  //   1- 10
+        "?,?,?,?,?,?,?,?,?,?," +  //  11- 20
+        "?,?,?,?,?,?,?,?,?,?," +  //  21- 30
+        "?,?,?,?,?,?,?,?,?,?," +  //  31- 40
+        "?,?,?,?,?,?,?,?,?,?," +  //  41- 50
+        "?,?,?,?,?,?,?,?,?,?," +  //  51- 60
+        "?,?,?,?,?,?,?,?,?,?," +  //  61- 70
+        "?,?,?,?,?,?,?,?,?,?," +  //  71- 80
+        "?,?,?,?,?,?,?,?,?,?," +  //  81- 90
+        "?,?,?,?,?,?,?,?,?,?," +  //  91-100
+        "?,?,?,?,?,?,?,?,?,?," +  // 101-110
+        "?,?,?,?,?,?,?,?,?,?," +  // 111-120
+        "?" +                      // 121
+        ")";
+
+    // ─── pastaff — full INSERT (120 columns) ────────────────────────────
+
+    /**
+     * Insert a new pastaff row. ALL 121 columns supplied — same rationale
+     * as INSERT_PAYCODE. Service.insert() fills the ~28 UI-exposed columns
+     * and uses sentinel defaults for the remaining ~93.
+     * Param order matches column order — see EmployeeService.insert().
+     */
+    public static final String INSERT_EMPLOYEE =
+        "INSERT INTO pastaff (" +
+        "company_no, surname, first_name, employee_no, paygroup, dept, " +
+        "paygroup_employee_no, award, job_class, award_employee_no, " +
+        "second_name, addr_1, addr_2, city, state, postcode, auth_level, " +
+        "employee_status, employee_type, date_started, date_terminated, " +
+        "termination_code, detail_pay_hist_flag, over_award_flag, " +
+        "use_award_rates, pay_freq, annual_salary, std_hrs, std_rate_per_hr, " +
+        "std_gross, employer_amt, actual_paid_rate, " +
+        "tax_scale_no, hecs_debt_flag, dependant_rebate_amt, extra_tax_amt, " +
+        "zone_allow, family_tax_annual_amt, medicare_levy_adjust, " +
+        "no_of_children, tax_file_no, payment_summary_type, group_cert_no, " +
+        "last_grp_cert_date, paid_thru_to_date, last_payrun_no, " +
+        "current_payrun_no, timesheets_to_date, " +
+        "start_al_sl_accrual, al_loading, al_loading_pay_code, " +
+        "accrued_al_loading, all_accrued_this_yr, al_hrs_since_aug_93, " +
+        "al_hrs_accrued, al_hrs_curr_yr, " +
+        "start_lsl_accrual, lsl_hrs_bef_78, lsl_hrs_aft_78, " +
+        "lsl_hrs_since_aug_93, lsl_weeks_accrued, ave_weekly_hrs, " +
+        "lsl_weeks_taken, " +
+        "accrued_sick_leave, sl_accrued_this_yr, accrued_rdo, " +
+        "rdo_accrued_this_yr, accrual_pay_code, paid_hrs_per_day, " +
+        "accrual_mins_per_day, minimum_accrual_mins, leave_note_no, " +
+        "sex, date_of_birth, title1, std_rate_code, " +
+        "ret_comm_staff_flag, retainer_to_date, commission_to_date, " +
+        "ret_deducted_to_date, " +
+        "last_super_date, super_code, super_member_no, last_super_payrun, " +
+        "current_super_payrun, super_comm_date, qualify_days, force_pay_flag, " +
+        "doc_dir, slip_forms_reqd_flag, slip_forms_user_code, " +
+        "slip_forms_print_flag, slip_forms_email_flag, " +
+        "email_address, payment_summary_abn, use_ext_super_flag, kiosk_flag, " +
+        "summ_forms_reqd_flag, summ_forms_user_code, summ_forms_print_flag, " +
+        "summ_forms_email_flag, disabilities_flag, al_loading_pay_code_ex, " +
+        "al_use_actual_rate, sl_use_actual_rate, lsl_use_actual_rate, " +
+        "payment_summary_b_type, accrue_al_by_hrs_flag, " +
+        "cdep_elligible_ind, cdep_current_flag, " +
+        "mobile, phone_area, phone_no, note_no, " +
+        "audit_user_id, audit_date, audit_time_hr, audit_time_min, " +
+        "audit_time_sec, audit_time_hun" +
+        ") VALUES (" +
+        "?,?,?,?,?,?,?,?,?,?," +  //   1- 10
+        "?,?,?,?,?,?,?,?,?,?," +  //  11- 20
+        "?,?,?,?,?,?,?,?,?,?," +  //  21- 30
+        "?,?,?,?,?,?,?,?,?,?," +  //  31- 40
+        "?,?,?,?,?,?,?,?,?,?," +  //  41- 50
+        "?,?,?,?,?,?,?,?,?,?," +  //  51- 60
+        "?,?,?,?,?,?,?,?,?,?," +  //  61- 70
+        "?,?,?,?,?,?,?,?,?,?," +  //  71- 80
+        "?,?,?,?,?,?,?,?,?,?," +  //  81- 90
+        "?,?,?,?,?,?,?,?,?,?," +  //  91-100
+        "?,?,?,?,?,?,?,?,?,?," +  // 101-110
+        "?,?,?,?,?,?,?,?,?,?"  +  // 111-120
+        ")";
 }

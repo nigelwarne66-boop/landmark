@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,9 +33,6 @@ import java.util.Optional;
  *
  * SQL statements live in {@link PayrollSql} — this class holds only the
  * JdbcTemplate calls and the row mapper.
- *
- * INSERT is intentionally not implemented — pacodes has 122 columns,
- * many NOT NULL with no defaults. Maintenance via Edit only for now.
  */
 @Service
 public class PayCodeService {
@@ -101,6 +100,68 @@ public class PayCodeService {
     }
 
     // ── Write operations ──────────────────────────────────────────────────
+
+    /**
+     * Insert a new pacodes row.
+     * Binds all 121 columns (see PayrollSql.INSERT_PAYCODE) — UI-exposed
+     * fields come from {@code pc}, audit fields from {@code userId} + now,
+     * everything else gets a sentinel default ("", "N", 0, BigDecimal.ZERO).
+     * Caller must verify no duplicate exists.
+     */
+    @Transactional
+    public void insert(int companyNo, PayCode pc, String userId) {
+        java.sql.Date today = java.sql.Date.valueOf(LocalDate.now());
+        LocalTime now = LocalTime.now();
+        int hr  = now.getHour();
+        int min = now.getMinute();
+        int sec = now.getSecond();
+        BigDecimal Z = BigDecimal.ZERO;
+
+        jdbc.update(PayrollSql.INSERT_PAYCODE,
+            //  1- 6 identity / display
+            companyNo, trimUp(pc.payCode, 10), pc.payType, trim(pc.desc1, 30),
+            trim(pc.payslipDesc, 30), trim(pc.abbrevDesc, 10),
+            //  7-10 behaviour flags
+            yn(pc.printOnPayslipFlag), yn(pc.wcompFlag),
+            yn(pc.superFlag), yn(pc.termEFlag),
+            // 11-13 allowance rate/amt + unit description
+            nz(pc.allowRate), nz(pc.allowAmt), "",
+            // 14-22 allow_* boolean flags
+            "N", "N", "N", "N", "N", "N", "N", "N", "N",
+            // 23-29 cg/allow_* misc + gst code + cdep
+            "N", "N", "N", "N", "N", "", "N",
+            // 30-31 dedn rate/amt
+            nz(pc.dednPerc), nz(pc.dednAmt),
+            // 32-39 dedn settings
+            "", "", 0, 0, "N", "N", "N", "N",
+            // 40-46 super_*
+            Z, "", "", 0, 0, "N", "N",
+            // 47-50 fund_addr_*
+            "", "", "", "",
+            // 51-57 bank/contact/plan/acct
+            "", "", "", "", "", "", "",
+            // 58-60 super reportable / before_after / max_super_ytd
+            "N", "", Z,
+            // 61-63 pay_factor / pay_rate / pay_payable_flag
+            nz(pc.payFactor), nz(pc.payRate), "N",
+            // 64-73 pay_* flags
+            "N", "N", "N", "N", "N", "N", "N", "N", "N", "N",
+            // 74-80 leave_max_taken + leave_*
+            0, "N", "N", "N", "N", "N", "N",
+            // 81-87 leave_pay_factor + leave_*
+            Z, "N", "N", 0, "N", "N", "N",
+            // 88-100 contrib_*
+            "N", "", "", "N", "N", 0, 0, "N", "N", "N", "N", "", "N",
+            // 101-103 tax_remit_freq / tax_pay_method / eft_reference
+            "", "", "",
+            // 104-106 fund_abn / fund_usi / fund_esa
+            "", "", "",
+            // 107-115 apra/superstream/etc + note_no
+            "", "N", "N", "", "", "", "N", "", 0L,
+            // 116-121 audit
+            userId, today, hr, min, sec, 0
+        );
+    }
 
     /**
      * Update an existing pay code — only the columns the UI exposes.
@@ -172,6 +233,10 @@ public class PayCodeService {
         if (s == null) return "";
         s = s.trim();
         return s.length() > max ? s.substring(0, max) : s;
+    }
+
+    private static String trimUp(String s, int max) {
+        return trim(s, max).toUpperCase();
     }
 
     private static String yn(String s) {
