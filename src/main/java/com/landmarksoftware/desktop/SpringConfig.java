@@ -12,7 +12,6 @@
 package com.landmarksoftware.desktop;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
 
 /**
  * Spring Boot configuration class — kept separate from FixedAssetsApplication
@@ -21,9 +20,13 @@ import org.springframework.context.annotation.ComponentScan;
  *
  * FixedAssetsApplication.init() calls SpringApplication.run(SpringConfig.class, ...)
  * which boots this configuration, scanning all @Component / @Service / @Repository
- * classes in the com.landmarksoftware.desktop package tree.
+ * classes under the com.landmarksoftware package tree.
+ *
+ * scanBasePackages is set explicitly because this class lives in the .desktop
+ * sub-package, while most beans live in sibling packages (model, service, ui,
+ * repository, payroll.*, etc.) — the default scan would miss them.
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.landmarksoftware")
 public class SpringConfig {
     // No content needed — @SpringBootApplication triggers component scan,
     // auto-configuration (DataSource, JdbcTemplate), and property binding.
