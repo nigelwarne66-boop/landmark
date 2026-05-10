@@ -129,6 +129,37 @@ public final class PayrollSql {
     public static final String FIND_NEXT_EMPLOYEE_NO =
         "SELECT COALESCE(MAX(employee_no),0)+1 FROM pastaff WHERE company_no=?";
 
+    // ─── Lookup queries (live-search, used by LookupDialog) ─────────────
+
+    /**
+     * Live-search pay groups for the lookup popup. Filter matches code or
+     * description (LIKE). Caller passes %term% wrapped already (matches
+     * LookupSql conventions). Params: companyNo, like, like.
+     */
+    public static final String SEARCH_PAYGROUPS =
+        "SELECT pay_group, desc1 FROM pagroup " +
+        "WHERE company_no=? AND (pay_group LIKE ? OR desc1 LIKE ?) " +
+        "ORDER BY pay_group LIMIT 200";
+
+    /**
+     * Live-search awards for the lookup popup. Params: companyNo, like, like.
+     */
+    public static final String SEARCH_AWARDS =
+        "SELECT award_code, desc1 FROM paawhed " +
+        "WHERE company_no=? AND (award_code LIKE ? OR desc1 LIKE ?) " +
+        "ORDER BY award_code LIMIT 200";
+
+    /**
+     * Live-search job classifications for the lookup popup.
+     * Filter matches award_code, job_class_code or description (LIKE).
+     * Award code shown alongside since job_class_code is keyed within award.
+     * Params: companyNo, like, like, like.
+     */
+    public static final String SEARCH_JOB_CLASSES =
+        "SELECT award_code, job_class_code, desc1 FROM paawjob " +
+        "WHERE company_no=? AND (award_code LIKE ? OR job_class_code LIKE ? OR desc1 LIKE ?) " +
+        "ORDER BY award_code, job_class_code LIMIT 200";
+
     /**
      * Read just the leave-balance columns for a single employee (display refresh).
      * Params: companyNo, employeeNo.

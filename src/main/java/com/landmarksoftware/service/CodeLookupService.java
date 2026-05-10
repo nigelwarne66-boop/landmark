@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.service;
 
+import com.landmarksoftware.payroll.service.PayrollSql;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -82,6 +83,23 @@ public class CodeLookupService {
     public List<Map<String, String>> searchDepnCodes(int companyNo, String filter) {
         String like = like(filter);
         return query(LookupSql.SEARCH_DEPN_CODES, companyNo, like, like);
+    }
+
+    // ── Payroll codes ─────────────────────────────────────────────────
+
+    public List<Map<String, String>> searchPaygroups(int companyNo, String filter) {
+        String like = like(filter);
+        return query(PayrollSql.SEARCH_PAYGROUPS, companyNo, like, like);
+    }
+
+    public List<Map<String, String>> searchAwards(int companyNo, String filter) {
+        String like = like(filter);
+        return query(PayrollSql.SEARCH_AWARDS, companyNo, like, like);
+    }
+
+    public List<Map<String, String>> searchJobClasses(int companyNo, String filter) {
+        String like = like(filter);
+        return query(PayrollSql.SEARCH_JOB_CLASSES, companyNo, like, like, like);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────

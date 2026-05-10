@@ -14,6 +14,8 @@ package com.landmarksoftware.payroll.ui;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.payroll.model.Employee;
 import com.landmarksoftware.payroll.service.EmployeeService;
+import com.landmarksoftware.service.CodeLookupService;
+import com.landmarksoftware.ui.LookupDialog;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -22,6 +24,7 @@ import javafx.geometry.*;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.stage.*;
 import org.springframework.stereotype.Component;
@@ -57,8 +60,9 @@ public class EmployeeMaintenanceController {
 
     private static final DateTimeFormatter D_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    private final EmployeeService employeeService;
-    private final AppSession      appSession;
+    private final EmployeeService    employeeService;
+    private final CodeLookupService  lookupService;
+    private final AppSession         appSession;
 
     private final ObservableList<Employee> rows = FXCollections.observableArrayList();
     private TableView<Employee> table;
@@ -74,8 +78,10 @@ public class EmployeeMaintenanceController {
     });
 
     public EmployeeMaintenanceController(EmployeeService employeeService,
+                                         CodeLookupService lookupService,
                                          AppSession appSession) {
         this.employeeService = employeeService;
+        this.lookupService   = lookupService;
         this.appSession      = appSession;
     }
 
@@ -433,15 +439,15 @@ public class EmployeeMaintenanceController {
         GridPane gEmp = new GridPane();
         gEmp.setHgap(10); gEmp.setVgap(10); gEmp.setPadding(new Insets(16));
         r = 0;
-        addFormRow(gEmp, r++, "Department:",      fDept);
-        addFormRow(gEmp, r++, "Pay Group:",       fPaygroup);
+        addFormRow(gEmp, r++, "Department:",      lookupField(fDept,     LookupDialog.LookupType.DEPARTMENT));
+        addFormRow(gEmp, r++, "Pay Group:",       lookupField(fPaygroup, LookupDialog.LookupType.PAYGROUP));
         addFormRow(gEmp, r++, "Status *:",        cbStatus);
         addFormRow(gEmp, r++, "Employee Type:",   cbType);
         addFormRow(gEmp, r++, "Date Started:",    dpStarted);
         addFormRow(gEmp, r++, "Date Terminated:", dpTerm);
         addFormRow(gEmp, r++, "Pay Frequency:",   cbFreq);
-        addFormRow(gEmp, r++, "Award:",           fAward);
-        addFormRow(gEmp, r++, "Job Class:",       fJob);
+        addFormRow(gEmp, r++, "Award:",           lookupField(fAward,    LookupDialog.LookupType.AWARD));
+        addFormRow(gEmp, r++, "Job Class:",       lookupField(fJob,      LookupDialog.LookupType.JOB_CLASS));
 
         // ── Pay & Tax tab ─────────────────────────────────────────────────
         TextField fSalary  = tf(decStr(e.annualSalary), 12);
@@ -694,6 +700,39 @@ public class EmployeeMaintenanceController {
         TextField f = new TextField(value == null ? "" : value.trim());
         f.setPrefWidth(Math.min(maxLen * 9 + 10, 320));
         return f;
+    }
+
+    /**
+     * Wrap a TextField in an HBox with a magnifier button on the right.
+     * F5 (when the field is focused) and the button both open a LookupDialog
+     * for the given type; the selected code is written back into the field.
+     */
+    private Node lookupField(TextField field, LookupDialog.LookupType type) {
+        Button btn = new Button("⋯");
+        btn.setStyle(
+            "-fx-background-color:white;-fx-text-fill:#1A6EF5;" +
+            "-fx-border-color:#D0CFC8;-fx-border-width:1;" +
+            "-fx-background-radius:0 7 7 0;-fx-border-radius:0 7 7 0;" +
+            "-fx-padding:4 12;-fx-cursor:hand;-fx-font-weight:bold;");
+        btn.setTooltip(new Tooltip("Lookup (F5)"));
+        btn.setFocusTraversable(false);
+        btn.setOnAction(e -> openLookup(field, type));
+
+        field.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.F5) openLookup(field, type);
+        });
+
+        HBox box = new HBox(0, field, btn);
+        HBox.setHgrow(field, Priority.ALWAYS);
+        return box;
+    }
+
+    private void openLookup(TextField field, LookupDialog.LookupType type) {
+        Window owner = field.getScene() != null ? field.getScene().getWindow() : null;
+        int coNo = appSession.getCompanyNo();
+        LookupDialog dlg = new LookupDialog(
+            lookupService, type, coNo, code -> field.setText(code));
+        dlg.show(owner);
     }
 
     private Button btnPrimary(String text) {

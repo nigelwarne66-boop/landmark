@@ -58,7 +58,10 @@ public class LookupDialog {
         DEPARTMENT("Department", "dept_code"),
         STOCKTAKE_SITE("Stocktake Site", "stake_site_code"),
         INSURANCE_TYPE("Insurance Type", "ins_type_code"),
-        DEPN_CODE("Depreciation Code", "depn_code");
+        DEPN_CODE("Depreciation Code", "depn_code"),
+        PAYGROUP("Pay Group", "pay_group"),
+        AWARD("Award", "award_code"),
+        JOB_CLASS("Job Class", "job_class_code");
 
         final String label;
         final String codeColumn;
@@ -237,6 +240,9 @@ public class LookupDialog {
             case STOCKTAKE_SITE -> lookupService.searchStocktakeSites(companyNo, filter);
             case INSURANCE_TYPE -> lookupService.searchInsuranceTypes(companyNo, filter);
             case DEPN_CODE      -> lookupService.searchDepnCodes(companyNo, filter);
+            case PAYGROUP       -> lookupService.searchPaygroups(companyNo, filter);
+            case AWARD          -> lookupService.searchAwards(companyNo, filter);
+            case JOB_CLASS      -> lookupService.searchJobClasses(companyNo, filter);
         };
     }
 
@@ -282,6 +288,16 @@ public class LookupDialog {
                     new Column("Description", "desc1"));
             case DEPARTMENT -> List.of(
                 new Column("Department",  "dept_code"),
+                new Column("Description", "desc1"));
+            case PAYGROUP   -> List.of(
+                new Column("Pay Group",   "pay_group"),
+                new Column("Description", "desc1"));
+            case AWARD      -> List.of(
+                new Column("Award",       "award_code"),
+                new Column("Description", "desc1"));
+            case JOB_CLASS  -> List.of(
+                new Column("Award",       "award_code"),
+                new Column("Job Class",   "job_class_code"),
                 new Column("Description", "desc1"));
         };
     }
