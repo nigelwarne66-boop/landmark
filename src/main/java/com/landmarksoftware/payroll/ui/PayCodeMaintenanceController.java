@@ -248,33 +248,45 @@ public class PayCodeMaintenanceController {
 
     // ── Edit dialog ───────────────────────────────────────────────────────
 
+    /**
+     * Two-screen dialog flow mirroring COBOL PACD01:
+     *   S1 (header)  → user enters code/desc/type/behaviour, clicks "Next →"
+     *   S2 (type-spec) → user enters PAY/ALLOW/DEDN fields, clicks Add/Save
+     *   For groups without UI yet (LEAVE/SUPER/TAX/TERM_E/CONTRIB/NONE),
+     *   S2 is skipped and the record saves directly with sentinel defaults.
+     */
     private void openDialog(PayCode existing, Window owner) {
         boolean isAdd = (existing == null);
-        Stage dlg = new Stage();
-        dlg.initOwner(owner);
-        dlg.initModality(Modality.WINDOW_MODAL);
-        dlg.setTitle(isAdd ? "Add Pay Code — PACD01" : "Edit Pay Code — PACD01");
-        dlg.setResizable(false);
-
-        PayCode pc = isAdd ? new PayCode() : existing;
+        PayCode pc;
         if (isAdd) {
-            // Sensible defaults for a fresh pay code
-            pc.payType            = 1;       // Income
+            pc = new PayCode();
+            pc.payType            = 1;
             pc.printOnPayslipFlag = "Y";
             pc.superFlag          = "N";
             pc.wcompFlag          = "N";
             pc.termEFlag          = "N";
+        } else {
+            pc = existing;
         }
+        openHeaderDialog(pc, isAdd, owner);
+    }
+
+    // ── Screen 1 — Header (code, desc, type, behaviour flags) ────────────
+
+    private void openHeaderDialog(PayCode pc, boolean isAdd, Window owner) {
+        Stage dlg = new Stage();
+        dlg.initOwner(owner);
+        dlg.initModality(Modality.WINDOW_MODAL);
+        dlg.setTitle((isAdd ? "Add" : "Edit") + " Pay Code — Header (S1)");
+        dlg.setResizable(false);
 
         TextField fCode    = tf(pc.payCode, 10);
-        fCode.setEditable(isAdd);
-        fCode.setDisable(!isAdd);
+        fCode.setEditable(isAdd); fCode.setDisable(!isAdd);
         TextField fDesc    = tf(pc.desc1, 30);
         TextField fPayslip = tf(pc.payslipDesc, 30);
         TextField fAbbrev  = tf(pc.abbrevDesc, 10);
 
         ChoiceBox<String> cbType = new ChoiceBox<>();
-        // 24 type labels — sourced from PACD01.cbl WS-PAYCODE-TYPE-LIT-TABLE.
         for (int t = 1; t <= 24; t++) {
             PayCode tmp = new PayCode(); tmp.payType = t;
             cbType.getItems().add(String.format("%2d — %s", t, tmp.payTypeLabel()));
@@ -291,114 +303,44 @@ public class PayCodeMaintenanceController {
         CheckBox cbTermE = new CheckBox("Termination earning");
         cbTermE.setSelected("Y".equals(pc.termEFlag));
 
-        TextField fPayRate    = tf(decStr(pc.payRate),   12);
-        TextField fPayFactor  = tf(decStr(pc.payFactor), 12);
-        TextField fAllowRate  = tf(decStr(pc.allowRate), 12);
-        TextField fAllowAmt   = tf(decStr(pc.allowAmt),  12);
-        TextField fDednPerc   = tf(decStr(pc.dednPerc),  12);
-        TextField fDednAmt    = tf(decStr(pc.dednAmt),   12);
-
         VBox form = new VBox(10);
         form.setPadding(new Insets(20));
-
-        Label hdr = headerLine("Pay Code Details");
-        form.getChildren().add(hdr);
-
-        form.getChildren().add(twoColRow("Pay Code:",      fCode));
-        form.getChildren().add(twoColRow("Description *:", fDesc));
-        form.getChildren().add(twoColRow("Payslip Desc:",  fPayslip));
-        form.getChildren().add(twoColRow("Abbrev Desc:",   fAbbrev));
-        form.getChildren().add(twoColRow("Pay Type *:",    cbType));
-
+        form.getChildren().add(headerLine("Pay Code — Header"));
+        form.getChildren().addAll(
+            twoColRow("Pay Code:",      fCode),
+            twoColRow("Description *:", fDesc),
+            twoColRow("Payslip Desc:",  fPayslip),
+            twoColRow("Abbrev Desc:",   fAbbrev),
+            twoColRow("Pay Type *:",    cbType));
         form.getChildren().add(sectionHeader("Behaviour"));
         form.getChildren().addAll(cbPrint, cbSuper, cbWcomp, cbTermE);
 
-        // ── Type-specific field group sections ──────────────────────────
-        // Each section is a VBox toggled visible based on the selected type.
-        VBox payBox = sectionBox("Income (Normal Pay / Overtime / Other Pay)",
-            twoColRow("Pay Rate:",   fPayRate),
-            twoColRow("Pay Factor:", fPayFactor),
-            hint("Used when type = 1, 2, or 3 (pay rate × factor)"));
+        Label nextHint = new Label();
+        nextHint.setWrapText(true);
+        nextHint.setStyle("-fx-text-fill:#888780;-fx-font-style:italic;-fx-padding:8 0 0 0;");
+        form.getChildren().add(nextHint);
 
-        VBox allowBox = sectionBox("Allowance / Termination",
-            twoColRow("Allow Rate:", fAllowRate),
-            twoColRow("Allow Amt:",  fAllowAmt),
-            hint("Used when type = 10-14 (allowances and terminations A/B/C)"));
-
-        VBox dednBox = sectionBox("Deduction",
-            twoColRow("Dedn %:",   fDednPerc),
-            twoColRow("Dedn Amt:", fDednAmt),
-            hint("Used when type = 15 or 16 (% of gross or fixed $)"));
-
-        Label placeholderMsg = new Label();
-        placeholderMsg.setWrapText(true);
-        placeholderMsg.setStyle("-fx-text-fill:#888780;-fx-font-style:italic;");
-        VBox placeholderBox = sectionBox("Type-specific fields",
-            placeholderMsg);
-
-        form.getChildren().addAll(payBox, allowBox, dednBox, placeholderBox);
-
-        // ── Type → field-group visibility + flag locks ──────────────────
+        // Type listener: super/wcomp locks + next-step description
         Runnable applyTypeLogic = () -> {
-            int selectedType = cbType.getSelectionModel().getSelectedIndex() + 1;
-            PayCode.FieldGroup grp = PayCode.fieldGroupFor(selectedType);
-
-            setSectionVisible(payBox,         grp == PayCode.FieldGroup.PAY);
-            setSectionVisible(allowBox,       grp == PayCode.FieldGroup.ALLOW);
-            setSectionVisible(dednBox,        grp == PayCode.FieldGroup.DEDN);
-
-            // Placeholder for groups whose UI isn't built yet
-            String msg = switch (grp) {
-                case LEAVE   -> "Leave settings (max taken, accrual flags, leave loading) "
-                              + "for type " + selectedType + " will be saved with default "
-                              + "values in this version. Full leave UI is planned for "
-                              + "a follow-up release.";
-                case SUPER   -> "Superannuation fund details, EFT, SuperStream and "
-                              + "before/after-tax flag for type " + selectedType + " "
-                              + "will be saved with default values. Full super UI is "
-                              + "planned for a follow-up release.";
-                case TAX     -> "Tax remittance method and EFT reference for type 18 "
-                              + "will be saved with default values. Full tax UI is "
-                              + "planned for a follow-up release.";
-                case TERM_E  -> "Termination earning (term_e) flag will be set; no "
-                              + "additional fields apply for type 19.";
-                case CONTRIB -> "Employer contribution settings (clearing accounts, "
-                              + "EFT, GST) for type 21 will be saved with default "
-                              + "values. Full contribution UI is planned for a "
-                              + "follow-up release.";
-                case NONE    -> "Type " + selectedType + " is header-only (no detail "
-                              + "fields apply). The pay code will be saved with the "
-                              + "behaviour flags above only.";
-                default      -> "";
-            };
-            setSectionVisible(placeholderBox, !msg.isEmpty());
-            placeholderMsg.setText(msg);
-
-            // Flag locks (mirrors PACD01.pl CHECK-PAY-TYPE)
-            if (PayCode.superFlagLockedNo(selectedType)) {
-                cbSuper.setSelected(false);
-                cbSuper.setDisable(true);
-            } else {
-                cbSuper.setDisable(false);
-            }
-            if (PayCode.wcompFlagLockedNo(selectedType)) {
-                cbWcomp.setSelected(false);
-                cbWcomp.setDisable(true);
-            } else {
-                cbWcomp.setDisable(false);
-            }
+            int t = cbType.getSelectionModel().getSelectedIndex() + 1;
+            if (PayCode.superFlagLockedNo(t)) { cbSuper.setSelected(false); cbSuper.setDisable(true); }
+            else cbSuper.setDisable(false);
+            if (PayCode.wcompFlagLockedNo(t)) { cbWcomp.setSelected(false); cbWcomp.setDisable(true); }
+            else cbWcomp.setDisable(false);
+            nextHint.setText(nextStepHint(PayCode.fieldGroupFor(t)));
         };
         cbType.getSelectionModel().selectedIndexProperty()
             .addListener((o, ov, nv) -> applyTypeLogic.run());
-        applyTypeLogic.run();  // initial state
+        applyTypeLogic.run();
 
-        // ── Buttons ───────────────────────────────────────────────────────
-        Button btnSave   = btnPrimary(isAdd ? "Add" : "Save");
+        // Buttons — "Next →" advances to S2 (or saves directly if no S2 for the type)
+        Button btnNext   = btnPrimary("Next →");
         Button btnCancel = btnSecondary("Cancel");
-        btnSave.setDefaultButton(true);
+        btnNext.setDefaultButton(true);
         btnCancel.setOnAction(e -> dlg.close());
 
-        btnSave.setOnAction(e -> {
+        btnNext.setOnAction(e -> {
+            // Validate header
             String code = fCode.getText().trim().toUpperCase();
             if (isAdd) {
                 if (code.isEmpty()) { markError(fCode, "Pay Code is required."); return; }
@@ -409,58 +351,38 @@ public class PayCodeMaintenanceController {
             if (desc.isEmpty()) { markError(fDesc, "Description is required."); return; }
             clearError(fDesc);
 
-            BigDecimal payRate   = parseDec(fPayRate,   "Pay Rate");   if (payRate   == null) return;
-            BigDecimal payFactor = parseDec(fPayFactor, "Pay Factor"); if (payFactor == null) return;
-            BigDecimal allowRate = parseDec(fAllowRate, "Allow Rate"); if (allowRate == null) return;
-            BigDecimal allowAmt  = parseDec(fAllowAmt,  "Allow Amt");  if (allowAmt  == null) return;
-            BigDecimal dednPerc  = parseDec(fDednPerc,  "Dedn %");     if (dednPerc  == null) return;
-            BigDecimal dednAmt   = parseDec(fDednAmt,   "Dedn Amt");   if (dednAmt   == null) return;
+            // Write header into pc (carries forward to S2 / save)
+            pc.payCode            = isAdd ? code : pc.payCode;
+            pc.desc1              = desc;
+            pc.payslipDesc        = fPayslip.getText().trim();
+            pc.abbrevDesc         = fAbbrev.getText().trim();
+            pc.payType            = cbType.getSelectionModel().getSelectedIndex() + 1;
+            pc.printOnPayslipFlag = cbPrint.isSelected() ? "Y" : "N";
+            pc.superFlag          = cbSuper.isSelected() ? "Y" : "N";
+            pc.wcompFlag          = cbWcomp.isSelected() ? "Y" : "N";
+            pc.termEFlag          = cbTermE.isSelected() ? "Y" : "N";
 
-            PayCode out = new PayCode();
-            out.payCode            = isAdd ? code : pc.payCode;
-            out.desc1              = desc;
-            out.payslipDesc        = fPayslip.getText().trim();
-            out.abbrevDesc         = fAbbrev.getText().trim();
-            out.payType            = cbType.getSelectionModel().getSelectedIndex() + 1;
-            out.printOnPayslipFlag = cbPrint.isSelected() ? "Y" : "N";
-            out.superFlag          = cbSuper.isSelected() ? "Y" : "N";
-            out.wcompFlag          = cbWcomp.isSelected() ? "Y" : "N";
-            out.termEFlag          = cbTermE.isSelected() ? "Y" : "N";
-            out.payRate            = payRate;
-            out.payFactor          = payFactor;
-            out.allowRate          = allowRate;
-            out.allowAmt           = allowAmt;
-            out.dednPerc           = dednPerc;
-            out.dednAmt            = dednAmt;
-
-            int coNo = appSession.getCompanyNo();
-            String userId = appSession.getUserId();
-
-            exec.submit(() -> {
-                try {
-                    if (isAdd) {
-                        if (payCodeService.exists(coNo, out.payCode)) {
-                            Platform.runLater(() ->
-                                status("Pay code " + out.payCode + " already exists.", true));
-                            return;
-                        }
-                        payCodeService.insert(coNo, out, userId);
-                    } else {
-                        payCodeService.update(coNo, out);
-                    }
+            if (isAdd) {
+                // Off-thread duplicate check before opening S2
+                int coNo = appSession.getCompanyNo();
+                exec.submit(() -> {
+                    boolean dup = payCodeService.exists(coNo, pc.payCode);
                     Platform.runLater(() -> {
-                        status((isAdd ? "Added: " : "Updated: ") + out.payCode, false);
-                        dlg.close();
-                        loadList();
+                        if (dup) {
+                            markError(fCode, "Pay code " + pc.payCode + " already exists.");
+                        } else {
+                            dlg.close();
+                            openS2OrSave(pc, isAdd, owner);
+                        }
                     });
-                } catch (Exception ex) {
-                    Platform.runLater(() ->
-                        status("Save error: " + ex.getMessage(), true));
-                }
-            });
+                });
+            } else {
+                dlg.close();
+                openS2OrSave(pc, isAdd, owner);
+            }
         });
 
-        HBox btnBar = new HBox(10, btnSave, btnCancel);
+        HBox btnBar = new HBox(10, btnNext, btnCancel);
         btnBar.setPadding(new Insets(10, 20, 16, 20));
         btnBar.setAlignment(Pos.CENTER_RIGHT);
         btnBar.setStyle(
@@ -469,11 +391,147 @@ public class PayCodeMaintenanceController {
             "-fx-border-width:0.5 0 0 0;");
 
         ScrollPane scroll = new ScrollPane(form);
-        scroll.setFitToWidth(true);
-        scroll.setBorder(null);
+        scroll.setFitToWidth(true); scroll.setBorder(null);
         VBox root = new VBox(0, scroll, btnBar);
-        dlg.setScene(new Scene(root, 480, 680));
+        dlg.setScene(new Scene(root, 480, 480));
         dlg.showAndWait();
+    }
+
+    /** Decide whether S2 is needed for the chosen type, then save or open S2. */
+    private void openS2OrSave(PayCode pc, boolean isAdd, Window owner) {
+        PayCode.FieldGroup g = pc.fieldGroup();
+        if (g == PayCode.FieldGroup.PAY
+         || g == PayCode.FieldGroup.ALLOW
+         || g == PayCode.FieldGroup.DEDN) {
+            openTypeFieldsDialog(pc, isAdd, owner);
+        } else {
+            doSave(pc, isAdd);
+        }
+    }
+
+    // ── Screen 2 — Type-specific fields (PAY / ALLOW / DEDN only) ────────
+
+    private void openTypeFieldsDialog(PayCode pc, boolean isAdd, Window owner) {
+        Stage dlg = new Stage();
+        dlg.initOwner(owner);
+        dlg.initModality(Modality.WINDOW_MODAL);
+        dlg.setTitle((isAdd ? "Add" : "Edit") + " Pay Code — " + pc.payTypeLabel() + " (S2)");
+        dlg.setResizable(false);
+
+        PayCode.FieldGroup g = pc.fieldGroup();
+
+        // Build the fields for the group; declared as effectively final for the lambda
+        TextField fPayRate    = (g == PayCode.FieldGroup.PAY)   ? tf(decStr(pc.payRate),   12) : null;
+        TextField fPayFactor  = (g == PayCode.FieldGroup.PAY)   ? tf(decStr(pc.payFactor), 12) : null;
+        TextField fAllowRate  = (g == PayCode.FieldGroup.ALLOW) ? tf(decStr(pc.allowRate), 12) : null;
+        TextField fAllowAmt   = (g == PayCode.FieldGroup.ALLOW) ? tf(decStr(pc.allowAmt),  12) : null;
+        TextField fDednPerc   = (g == PayCode.FieldGroup.DEDN)  ? tf(decStr(pc.dednPerc),  12) : null;
+        TextField fDednAmt    = (g == PayCode.FieldGroup.DEDN)  ? tf(decStr(pc.dednAmt),   12) : null;
+
+        VBox form = new VBox(10);
+        form.setPadding(new Insets(20));
+        form.getChildren().add(headerLine(
+            pc.payCode + " — " + pc.desc1 + "  (" + pc.payTypeLabel() + ")"));
+        Label intro = new Label("Enter the type-specific fields for this pay code:");
+        intro.setStyle("-fx-text-fill:#888780;-fx-padding:0 0 8 0;");
+        form.getChildren().add(intro);
+
+        switch (g) {
+            case PAY -> form.getChildren().addAll(
+                twoColRow("Pay Rate:",   fPayRate),
+                twoColRow("Pay Factor:", fPayFactor),
+                hint("Income computed as pay_rate × pay_factor."));
+            case ALLOW -> form.getChildren().addAll(
+                twoColRow("Allow Rate:", fAllowRate),
+                twoColRow("Allow Amt:",  fAllowAmt),
+                hint("Allowance rate per unit, fixed amount per period."));
+            case DEDN -> form.getChildren().addAll(
+                twoColRow("Dedn %:",   fDednPerc),
+                twoColRow("Dedn Amt:", fDednAmt),
+                hint("Deduction either as % of gross or as fixed $ per period."));
+            default -> { /* unreachable — gated in openS2OrSave */ }
+        }
+
+        Button btnSave   = btnPrimary(isAdd ? "Add" : "Save");
+        Button btnBack   = btnSecondary("← Back");
+        Button btnCancel = btnSecondary("Cancel");
+        btnSave.setDefaultButton(true);
+        btnCancel.setOnAction(e -> dlg.close());
+        btnBack.setOnAction(e -> {
+            dlg.close();
+            openHeaderDialog(pc, isAdd, owner);
+        });
+
+        btnSave.setOnAction(e -> {
+            switch (g) {
+                case PAY -> {
+                    BigDecimal pr = parseDec(fPayRate,   "Pay Rate");   if (pr == null) return;
+                    BigDecimal pf = parseDec(fPayFactor, "Pay Factor"); if (pf == null) return;
+                    pc.payRate = pr; pc.payFactor = pf;
+                }
+                case ALLOW -> {
+                    BigDecimal ar = parseDec(fAllowRate, "Allow Rate"); if (ar == null) return;
+                    BigDecimal aa = parseDec(fAllowAmt,  "Allow Amt");  if (aa == null) return;
+                    pc.allowRate = ar; pc.allowAmt = aa;
+                }
+                case DEDN -> {
+                    BigDecimal dp = parseDec(fDednPerc, "Dedn %");   if (dp == null) return;
+                    BigDecimal da = parseDec(fDednAmt,  "Dedn Amt"); if (da == null) return;
+                    pc.dednPerc = dp; pc.dednAmt = da;
+                }
+                default -> { /* unreachable */ }
+            }
+            dlg.close();
+            doSave(pc, isAdd);
+        });
+
+        HBox btnBar = new HBox(10, btnBack, btnSave, btnCancel);
+        btnBar.setPadding(new Insets(10, 20, 16, 20));
+        btnBar.setAlignment(Pos.CENTER_RIGHT);
+        btnBar.setStyle(
+            "-fx-background-color:#F2F1EC;" +
+            "-fx-border-color:rgba(0,0,0,.10) transparent transparent transparent;" +
+            "-fx-border-width:0.5 0 0 0;");
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(true); scroll.setBorder(null);
+        VBox root = new VBox(0, scroll, btnBar);
+        dlg.setScene(new Scene(root, 480, 320));
+        dlg.showAndWait();
+    }
+
+    /** Common save path for both Add (after S2) and Edit. */
+    private void doSave(PayCode pc, boolean isAdd) {
+        int coNo = appSession.getCompanyNo();
+        String userId = appSession.getUserId();
+        exec.submit(() -> {
+            try {
+                if (isAdd) payCodeService.insert(coNo, pc, userId);
+                else        payCodeService.update(coNo, pc);
+                Platform.runLater(() -> {
+                    status((isAdd ? "Added: " : "Updated: ") + pc.payCode, false);
+                    loadList();
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() ->
+                    status("Save error: " + ex.getMessage(), true));
+            }
+        });
+    }
+
+    /** Description shown on S1 telling the user what S2 will look like. */
+    private static String nextStepHint(PayCode.FieldGroup g) {
+        return switch (g) {
+            case PAY     -> "Next: enter pay rate and pay factor (Income / Overtime / Other Pay).";
+            case ALLOW   -> "Next: enter allowance rate and amount.";
+            case DEDN    -> "Next: enter deduction percentage and amount.";
+            case LEAVE   -> "No second screen yet — leave settings will save with default values.";
+            case SUPER   -> "No second screen yet — super fund details will save with default values.";
+            case TAX     -> "No second screen yet — tax remittance fields will save with default values.";
+            case TERM_E  -> "Termination flag will be set; no further fields apply.";
+            case CONTRIB -> "No second screen yet — employer contribution fields will save with default values.";
+            case NONE    -> "Header-only type — clicking Next will save the record immediately.";
+        };
     }
 
     private Label headerLine(String text) {
