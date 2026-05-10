@@ -274,10 +274,13 @@ public class PayCodeMaintenanceController {
         TextField fAbbrev  = tf(pc.abbrevDesc, 10);
 
         ChoiceBox<String> cbType = new ChoiceBox<>();
-        cbType.getItems().addAll(
-            "1 — Income", "2 — Allowance", "3 — Deduction", "4 — Tax", "5 — Super");
-        cbType.getSelectionModel().select(Math.max(0, Math.min(4, pc.payType - 1)));
-        cbType.setPrefWidth(200);
+        // 24 type labels — sourced from PACD01.cbl WS-PAYCODE-TYPE-LIT-TABLE.
+        for (int t = 1; t <= 24; t++) {
+            PayCode tmp = new PayCode(); tmp.payType = t;
+            cbType.getItems().add(String.format("%2d — %s", t, tmp.payTypeLabel()));
+        }
+        cbType.getSelectionModel().select(Math.max(0, Math.min(23, pc.payType - 1)));
+        cbType.setPrefWidth(260);
 
         CheckBox cbPrint = new CheckBox("Print on payslip");
         cbPrint.setSelected("Y".equals(pc.printOnPayslipFlag));
@@ -295,47 +298,99 @@ public class PayCodeMaintenanceController {
         TextField fDednPerc   = tf(decStr(pc.dednPerc),  12);
         TextField fDednAmt    = tf(decStr(pc.dednAmt),   12);
 
-        Label payHint   = hint("Used when type = Income (pay rate × factor)");
-        Label allowHint = hint("Used when type = Allowance");
-        Label dednHint  = hint("Used when type = Deduction (% of gross or fixed $)");
+        VBox form = new VBox(10);
+        form.setPadding(new Insets(20));
 
-        GridPane form = new GridPane();
-        form.setHgap(10); form.setVgap(10); form.setPadding(new Insets(20));
-        int r = 0;
         Label hdr = headerLine("Pay Code Details");
-        form.add(hdr, 0, r, 2, 1); r++;
+        form.getChildren().add(hdr);
 
-        addFormRow(form, r++, "Pay Code:",       fCode);
-        addFormRow(form, r++, "Description *:",  fDesc);
-        addFormRow(form, r++, "Payslip Desc:",   fPayslip);
-        addFormRow(form, r++, "Abbrev Desc:",    fAbbrev);
-        addFormRow(form, r++, "Pay Type *:",     cbType);
+        form.getChildren().add(twoColRow("Pay Code:",      fCode));
+        form.getChildren().add(twoColRow("Description *:", fDesc));
+        form.getChildren().add(twoColRow("Payslip Desc:",  fPayslip));
+        form.getChildren().add(twoColRow("Abbrev Desc:",   fAbbrev));
+        form.getChildren().add(twoColRow("Pay Type *:",    cbType));
 
-        Label lBehav = new Label("Behaviour");
-        lBehav.setStyle("-fx-font-size:12px;-fx-font-weight:bold;-fx-text-fill:#374151;-fx-padding:8 0 0 0;");
-        form.add(lBehav, 0, r, 2, 1); r++;
-        form.add(cbPrint, 0, r, 2, 1); r++;
-        form.add(cbSuper, 0, r, 2, 1); r++;
-        form.add(cbWcomp, 0, r, 2, 1); r++;
-        form.add(cbTermE, 0, r, 2, 1); r++;
+        form.getChildren().add(sectionHeader("Behaviour"));
+        form.getChildren().addAll(cbPrint, cbSuper, cbWcomp, cbTermE);
 
-        Label lInc = new Label("Income (type 1)");
-        lInc.setStyle("-fx-font-size:12px;-fx-font-weight:bold;-fx-text-fill:#374151;-fx-padding:8 0 0 0;");
-        form.add(lInc, 0, r, 2, 1); r++;
-        addFormRowWithHint(form, r++, "Pay Rate:",   fPayRate,   payHint);
-        addFormRow(form, r++,         "Pay Factor:", fPayFactor);
+        // ── Type-specific field group sections ──────────────────────────
+        // Each section is a VBox toggled visible based on the selected type.
+        VBox payBox = sectionBox("Income (Normal Pay / Overtime / Other Pay)",
+            twoColRow("Pay Rate:",   fPayRate),
+            twoColRow("Pay Factor:", fPayFactor),
+            hint("Used when type = 1, 2, or 3 (pay rate × factor)"));
 
-        Label lAllow = new Label("Allowance (type 2)");
-        lAllow.setStyle("-fx-font-size:12px;-fx-font-weight:bold;-fx-text-fill:#374151;-fx-padding:8 0 0 0;");
-        form.add(lAllow, 0, r, 2, 1); r++;
-        addFormRowWithHint(form, r++, "Allow Rate:", fAllowRate, allowHint);
-        addFormRow(form, r++,         "Allow Amt:",  fAllowAmt);
+        VBox allowBox = sectionBox("Allowance / Termination",
+            twoColRow("Allow Rate:", fAllowRate),
+            twoColRow("Allow Amt:",  fAllowAmt),
+            hint("Used when type = 10-14 (allowances and terminations A/B/C)"));
 
-        Label lDedn = new Label("Deduction (type 3)");
-        lDedn.setStyle("-fx-font-size:12px;-fx-font-weight:bold;-fx-text-fill:#374151;-fx-padding:8 0 0 0;");
-        form.add(lDedn, 0, r, 2, 1); r++;
-        addFormRowWithHint(form, r++, "Dedn %:",     fDednPerc,  dednHint);
-        addFormRow(form, r++,         "Dedn Amt:",   fDednAmt);
+        VBox dednBox = sectionBox("Deduction",
+            twoColRow("Dedn %:",   fDednPerc),
+            twoColRow("Dedn Amt:", fDednAmt),
+            hint("Used when type = 15 or 16 (% of gross or fixed $)"));
+
+        Label placeholderMsg = new Label();
+        placeholderMsg.setWrapText(true);
+        placeholderMsg.setStyle("-fx-text-fill:#888780;-fx-font-style:italic;");
+        VBox placeholderBox = sectionBox("Type-specific fields",
+            placeholderMsg);
+
+        form.getChildren().addAll(payBox, allowBox, dednBox, placeholderBox);
+
+        // ── Type → field-group visibility + flag locks ──────────────────
+        Runnable applyTypeLogic = () -> {
+            int selectedType = cbType.getSelectionModel().getSelectedIndex() + 1;
+            PayCode.FieldGroup grp = PayCode.fieldGroupFor(selectedType);
+
+            setSectionVisible(payBox,         grp == PayCode.FieldGroup.PAY);
+            setSectionVisible(allowBox,       grp == PayCode.FieldGroup.ALLOW);
+            setSectionVisible(dednBox,        grp == PayCode.FieldGroup.DEDN);
+
+            // Placeholder for groups whose UI isn't built yet
+            String msg = switch (grp) {
+                case LEAVE   -> "Leave settings (max taken, accrual flags, leave loading) "
+                              + "for type " + selectedType + " will be saved with default "
+                              + "values in this version. Full leave UI is planned for "
+                              + "a follow-up release.";
+                case SUPER   -> "Superannuation fund details, EFT, SuperStream and "
+                              + "before/after-tax flag for type " + selectedType + " "
+                              + "will be saved with default values. Full super UI is "
+                              + "planned for a follow-up release.";
+                case TAX     -> "Tax remittance method and EFT reference for type 18 "
+                              + "will be saved with default values. Full tax UI is "
+                              + "planned for a follow-up release.";
+                case TERM_E  -> "Termination earning (term_e) flag will be set; no "
+                              + "additional fields apply for type 19.";
+                case CONTRIB -> "Employer contribution settings (clearing accounts, "
+                              + "EFT, GST) for type 21 will be saved with default "
+                              + "values. Full contribution UI is planned for a "
+                              + "follow-up release.";
+                case NONE    -> "Type " + selectedType + " is header-only (no detail "
+                              + "fields apply). The pay code will be saved with the "
+                              + "behaviour flags above only.";
+                default      -> "";
+            };
+            setSectionVisible(placeholderBox, !msg.isEmpty());
+            placeholderMsg.setText(msg);
+
+            // Flag locks (mirrors PACD01.pl CHECK-PAY-TYPE)
+            if (PayCode.superFlagLockedNo(selectedType)) {
+                cbSuper.setSelected(false);
+                cbSuper.setDisable(true);
+            } else {
+                cbSuper.setDisable(false);
+            }
+            if (PayCode.wcompFlagLockedNo(selectedType)) {
+                cbWcomp.setSelected(false);
+                cbWcomp.setDisable(true);
+            } else {
+                cbWcomp.setDisable(false);
+            }
+        };
+        cbType.getSelectionModel().selectedIndexProperty()
+            .addListener((o, ov, nv) -> applyTypeLogic.run());
+        applyTypeLogic.run();  // initial state
 
         // ── Buttons ───────────────────────────────────────────────────────
         Button btnSave   = btnPrimary(isAdd ? "Add" : "Save");
@@ -425,6 +480,38 @@ public class PayCodeMaintenanceController {
         Label l = new Label(text);
         l.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:#1A6EF5;");
         return l;
+    }
+
+    private Label sectionHeader(String text) {
+        Label l = new Label(text);
+        l.setStyle("-fx-font-size:12px;-fx-font-weight:bold;-fx-text-fill:#374151;-fx-padding:8 0 0 0;");
+        return l;
+    }
+
+    /** Two-column form row: 130-wide label + control. */
+    private HBox twoColRow(String label, Node control) {
+        Label l = new Label(label);
+        l.setStyle("-fx-font-size:12px;-fx-text-fill:#374151;");
+        l.setMinWidth(140);
+        HBox row = new HBox(10, l, control);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    /** A field-group section: bold header + arbitrary content rows, ready for show/hide. */
+    private VBox sectionBox(String title, Node... children) {
+        VBox box = new VBox(8);
+        box.setPadding(new Insets(8, 0, 0, 0));
+        Label hdr = sectionHeader(title);
+        box.getChildren().add(hdr);
+        for (Node n : children) box.getChildren().add(n);
+        return box;
+    }
+
+    /** Toggle visibility AND managed (so hidden sections don't reserve layout space). */
+    private static void setSectionVisible(Node section, boolean visible) {
+        section.setVisible(visible);
+        section.setManaged(visible);
     }
 
     private BigDecimal parseDec(TextField fld, String label) {
