@@ -66,8 +66,14 @@ Per-change audit trail wired alongside the existing per-row `audit_user_id/date/
 ### Wave 2 — Batch operations ✅ Complete (with two CRUD-style screens trimmed)
 Foundation + 5 full batch programs + 2 thin maintenance screens. See "Wave 2 detail" section below.
 
-### Wave 3, 4, 5
-Per `PAYROLL_PLAN.md`. The `PaygTaxCalculator` will be built **as part of PATM01 / PAPP01 in Wave 3** (user's call — deferred from Wave 1).
+### Wave 3 — Pay run processing 🟡 In progress
+Foundation pieces landing first so PATM01/PAPP01 are unblocked:
+- **`PaygTaxCalculator`** ✅ — single-lookup against `tax_brackets` (NAT_1004 / NAT_3539). Verified scale 2, $1500 STSL → $336. Weekly base + ATO conversion for F/M. As-of-date lookup so back-dated runs pick the publication in force at the time. Not yet wired in (no caller until PATM01).
+- **Extract pipeline schemas** added for `patimhd`, `patimes`, `parungr` in `C:\landmark_extract\sql\` + `pafiles.txt`. **User must apply these SQL files to MySQL** before PATM01 work continues.
+- **PATM01 itself** — not started. COBOL flow is S0 (param dialog) → P1 (payrun list) → P2 (paygroup pick) → P3 (employee list) → S3B (line entry). Needs design pass — see PAYROLL_PLAN.md ("plan 6 Claude Code sessions").
+
+### Wave 4, 5
+Per `PAYROLL_PLAN.md`.
 
 ---
 
