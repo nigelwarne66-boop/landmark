@@ -62,6 +62,118 @@ public class PayCode {
     public BigDecimal dednPerc             = BigDecimal.ZERO;  // type 3
     public BigDecimal dednAmt              = BigDecimal.ZERO;  // type 3
 
+    // ── PAY-type flags (PACD01S2 — types 1, 2, 3) ───────────────────────
+    public String payPayableFlag         = "N";  // "Are hours payable?"
+    public String payRdoAccrualFlag      = "N";  // "Used for rostered day off accruals?"
+    public String payLslAccrualFlag      = "N";  // PT staff: "include hours in LSL accrual?"
+    public String payAlAccrualFlag       = "N";  // PT staff: "include hours in AL accrual?"
+    public String paySickAccrualFlag     = "N";  // PT staff: "include hours in sick accrual?"
+    public String payLslCasAccrual       = "N";  // Casuals: "include in LSL accrual?"
+    public String payIncludeForRdo       = "N";  // "Include in RDO accrual calculation?"
+    public String payRetCommInd          = "";   // "Retainer/commission type" (single char)
+    public String payLslReturnFlag       = "N";  // "Include in LSL return report?"
+    public String payUsualPaidFlag       = "";   // "Use usual rate or actual paid rate?" (single char)
+    public String payCdepFlag            = "N";  // "Include in CDEP?"
+
+    // ── ALLOW-type fields (PACD01S2A / S2B — types 10-14) ───────────────
+    public String     allowUnitPerDesc       = "";   // "Rate per <unit>"
+    public String     allowLslReturnFlag     = "N";  // Include in LSL return report?
+    public String     allowPayrollTaxFlag    = "N";  // Include in payroll tax calc?
+    public String     allowLslAccrualFlag    = "N";  // PT: include hrs in LSL accrual
+    public String     allowAlAccrualFlag     = "N";  // PT: include hrs in AL accrual
+    public String     allowSlAccrualFlag     = "N";  // PT: include hrs in sick accrual
+    public String     allowRdoAccrualFlag    = "N";  // Include hrs in RDO accrual
+    public String     allowIncludeForRdo     = "N";  // Include in RDO accrual calc?
+    public String     allowRetCommInd        = "";   // Retainer/commission type
+    public String     allowIncludeForGc      = "N";  // Include on payment summaries?
+    public String     allowLslCasAccrual     = "N";  // Casual: include in LSL accrual
+    public String     allowFbtFlag           = "N";  // Includes FBT grossed up?
+    public String     allowRptIncFlag        = "N";  // Reportable income?
+    public String     allowGstFlag           = "N";  // GST applies?
+    public String     allowGstCode           = "";   // Tax code
+    public String     allowCdepFlag          = "N";  // Include in CDEP?
+
+    // ── DEDN-type fields (PACD01S2D — types 15, 16) ─────────────────────
+    public String     dednSalSacFlag         = "N";  // Salary sacrifice?
+    public String     dednPayMethod          = "";   // C=cheque, D=direct, Q=cleared
+    public String     dednRemittanceFreq     = "";   // P=pay run, M=monthly, Q=quarterly
+    public int        dednClearAcctMain      = 0;    // GL clearing main
+    public int        dednClearAcctSub       = 0;    // GL clearing sub
+    public String     dednReportableFlag     = "N";  // Reportable on payment summary?
+    public String     dednWplaceGiveFlag     = "N";  // Workplace giving?
+    public String     dednUnionFeesFlag      = "N";  // Union/professional assoc fees?
+    public String     dednUsedForSuper       = "N";  // Used for super calc?
+
+    // ── LEAVE-type fields (PACD01S2C/S2F — types 4-9) ───────────────────
+    public int        leaveMaxTaken          = 0;    // Max hours allowed (in MINUTES)
+    public String     leaveLslAccrualFlag    = "N";
+    public String     leaveAlAccrualFlag     = "N";
+    public String     leaveSlAccrualFlag     = "N";
+    public String     leaveRdoAccrualFlag    = "N";
+    public String     leavePayableFlag       = "Y";  // Are hours payable?
+    public String     leaveIncludeForRdo     = "N";  // Include in RDO accrual calcs?
+    public BigDecimal leavePayFactor         = BigDecimal.ZERO;  // Factor of standard rate
+    public String     leaveLslReturnFlag     = "N";
+    public String     leaveTermPayFlag       = "N";  // Termination pay only?
+    public int        leaveMaxPeriod         = 0;    // hours within a period of N (months)
+    public String     leaveUsualPaidFlag     = "";   // Use usual or actual rate?
+    public String     leaveLslCasAccrual     = "N";
+    public String     leaveCdepFlag          = "N";
+
+    // ── SUPER-type fields (PACD01S2E — types 17, 20) ────────────────────
+    public BigDecimal superEmployeePerc      = BigDecimal.ZERO;
+    public String     superPayMethod         = "";
+    public String     superRemittanceFreq    = "";
+    public int        superClearAcctMain     = 0;
+    public int        superClearAcctSub      = 0;
+    public String     superTfrFileFlag       = "N";  // Include in transfer file?
+    public String     superPayrollTaxFlag    = "N";  // Payroll taxable?
+    public String     superReportableFlag    = "N";  // Reportable on payment summary?
+    public String     superBeforeAfterTax    = "";   // B/A
+    public BigDecimal maxSuperYtd            = BigDecimal.ZERO;
+    public String     planNo                 = "";   // Plan number
+
+    // ── CONTRIB-type fields (PACD01S2H — type 21) ───────────────────────
+    public String     contribPaidFlag        = "N";  // Includes paid contribution?
+    public String     contribRemitFreq       = "";
+    public String     contribPayMethod       = "";
+    public String     contribFbtFlag         = "N";  // Includes FBT grossed up value?
+    public String     contribRptIncFlag      = "N";  // Reportable income?
+    public int        contribClearMain       = 0;
+    public int        contribClearSub        = 0;
+    public String     contribReportFlag      = "N";  // Calc payroll tax?
+    public String     contribDeductTaxable   = "N";
+    public String     contribPayTaxFlag      = "N";
+    public String     contribGstFlag         = "N";
+    public String     contribGstCode         = "";
+    public String     contribUsedForSuper    = "N";
+
+    // ── TAX-type fields (PACD01S2I — pay code = "TAX") ──────────────────
+    public String     taxRemitFreq           = "";
+    public String     taxPayMethod           = "";
+    public String     eftReference           = "";
+
+    // ── Fund / payee details — shared by DEDN/SUPER/CONTRIB/TAX ─────────
+    public String     fundName               = "";
+    public String     fundAddr1              = "";
+    public String     fundAddr2              = "";
+    public String     fundAddr3              = "";
+    public String     contactName            = "";
+    public String     contactPhone           = "";
+    public String     fundAbn                = "";
+    public String     fundUsi                = "";
+    public String     fundEsa                = "";
+
+    // ── EFT details (PACD01S2G — appears when pay-method = D or Q) ──────
+    public String     bankCode               = "";   // Draw-from bank code
+    public String     acctName               = "";   // Account name (defaults to fund_name)
+    public String     bankBsb                = "";   // Transfer-to BSB
+    public String     bankAcctNo             = "";   // Transfer-to acct no
+
+    // ── SuperStream / fund classification (S2D / S2E / S2H — 17, 20, 21) ─
+    public String     apraSmsfFundInd        = "";   // Fund type: A=APRA, S=SMSF
+    public String     superstreamCategory    = "";   // SuperStream category 1-5
+
     // ── Display helpers ───────────────────────────────────────────────────
 
     /** 24 type labels — sourced verbatim from PACD01.cbl WS-PAYCODE-TYPE-LIT-TABLE. */

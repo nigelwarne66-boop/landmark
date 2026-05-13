@@ -81,6 +81,21 @@ public class Employee {
     // Read but display as informational only — too complex to edit on this screen.
     public BigDecimal lslWeeksAccrued = BigDecimal.ZERO;  // pastaff.lsl_weeks_accrued
 
+    // ── Superannuation (PAEM01 S1C) ──────────────────────────────────────
+    public String    superCode          = "";     // pastaff.super_code — FK to pacodes.pay_code (type 17/20)
+    public String    superMemberNo      = "";     // pastaff.super_member_no
+    public LocalDate superCommDate;                // pastaff.super_comm_date
+    public int       qualifyDays        = 0;      // pastaff.qualify_days
+    public String    forcePayFlag       = "N";    // pastaff.force_pay_flag — Y/N
+    public String    useExtSuperFlag    = "N";    // pastaff.use_ext_super_flag — Y/N ("Calc super based on hrs/$ worked?")
+    public int       lastSuperPayrun    = 0;      // pastaff.last_super_payrun — display only
+    public int       currentSuperPayrun = 0;      // pastaff.current_super_payrun — display only
+    public LocalDate lastSuperDate;                // pastaff.last_super_date — display only
+
+    // ── Identity fields needed for MVR (member-verification) submission ──
+    public String    sex                = "";     // pastaff.sex — M/F (ATO STP fund member ident)
+    public LocalDate dateOfBirth;                  // pastaff.date_of_birth
+
     // ── Display helpers ───────────────────────────────────────────────────
 
     public String fullName() {
@@ -119,10 +134,19 @@ public class Employee {
     public boolean isTerminated() { return "T".equals(employeeStatus); }
 
     /** Masked TFN for display — never show the full number on screen. */
-    public String maskedTfn() {
-        if (taxFileNo == null || taxFileNo.isBlank()) return "";
-        String digits = taxFileNo.replaceAll("\\D", "");
-        if (digits.length() <= 3) return "***";
+    public String maskedTfn() { return maskTfn(taxFileNo); }
+
+    /**
+     * Mask any TFN string for display: keeps the last 3 digits, replaces
+     * the rest with asterisks ({@code ***-***-NNN}). Static so callers
+     * holding a raw, in-flight value (e.g. mid-edit in PAEM01) can mask
+     * without constructing an {@link Employee}.
+     */
+    public static String maskTfn(String raw) {
+        if (raw == null) return "";
+        String digits = raw.replaceAll("\\D", "");
+        if (digits.isEmpty()) return "";
+        if (digits.length() <= 3) return "***-***-" + digits;
         return "***-***-" + digits.substring(digits.length() - 3);
     }
 

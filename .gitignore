@@ -1,0 +1,20 @@
+target/
+*.jasper
+*.class
+.idea/
+*.iml
+application-local.properties
+
+# Build/IDE outputs
+*.zip
+
+# ATO source files (live in ops directory, not source) and load outputs
+*.xlsx
+TAXSCALES.csv
+
+# MVR / OZEDI test outputs
+land*.pdf
+~$*
+
+# Local OZEDI credentials override (env var pattern is the source of truth)
+ozedi-local.properties

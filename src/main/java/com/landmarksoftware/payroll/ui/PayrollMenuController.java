@@ -48,14 +48,26 @@ public class PayrollMenuController {
 
     private final PayCodeMaintenanceController     pacd01;
     private final EmployeeMaintenanceController    paem01;
+    private final PayGroupMaintenanceController    papg01;
+    private final TaxScaleMaintenanceController    pasu04;
+    private final AwardMaintenanceController       paaw01;
+    private final TaxScaleLoadController           taxScaleLoad;
     private final AppSession                       appSession;
 
     public PayrollMenuController(PayCodeMaintenanceController pacd01,
                                   EmployeeMaintenanceController paem01,
+                                  PayGroupMaintenanceController papg01,
+                                  TaxScaleMaintenanceController pasu04,
+                                  AwardMaintenanceController paaw01,
+                                  TaxScaleLoadController taxScaleLoad,
                                   AppSession appSession) {
-        this.pacd01     = pacd01;
-        this.paem01     = paem01;
-        this.appSession = appSession;
+        this.pacd01       = pacd01;
+        this.paem01       = paem01;
+        this.papg01       = papg01;
+        this.pasu04       = pasu04;
+        this.paaw01       = paaw01;
+        this.taxScaleLoad = taxScaleLoad;
+        this.appSession   = appSession;
     }
 
     // ── Entry point ───────────────────────────────────────────────────────
@@ -114,13 +126,13 @@ public class PayrollMenuController {
                     true, () -> openEmployeeMaintenance(parentStage)),
                 new PayrollMenuEntry("PAPG01", "Pay Group Maintenance",
                     "Define payroll groups and frequencies",
-                    false, null),
-                new PayrollMenuEntry("PASU04", "Supervisor Setup",
-                    "Payroll supervisor and security settings",
-                    false, null),
+                    true, () -> openPayGroupMaintenance(parentStage)),
+                new PayrollMenuEntry("PASU04", "Tax Scale Maintenance",
+                    "Maintain PAYG / HECS / STSL tax scale config",
+                    true, () -> openTaxScaleMaintenance(parentStage)),
                 new PayrollMenuEntry("PAAW01", "Award Maintenance",
                     "Enterprise agreements and award schedules",
-                    false, null)
+                    true, () -> openAwardMaintenance(parentStage))
             )), 0, 0);
 
         // Col 1: Pay Processing
@@ -169,6 +181,9 @@ public class PayrollMenuController {
             "Year End",
             "Financial year close-off",
             List.of(
+                new PayrollMenuEntry("PATX01", "Load ATO Tax Scales",
+                    "Annual NAT_1004 / NAT_3539 update",
+                    true, () -> openTaxScaleLoad(parentStage)),
                 new PayrollMenuEntry("PADE01", "Payroll Year End",
                     "Roll forward to new payroll year",
                     false, null),
@@ -282,6 +297,46 @@ public class PayrollMenuController {
         s.setScene(paem01.buildScene(s));
         s.setMinWidth(960);
         s.setMinHeight(560);
+        s.show();
+    }
+
+    private void openPayGroupMaintenance(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Pay Group Maintenance — PAPG01");
+        s.setScene(papg01.buildScene(s));
+        s.setMinWidth(900);
+        s.setMinHeight(520);
+        s.show();
+    }
+
+    private void openAwardMaintenance(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Award Maintenance — PAAW01");
+        s.setScene(paaw01.buildScene(s));
+        s.setMinWidth(900);
+        s.setMinHeight(520);
+        s.show();
+    }
+
+    private void openTaxScaleMaintenance(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Tax Scale Maintenance — PASU04");
+        s.setScene(pasu04.buildScene(s));
+        s.setMinWidth(880);
+        s.setMinHeight(520);
+        s.show();
+    }
+
+    private void openTaxScaleLoad(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Load ATO Tax Scales — PATX01");
+        s.setScene(taxScaleLoad.buildScene(s));
+        s.setMinWidth(600);
+        s.setMinHeight(320);
         s.show();
     }
 

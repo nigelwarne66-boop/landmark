@@ -14,7 +14,11 @@ package com.landmarksoftware.ui;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.SessionService;
 import com.landmarksoftware.model.SessionData;
+import com.landmarksoftware.payroll.ui.AwardMaintenanceController;
+import com.landmarksoftware.payroll.ui.PayGroupMaintenanceController;
 import com.landmarksoftware.payroll.ui.PayrollMenuController;
+import com.landmarksoftware.payroll.ui.TaxScaleLoadController;
+import com.landmarksoftware.payroll.ui.TaxScaleMaintenanceController;
 import com.landmarksoftware.payroll.ui.PayCodeMaintenanceController;
 import com.landmarksoftware.payroll.ui.EmployeeMaintenanceController;
 import com.landmarksoftware.repository.CompanyRepository;
@@ -69,6 +73,10 @@ public class MainMenuController {
     private final PayrollMenuController              payrollMenu;
     private final PayCodeMaintenanceController       payCodeScreen;
     private final EmployeeMaintenanceController      employeeScreen;
+    private final PayGroupMaintenanceController      payGroupScreen;
+    private final TaxScaleMaintenanceController      taxScaleScreen;
+    private final AwardMaintenanceController         awardScreen;
+    private final TaxScaleLoadController             taxScaleLoadScreen;
     private final JdbcTemplate                       jdbc;
     private final SessionService                     sessionService;
     private final CompanyRepository                  companyRepo;
@@ -102,6 +110,10 @@ public class MainMenuController {
                                PayrollMenuController payrollMenu,
                                PayCodeMaintenanceController payCodeScreen,
                                EmployeeMaintenanceController employeeScreen,
+                               PayGroupMaintenanceController payGroupScreen,
+                               TaxScaleMaintenanceController taxScaleScreen,
+                               AwardMaintenanceController awardScreen,
+                               TaxScaleLoadController taxScaleLoadScreen,
                                JdbcTemplate jdbc,
                                SessionService sessionService,
                                CompanyRepository companyRepo,
@@ -117,6 +129,10 @@ public class MainMenuController {
         this.payrollMenu           = payrollMenu;
         this.payCodeScreen         = payCodeScreen;
         this.employeeScreen        = employeeScreen;
+        this.payGroupScreen        = payGroupScreen;
+        this.taxScaleScreen        = taxScaleScreen;
+        this.awardScreen           = awardScreen;
+        this.taxScaleLoadScreen    = taxScaleLoadScreen;
         this.jdbc                  = jdbc;
         this.sessionService        = sessionService;
         this.companyRepo           = companyRepo;
@@ -563,7 +579,8 @@ public class MainMenuController {
             "#1A6EF5",
             "Pay codes, employees, groups and awards",
             List.of(entry("PY","PACD01"), entry("PY","PAEM01"),
-                    entry("PY","PAPG01"), entry("PY","PASU04"))), 0, 0);
+                    entry("PY","PAPG01"), entry("PY","PASU04"),
+                    entry("PY","PAAW01"))), 0, 0);
 
         // Pay Processing card
         grid.add(buildPayrollModuleCard("Pay Processing",
@@ -583,8 +600,8 @@ public class MainMenuController {
         grid.add(buildPayrollModuleCard("Year End",
             "#D97706",
             "Year close and carry-forward processing",
-            List.of(entry("PY","PADE01"), entry("PY","PASU11"),
-                    entry("PY","PASU55"))), 1, 1);
+            List.of(entry("PY","PATX01"), entry("PY","PADE01"),
+                    entry("PY","PASU11"), entry("PY","PASU55"))), 1, 1);
 
         tab.getChildren().add(grid);
         VBox.setVgrow(grid, Priority.ALWAYS);
@@ -941,6 +958,18 @@ public class MainMenuController {
         allEntries.add(new MenuEntry("PY", "PAEM01", "Employee Maintenance",
             "Add, edit and maintain employee records",
             true, this::openEmployeeMaintenance));
+        allEntries.add(new MenuEntry("PY", "PAPG01", "Pay Group Maintenance",
+            "Define payroll groups and frequencies",
+            true, this::openPayGroupMaintenance));
+        allEntries.add(new MenuEntry("PY", "PASU04", "Tax Scale Maintenance",
+            "Maintain PAYG / HECS / STSL tax scale config",
+            true, this::openTaxScaleMaintenance));
+        allEntries.add(new MenuEntry("PY", "PAAW01", "Award Maintenance",
+            "Awards, job classes and worker's comp rates",
+            true, this::openAwardMaintenance));
+        allEntries.add(new MenuEntry("PY", "PATX01", "Load ATO Tax Scales",
+            "Annual NAT_1004 / NAT_3539 update",
+            true, this::openTaxScaleLoad));
 
         // System maintenance programs
         allEntries.add(new MenuEntry("SYS", "MENU22", "Company Maintenance",
@@ -1044,6 +1073,30 @@ public class MainMenuController {
         Stage s = new Stage(); s.setTitle("Employee Maintenance — PAEM01");
         s.setScene(employeeScreen.buildScene(s));
         s.setMinWidth(960); s.setMinHeight(560); s.show();
+    }
+
+    private void openPayGroupMaintenance() {
+        Stage s = new Stage(); s.setTitle("Pay Group Maintenance — PAPG01");
+        s.setScene(payGroupScreen.buildScene(s));
+        s.setMinWidth(900); s.setMinHeight(520); s.show();
+    }
+
+    private void openAwardMaintenance() {
+        Stage s = new Stage(); s.setTitle("Award Maintenance — PAAW01");
+        s.setScene(awardScreen.buildScene(s));
+        s.setMinWidth(900); s.setMinHeight(520); s.show();
+    }
+
+    private void openTaxScaleMaintenance() {
+        Stage s = new Stage(); s.setTitle("Tax Scale Maintenance — PASU04");
+        s.setScene(taxScaleScreen.buildScene(s));
+        s.setMinWidth(880); s.setMinHeight(520); s.show();
+    }
+
+    private void openTaxScaleLoad() {
+        Stage s = new Stage(); s.setTitle("Load ATO Tax Scales — PATX01");
+        s.setScene(taxScaleLoadScreen.buildScene(s));
+        s.setMinWidth(600); s.setMinHeight(320); s.show();
     }
 
     // ═══════════════════════════════════════════════════════════════

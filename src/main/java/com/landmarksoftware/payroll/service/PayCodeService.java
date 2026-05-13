@@ -125,39 +125,84 @@ public class PayCodeService {
             yn(pc.printOnPayslipFlag), yn(pc.wcompFlag),
             yn(pc.superFlag), yn(pc.termEFlag),
             // 11-13 allowance rate/amt + unit description
-            nz(pc.allowRate), nz(pc.allowAmt), "",
+            nz(pc.allowRate), nz(pc.allowAmt), trim(pc.allowUnitPerDesc, 20),
             // 14-22 allow_* boolean flags
-            "N", "N", "N", "N", "N", "N", "N", "N", "N",
+            yn(pc.allowLslReturnFlag), yn(pc.allowPayrollTaxFlag),
+            yn(pc.allowLslAccrualFlag), yn(pc.allowAlAccrualFlag),
+            yn(pc.allowSlAccrualFlag), yn(pc.allowRdoAccrualFlag),
+            yn(pc.allowIncludeForRdo),
+            trim(pc.allowRetCommInd, 1).toUpperCase(),
+            yn(pc.allowIncludeForGc),
             // 23-29 cg/allow_* misc + gst code + cdep
-            "N", "N", "N", "N", "N", "", "N",
+            "N", yn(pc.allowLslCasAccrual), yn(pc.allowFbtFlag),
+            yn(pc.allowRptIncFlag), yn(pc.allowGstFlag),
+            trim(pc.allowGstCode, 4).toUpperCase(), yn(pc.allowCdepFlag),
             // 30-31 dedn rate/amt
             nz(pc.dednPerc), nz(pc.dednAmt),
-            // 32-39 dedn settings
-            "", "", 0, 0, "N", "N", "N", "N",
+            // 32-40 dedn settings (32 = dedn_sal_sac_flag — new)
+            yn(pc.dednSalSacFlag),
+            trim(pc.dednPayMethod, 1).toUpperCase(),
+            trim(pc.dednRemittanceFreq, 1).toUpperCase(),
+            pc.dednClearAcctMain, pc.dednClearAcctSub,
+            yn(pc.dednReportableFlag), yn(pc.dednWplaceGiveFlag),
+            yn(pc.dednUnionFeesFlag), yn(pc.dednUsedForSuper),
             // 40-46 super_*
-            Z, "", "", 0, 0, "N", "N",
-            // 47-50 fund_addr_*
-            "", "", "", "",
+            nz(pc.superEmployeePerc),
+            trim(pc.superPayMethod, 1).toUpperCase(),
+            trim(pc.superRemittanceFreq, 1).toUpperCase(),
+            pc.superClearAcctMain, pc.superClearAcctSub,
+            yn(pc.superTfrFileFlag), yn(pc.superPayrollTaxFlag),
+            // 47-50 fund_name + fund_addr_*
+            trim(pc.fundName, 30), trim(pc.fundAddr1, 30),
+            trim(pc.fundAddr2, 30), trim(pc.fundAddr3, 30),
             // 51-57 bank/contact/plan/acct
-            "", "", "", "", "", "", "",
+            trim(pc.bankBsb, 7), trim(pc.bankAcctNo, 12),
+            trim(pc.contactName, 30), trim(pc.contactPhone, 20),
+            trim(pc.planNo, 20), trim(pc.bankCode, 8), trim(pc.acctName, 30),
             // 58-60 super reportable / before_after / max_super_ytd
-            "N", "", Z,
+            yn(pc.superReportableFlag),
+            trim(pc.superBeforeAfterTax, 1).toUpperCase(),
+            nz(pc.maxSuperYtd),
             // 61-63 pay_factor / pay_rate / pay_payable_flag
-            nz(pc.payFactor), nz(pc.payRate), "N",
-            // 64-73 pay_* flags
-            "N", "N", "N", "N", "N", "N", "N", "N", "N", "N",
+            nz(pc.payFactor), nz(pc.payRate), yn(pc.payPayableFlag),
+            // 64-73 pay_* flags (matches PACD01S2 screen)
+            yn(pc.payLslAccrualFlag), yn(pc.payAlAccrualFlag), yn(pc.paySickAccrualFlag),
+            yn(pc.payRdoAccrualFlag), yn(pc.payIncludeForRdo),
+            trim(pc.payRetCommInd, 1).toUpperCase(),
+            yn(pc.payLslReturnFlag),
+            trim(pc.payUsualPaidFlag, 1).toUpperCase(),
+            yn(pc.payLslCasAccrual), yn(pc.payCdepFlag),
             // 74-80 leave_max_taken + leave_*
-            0, "N", "N", "N", "N", "N", "N",
+            pc.leaveMaxTaken, yn(pc.leaveLslAccrualFlag), yn(pc.leaveAlAccrualFlag),
+            yn(pc.leaveSlAccrualFlag), yn(pc.leaveRdoAccrualFlag),
+            yn(pc.leavePayableFlag), yn(pc.leaveIncludeForRdo),
             // 81-87 leave_pay_factor + leave_*
-            Z, "N", "N", 0, "N", "N", "N",
+            nz(pc.leavePayFactor), yn(pc.leaveLslReturnFlag),
+            yn(pc.leaveTermPayFlag), pc.leaveMaxPeriod,
+            trim(pc.leaveUsualPaidFlag, 1).toUpperCase(),
+            yn(pc.leaveLslCasAccrual), yn(pc.leaveCdepFlag),
             // 88-100 contrib_*
-            "N", "", "", "N", "N", 0, 0, "N", "N", "N", "N", "", "N",
+            yn(pc.contribPaidFlag),
+            trim(pc.contribRemitFreq, 1).toUpperCase(),
+            trim(pc.contribPayMethod, 1).toUpperCase(),
+            yn(pc.contribFbtFlag), yn(pc.contribRptIncFlag),
+            pc.contribClearMain, pc.contribClearSub,
+            yn(pc.contribReportFlag), yn(pc.contribDeductTaxable),
+            yn(pc.contribPayTaxFlag), yn(pc.contribGstFlag),
+            trim(pc.contribGstCode, 4).toUpperCase(),
+            yn(pc.contribUsedForSuper),
             // 101-103 tax_remit_freq / tax_pay_method / eft_reference
-            "", "", "",
+            trim(pc.taxRemitFreq, 1).toUpperCase(),
+            trim(pc.taxPayMethod, 1).toUpperCase(),
+            trim(pc.eftReference, 30),
             // 104-106 fund_abn / fund_usi / fund_esa
-            "", "", "",
+            trim(pc.fundAbn, 14), trim(pc.fundUsi, 30), trim(pc.fundEsa, 30),
             // 107-115 apra/superstream/etc + note_no
-            "", "N", "N", "", "", "", "N", "", 0L,
+            //   107 apra_smsf_fund_ind   (Fund type — S2D/S2E/S2H)
+            //   110 superstream_category (S2D/S2E/S2H)
+            trim(pc.apraSmsfFundInd, 1).toUpperCase(), "N", "N",
+            trim(pc.superstreamCategory, 1),
+            "", "", "N", "", 0L,
             // 116-121 audit
             userId, today, hr, min, sec, 0
         );
@@ -178,6 +223,60 @@ public class PayCodeService {
             nz(pc.payRate), nz(pc.payFactor),
             nz(pc.allowRate), nz(pc.allowAmt),
             nz(pc.dednPerc), nz(pc.dednAmt),
+            // PAY-type flags
+            yn(pc.payPayableFlag), yn(pc.payRdoAccrualFlag), yn(pc.payLslAccrualFlag),
+            yn(pc.payAlAccrualFlag), yn(pc.paySickAccrualFlag), yn(pc.payLslCasAccrual),
+            yn(pc.payIncludeForRdo), trim(pc.payRetCommInd, 1).toUpperCase(),
+            yn(pc.payLslReturnFlag), trim(pc.payUsualPaidFlag, 1).toUpperCase(),
+            yn(pc.payCdepFlag),
+            // ALLOW-type
+            trim(pc.allowUnitPerDesc, 20), yn(pc.allowLslReturnFlag), yn(pc.allowPayrollTaxFlag),
+            yn(pc.allowLslAccrualFlag), yn(pc.allowAlAccrualFlag), yn(pc.allowSlAccrualFlag),
+            yn(pc.allowRdoAccrualFlag), yn(pc.allowIncludeForRdo),
+            trim(pc.allowRetCommInd, 1).toUpperCase(), yn(pc.allowIncludeForGc),
+            yn(pc.allowLslCasAccrual), yn(pc.allowFbtFlag), yn(pc.allowRptIncFlag),
+            yn(pc.allowGstFlag), trim(pc.allowGstCode, 4).toUpperCase(), yn(pc.allowCdepFlag),
+            // DEDN-type
+            yn(pc.dednSalSacFlag),
+            trim(pc.dednPayMethod, 1).toUpperCase(), trim(pc.dednRemittanceFreq, 1).toUpperCase(),
+            pc.dednClearAcctMain, pc.dednClearAcctSub,
+            yn(pc.dednReportableFlag), yn(pc.dednWplaceGiveFlag),
+            yn(pc.dednUnionFeesFlag), yn(pc.dednUsedForSuper),
+            // LEAVE-type
+            pc.leaveMaxTaken, yn(pc.leaveLslAccrualFlag), yn(pc.leaveAlAccrualFlag),
+            yn(pc.leaveSlAccrualFlag), yn(pc.leaveRdoAccrualFlag), yn(pc.leavePayableFlag),
+            yn(pc.leaveIncludeForRdo), nz(pc.leavePayFactor), yn(pc.leaveLslReturnFlag),
+            yn(pc.leaveTermPayFlag), pc.leaveMaxPeriod,
+            trim(pc.leaveUsualPaidFlag, 1).toUpperCase(),
+            yn(pc.leaveLslCasAccrual), yn(pc.leaveCdepFlag),
+            // SUPER-type
+            nz(pc.superEmployeePerc), trim(pc.superPayMethod, 1).toUpperCase(),
+            trim(pc.superRemittanceFreq, 1).toUpperCase(),
+            pc.superClearAcctMain, pc.superClearAcctSub,
+            yn(pc.superTfrFileFlag), yn(pc.superPayrollTaxFlag), yn(pc.superReportableFlag),
+            trim(pc.superBeforeAfterTax, 1).toUpperCase(), nz(pc.maxSuperYtd),
+            trim(pc.planNo, 20),
+            // CONTRIB-type
+            yn(pc.contribPaidFlag), trim(pc.contribRemitFreq, 1).toUpperCase(),
+            trim(pc.contribPayMethod, 1).toUpperCase(),
+            yn(pc.contribFbtFlag), yn(pc.contribRptIncFlag),
+            pc.contribClearMain, pc.contribClearSub,
+            yn(pc.contribReportFlag), yn(pc.contribDeductTaxable),
+            yn(pc.contribPayTaxFlag), yn(pc.contribGstFlag),
+            trim(pc.contribGstCode, 4).toUpperCase(), yn(pc.contribUsedForSuper),
+            // TAX-type
+            trim(pc.taxRemitFreq, 1).toUpperCase(), trim(pc.taxPayMethod, 1).toUpperCase(),
+            trim(pc.eftReference, 30),
+            // Fund / payee
+            trim(pc.fundName, 30), trim(pc.fundAddr1, 30), trim(pc.fundAddr2, 30),
+            trim(pc.fundAddr3, 30), trim(pc.contactName, 30), trim(pc.contactPhone, 20),
+            trim(pc.fundAbn, 14), trim(pc.fundUsi, 30), trim(pc.fundEsa, 30),
+            // EFT
+            trim(pc.bankCode, 8), trim(pc.acctName, 30),
+            trim(pc.bankBsb, 7), trim(pc.bankAcctNo, 12),
+            // SuperStream / fund classification
+            trim(pc.apraSmsfFundInd, 1).toUpperCase(),
+            trim(pc.superstreamCategory, 1),
             companyNo, pc.payCode);
     }
 
@@ -206,6 +305,108 @@ public class PayCodeService {
         pc.allowAmt           = dec(rs, "allow_amt");
         pc.dednPerc           = dec(rs, "dedn_perc");
         pc.dednAmt            = dec(rs, "dedn_amt");
+        // PAY-type flags (PACD01S2)
+        pc.payPayableFlag     = strDefault(rs, "pay_payable_flag", "N");
+        pc.payRdoAccrualFlag  = strDefault(rs, "pay_rdo_accrual_flag", "N");
+        pc.payLslAccrualFlag  = strDefault(rs, "pay_lsl_accrual_flag", "N");
+        pc.payAlAccrualFlag   = strDefault(rs, "pay_al_accrual_flag", "N");
+        pc.paySickAccrualFlag = strDefault(rs, "pay_sick_accrual_flag", "N");
+        pc.payLslCasAccrual   = strDefault(rs, "pay_lsl_cas_accrual", "N");
+        pc.payIncludeForRdo   = strDefault(rs, "pay_include_for_rdo", "N");
+        pc.payRetCommInd      = strDefault(rs, "pay_ret_comm_ind", "");
+        pc.payLslReturnFlag   = strDefault(rs, "pay_lsl_return_flag", "N");
+        pc.payUsualPaidFlag   = strDefault(rs, "pay_usual_paid_flag", "");
+        pc.payCdepFlag        = strDefault(rs, "pay_cdep_flag", "N");
+        // ALLOW-type
+        pc.allowUnitPerDesc    = strDefault(rs, "allow_unit_per_desc",   "");
+        pc.allowLslReturnFlag  = strDefault(rs, "allow_lsl_return_flag", "N");
+        pc.allowPayrollTaxFlag = strDefault(rs, "allow_payroll_tax_flag","N");
+        pc.allowLslAccrualFlag = strDefault(rs, "allow_lsl_accrual_flag","N");
+        pc.allowAlAccrualFlag  = strDefault(rs, "allow_al_accrual_flag", "N");
+        pc.allowSlAccrualFlag  = strDefault(rs, "allow_sl_accrual_flag", "N");
+        pc.allowRdoAccrualFlag = strDefault(rs, "allow_rdo_accrual_flag","N");
+        pc.allowIncludeForRdo  = strDefault(rs, "allow_include_for_rdo", "N");
+        pc.allowRetCommInd     = strDefault(rs, "allow_ret_comm_ind",    "");
+        pc.allowIncludeForGc   = strDefault(rs, "allow_include_for_gc",  "N");
+        pc.allowLslCasAccrual  = strDefault(rs, "allow_lsl_cas_accrual", "N");
+        pc.allowFbtFlag        = strDefault(rs, "allow_fbt_flag",        "N");
+        pc.allowRptIncFlag     = strDefault(rs, "allow_rpt_inc_flag",    "N");
+        pc.allowGstFlag        = strDefault(rs, "allow_gst_flag",        "N");
+        pc.allowGstCode        = strDefault(rs, "allow_gst_code",        "");
+        pc.allowCdepFlag       = strDefault(rs, "allow_cdep_flag",       "N");
+        // DEDN-type
+        pc.dednSalSacFlag      = strDefault(rs, "dedn_sal_sac_flag",      "N");
+        pc.dednPayMethod       = strDefault(rs, "dedn_pay_method",        "");
+        pc.dednRemittanceFreq  = strDefault(rs, "dedn_remittance_freq",   "");
+        pc.dednClearAcctMain   = safeInt   (rs, "dedn_clear_acct_main");
+        pc.dednClearAcctSub    = safeInt   (rs, "dedn_clear_acct_sub");
+        pc.dednReportableFlag  = strDefault(rs, "dedn_reportable_flag",   "N");
+        pc.dednWplaceGiveFlag  = strDefault(rs, "dedn_wplace_give_flag",  "N");
+        pc.dednUnionFeesFlag   = strDefault(rs, "dedn_union_fees_flag",   "N");
+        pc.dednUsedForSuper    = strDefault(rs, "dedn_used_for_super",    "N");
+        // LEAVE-type
+        pc.leaveMaxTaken       = safeInt   (rs, "leave_max_taken");
+        pc.leaveLslAccrualFlag = strDefault(rs, "leave_lsl_accrual_flag", "N");
+        pc.leaveAlAccrualFlag  = strDefault(rs, "leave_al_accrual_flag",  "N");
+        pc.leaveSlAccrualFlag  = strDefault(rs, "leave_sl_accrual_flag",  "N");
+        pc.leaveRdoAccrualFlag = strDefault(rs, "leave_rdo_accrual_flag", "N");
+        pc.leavePayableFlag    = strDefault(rs, "leave_payable_flag",     "Y");
+        pc.leaveIncludeForRdo  = strDefault(rs, "leave_include_for_rdo",  "N");
+        pc.leavePayFactor      = dec       (rs, "leave_pay_factor");
+        pc.leaveLslReturnFlag  = strDefault(rs, "leave_lsl_return_flag",  "N");
+        pc.leaveTermPayFlag    = strDefault(rs, "leave_term_pay_flag",    "N");
+        pc.leaveMaxPeriod      = safeInt   (rs, "leave_max_period");
+        pc.leaveUsualPaidFlag  = strDefault(rs, "leave_usual_paid_flag",  "");
+        pc.leaveLslCasAccrual  = strDefault(rs, "leave_lsl_cas_accrual",  "N");
+        pc.leaveCdepFlag       = strDefault(rs, "leave_cdep_flag",        "N");
+        // SUPER-type
+        pc.superEmployeePerc   = dec       (rs, "super_employee_perc");
+        pc.superPayMethod      = strDefault(rs, "super_pay_method",       "");
+        pc.superRemittanceFreq = strDefault(rs, "super_remittance_freq",  "");
+        pc.superClearAcctMain  = safeInt   (rs, "super_clear_acct_main");
+        pc.superClearAcctSub   = safeInt   (rs, "super_clear_acct_sub");
+        pc.superTfrFileFlag    = strDefault(rs, "super_tfr_file_flag",    "N");
+        pc.superPayrollTaxFlag = strDefault(rs, "super_payroll_tax_flag", "N");
+        pc.superReportableFlag = strDefault(rs, "super_reportable_flag",  "N");
+        pc.superBeforeAfterTax = strDefault(rs, "super_before_after_tax", "");
+        pc.maxSuperYtd         = dec       (rs, "max_super_ytd");
+        pc.planNo              = strDefault(rs, "plan_no",                "");
+        // CONTRIB-type
+        pc.contribPaidFlag     = strDefault(rs, "contrib_paid_flag",      "N");
+        pc.contribRemitFreq    = strDefault(rs, "contrib_remit_freq",     "");
+        pc.contribPayMethod    = strDefault(rs, "contrib_pay_method",     "");
+        pc.contribFbtFlag      = strDefault(rs, "contrib_fbt_flag",       "N");
+        pc.contribRptIncFlag   = strDefault(rs, "contrib_rpt_inc_flag",   "N");
+        pc.contribClearMain    = safeInt   (rs, "contrib_clear_main");
+        pc.contribClearSub     = safeInt   (rs, "contrib_clear_sub");
+        pc.contribReportFlag   = strDefault(rs, "contrib_report_flag",    "N");
+        pc.contribDeductTaxable= strDefault(rs, "contrib_deduct_taxable", "N");
+        pc.contribPayTaxFlag   = strDefault(rs, "contrib_pay_tax_flag",   "N");
+        pc.contribGstFlag      = strDefault(rs, "contrib_gst_flag",       "N");
+        pc.contribGstCode      = strDefault(rs, "contrib_gst_code",       "");
+        pc.contribUsedForSuper = strDefault(rs, "contrib_used_for_super", "N");
+        // TAX-type
+        pc.taxRemitFreq        = strDefault(rs, "tax_remit_freq",         "");
+        pc.taxPayMethod        = strDefault(rs, "tax_pay_method",         "");
+        pc.eftReference        = strDefault(rs, "eft_reference",          "");
+        // Fund / payee
+        pc.fundName            = strDefault(rs, "fund_name",      "");
+        pc.fundAddr1           = strDefault(rs, "fund_addr_1",    "");
+        pc.fundAddr2           = strDefault(rs, "fund_addr_2",    "");
+        pc.fundAddr3           = strDefault(rs, "fund_addr_3",    "");
+        pc.contactName         = strDefault(rs, "contact_name",   "");
+        pc.contactPhone        = strDefault(rs, "contact_phone",  "");
+        pc.fundAbn             = strDefault(rs, "fund_abn",       "");
+        pc.fundUsi             = strDefault(rs, "fund_usi",       "");
+        pc.fundEsa             = strDefault(rs, "fund_esa",       "");
+        // EFT
+        pc.bankCode            = strDefault(rs, "bank_code",      "");
+        pc.acctName            = strDefault(rs, "acct_name",      "");
+        pc.bankBsb             = strDefault(rs, "bank_bsb",       "");
+        pc.bankAcctNo          = strDefault(rs, "bank_acct_no",   "");
+        // SuperStream / fund classification
+        pc.apraSmsfFundInd     = strDefault(rs, "apra_smsf_fund_ind",   "");
+        pc.superstreamCategory = strDefault(rs, "superstream_category", "");
         return pc;
     }
 

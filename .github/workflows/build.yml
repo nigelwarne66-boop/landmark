@@ -1,0 +1,30 @@
+# .github/workflows/build.yml
+name: Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21 with JavaFX (Liberica JDK)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'liberica'
+          java-package: 'jdk+fx'          # ← this is the critical line
+          cache: 'maven'                  # caches ~/.m2 between runs
+
+      - name: Compile
+        run: mvn compile -B
+
+      - name: Verify (compile + test, no UI launch)
+        run: mvn verify -B -Djava.awt.headless=true

@@ -230,6 +230,11 @@ public class EmployeeService {
             trimUp(e.award, 10), trimUp(e.jobClass, 10),
             nz(e.annualSalary), e.stdHrs, nz(e.stdRatePerHr),
             digits(e.taxFileNo, 11), trimUp(e.taxScaleNo, 4), nz(e.extraTaxAmt),
+            // Superannuation (S1C)
+            trimUp(e.superCode, 10), trim(e.superMemberNo, 20),
+            sqlDate(e.superCommDate), e.qualifyDays,
+            yn(e.forcePayFlag), yn(e.useExtSuperFlag),
+            trimUp(e.sex, 1), sqlDate(e.dateOfBirth),
             companyNo, e.employeeNo);
     }
 
@@ -280,6 +285,18 @@ public class EmployeeService {
         e.alHrsAccrued     = safeInt(rs, "al_hrs_accrued");
         e.accruedSickLeave = safeInt(rs, "accrued_sick_leave");
         e.lslWeeksAccrued  = dec(rs, "lsl_weeks_accrued");
+        // Superannuation (S1C)
+        e.superCode          = strDefault(rs, "super_code", "");
+        e.superMemberNo      = strDefault(rs, "super_member_no", "");
+        e.superCommDate      = dateDef(rs, "super_comm_date");
+        e.qualifyDays        = safeInt(rs, "qualify_days");
+        e.forcePayFlag       = strDefault(rs, "force_pay_flag", "N");
+        e.useExtSuperFlag    = strDefault(rs, "use_ext_super_flag", "N");
+        e.lastSuperPayrun    = safeInt(rs, "last_super_payrun");
+        e.currentSuperPayrun = safeInt(rs, "current_super_payrun");
+        e.lastSuperDate      = dateDef(rs, "last_super_date");
+        e.sex                = strDefault(rs, "sex", "");
+        e.dateOfBirth        = dateDef(rs, "date_of_birth");
         return e;
     }
 
@@ -339,6 +356,11 @@ public class EmployeeService {
 
     private static BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
+    }
+
+    /** "Y" if input is "Y" (case-insensitive), "N" otherwise. */
+    private static String yn(String s) {
+        return "Y".equalsIgnoreCase(s == null ? "" : s.trim()) ? "Y" : "N";
     }
 
     private static String statusOrA(String s) {

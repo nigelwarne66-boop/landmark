@@ -115,6 +115,40 @@ appSession.isPayrollInstalled()  // !N
 
 ---
 
+## COBOL source-of-truth
+
+**Live program source:** `C:\landmark\Cobol\pa2\pacd01*` (and the corresponding `Cobol\pa2\`, `Cobol\fa2\`, `Cobol\gl2\`, etc folders for each module's programs).
+
+**Definitive record layouts (`.fd` / `.ws`):** `C:\landmark\compile\` — the authoritative copy used by the compile pipeline. `Cobol\fl2\` mirrors these byte-for-byte; either path is fine but treat `compile/` as canonical.
+
+**Do NOT use** `C:\landmark\Cobol\hist\` snapshots — they're archived versions whose mtimes can be misleadingly later than the live source but whose field set is older. Specifically, the `pacd01_v020` archive is missing the SuperStream / Fund-Type fields (`apra_smsf_fund_ind`, `superstream_category`) and the deduction "Salary sacrifice" flag.
+
+For screen field analysis:
+- `.sd` files give the user-visible labels
+- `.lgw` files give the `datafield=` binding (the actual pacodes/pastaff/etc column)
+- `.fd` files give the canonical PIC clauses for column sizes/types
+
+### OCCURS reference convention in `_select.sql` files
+
+The Landmark Query engine uses **two different** subscript conventions depending on where the OCCURS clause sits in the FD:
+
+- **Leaf-level OCCURS** (the field itself has `OCCURS n TIMES`, no children) — e.g. `pasumpc-allow-dedn-amt`, `pataxfl-coeff-a`, `pataxfl-wkly-earnings`. Reference as **lowercase `-NN` for every occurrence including 01**: `pasumpc-allow-dedn-amt-01`, `pasumpc-allow-dedn-amt-02`, ..., `pasumpc-allow-dedn-amt-13`.
+- **Nested-group OCCURS** (a level-5 group has `OCCURS n TIMES` containing level-7/level-9 single fields) — e.g. `pasumry-normal-pay` inside `pasumry-header-data OCCURS 13`. Reference as **lowercase bare for occurrence 1, UPPERCASE `-NN` for 02..N**: `pasumry-normal-pay`, `pasumry-NORMAL-PAY-02`, ..., `pasumry-NORMAL-PAY-13`.
+
+Use the wrong convention and the engine silently returns fewer columns than asked (you'll see `No value specified for parameter N` from JDBC when the framework tries to bind). The dictionary's `LEVEL_NO` + `OCCURS_TIMES` columns tell you which case you're in: if the OCCURS is on the same row as a leaf-PIC, use the leaf convention.
+
+### Engine caps on OCCURS extraction — known limits
+
+The Landmark Query engine has **hard limits** on how much OCCURS data it returns in a single query:
+
+1. **Per-OCCURS-array cap of ~13-19 elements**, depending on which subscript convention you use. `pasumpc` (OCCURS 13) works fully; `pataxfl` (OCCURS 20) bails out partway: lowercase `-NN` gets 13 elements, mixed convention gets 19.
+2. **Won't transition between adjacent OCCURS field-groups in a single query** — e.g. `pataxfl-wkly-earnings` (OCCURS 20) followed by `pataxfl-coeff-a` (also OCCURS 20). The engine stops mid-first-array and never reaches the second, regardless of subscript convention.
+3. **Approximate total-column cap of 250–330** for deep-nested OCCURS (`pasumry` style) before it bails — non-deterministic; varies with select content.
+
+**Practical rule:** if a table's OCCURS arrays push past these limits, omit the OCCURS columns from the extract schema and source that data from elsewhere (manual seed for static reference data, or a different ETL path). `pataxfl` does this — the 78 ATO tax-coefficient columns are deliberately omitted; the table holds only `scale_no` + `desc_1/_2` + singletons + audit. The coefficients are static ATO data that doesn't change per company anyway.
+
+---
+
 ## DB Tables — Confirmed Column Names
 
 **Rule: never guess column names from COBOL source. Check this section first.**
@@ -165,7 +199,7 @@ appSession.isPayrollInstalled()  // !N
 
 **Critical payroll gotchas:**
 - All "hours" fields in PA tables are stored in **minutes** (pastaff.al_hrs_accrued, paehist.hrs, paawjob.std_hrs). Divide by 60 for display.
-- `pasumry` is **unusable** — period columns `_01.._13` are VARCHAR(144) containing raw COBOL COMP-3 binary. Use `pacosts` (DECIMAL) or `paytd` instead.
+- **`pasumry` is permanently dropped from the extract pipeline** — do NOT load it, query it, build screens against it, or wire it into the Java app. The Landmark Query engine misreads its `S9(8)V99 COMP-3` level-9 fields inside the OCCURS 13 group at level 7, fabricating ~$500M-scale garbage values that don't exist in the source `.dat` file (audit fields extract fine; periodic amounts/mins don't). Confirmed 2026-05-11 by hex-dumping `pasumry060.dat` and comparing against the `patl07` PDF report — the file content is mostly zero bytes for periodic data, yet SQL showed `544,947,455.22`. Removed from `landmark_extract/list/module/pafiles.txt`. **For period totals**, recompute on demand from `paehist` with `GROUP BY pay_type, payrun_date` — that's the source of truth for what the PDF reports show.
 - Award FK naming: `paawhed`/`paawjob`/`paawwcp` use `award_code`/`job_class_code`; `pastaff`/`paehist`/`paecode` use `award`/`job_class`. Join carefully.
 - `parunhd.yr_no` (not year_no) FK → `gldates.yr_no`
 - `paytd.year_no` = calendar year (not sequence)

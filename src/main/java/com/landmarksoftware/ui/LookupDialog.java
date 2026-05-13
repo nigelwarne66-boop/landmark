@@ -61,7 +61,9 @@ public class LookupDialog {
         DEPN_CODE("Depreciation Code", "depn_code"),
         PAYGROUP("Pay Group", "pay_group"),
         AWARD("Award", "award_code"),
-        JOB_CLASS("Job Class", "job_class_code");
+        JOB_CLASS("Job Class", "job_class_code"),
+        SUPER_PAY_CODE("Super Pay Code", "pay_code"),
+        TAX_SCALE("Tax Scale", "scale_no");
 
         final String label;
         final String codeColumn;
@@ -243,6 +245,8 @@ public class LookupDialog {
             case PAYGROUP       -> lookupService.searchPaygroups(companyNo, filter);
             case AWARD          -> lookupService.searchAwards(companyNo, filter);
             case JOB_CLASS      -> lookupService.searchJobClasses(companyNo, filter);
+            case SUPER_PAY_CODE -> lookupService.searchSuperPayCodes(companyNo, filter);
+            case TAX_SCALE      -> lookupService.searchTaxScales(companyNo, filter);
         };
     }
 
@@ -299,6 +303,13 @@ public class LookupDialog {
                 new Column("Award",       "award_code"),
                 new Column("Job Class",   "job_class_code"),
                 new Column("Description", "desc1"));
+            case SUPER_PAY_CODE -> List.of(
+                new Column("Pay Code",    "pay_code"),
+                new Column("Description", "desc1"),
+                new Column("Type",        "type"));
+            case TAX_SCALE -> List.of(
+                new Column("Scale",       "scale_no"),
+                new Column("Description", "desc_1"));
         };
     }
 }

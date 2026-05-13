@@ -11,9 +11,15 @@
  */
 package com.landmarksoftware.payroll.ui;
 
+import com.landmarksoftware.export.EmployeePdfService;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.payroll.model.Employee;
+import com.landmarksoftware.payroll.model.EmployeePay;
+import com.landmarksoftware.payroll.model.PayCode;
+import com.landmarksoftware.payroll.service.EmployeePayService;
 import com.landmarksoftware.payroll.service.EmployeeService;
+import com.landmarksoftware.payroll.service.MvrService;
+import com.landmarksoftware.payroll.service.PayCodeService;
 import com.landmarksoftware.service.CodeLookupService;
 import com.landmarksoftware.ui.LookupDialog;
 import javafx.application.Platform;
@@ -60,9 +66,13 @@ public class EmployeeMaintenanceController {
 
     private static final DateTimeFormatter D_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    private final EmployeeService    employeeService;
-    private final CodeLookupService  lookupService;
-    private final AppSession         appSession;
+    private final EmployeeService     employeeService;
+    private final EmployeePayService  employeePayService;
+    private final PayCodeService      payCodeService;
+    private final MvrService          mvrService;
+    private final CodeLookupService   lookupService;
+    private final EmployeePdfService  pdfService;
+    private final AppSession          appSession;
 
     private final ObservableList<Employee> rows = FXCollections.observableArrayList();
     private TableView<Employee> table;
@@ -78,11 +88,19 @@ public class EmployeeMaintenanceController {
     });
 
     public EmployeeMaintenanceController(EmployeeService employeeService,
+                                         EmployeePayService employeePayService,
+                                         PayCodeService payCodeService,
+                                         MvrService mvrService,
                                          CodeLookupService lookupService,
+                                         EmployeePdfService pdfService,
                                          AppSession appSession) {
-        this.employeeService = employeeService;
-        this.lookupService   = lookupService;
-        this.appSession      = appSession;
+        this.employeeService    = employeeService;
+        this.employeePayService = employeePayService;
+        this.payCodeService     = payCodeService;
+        this.mvrService         = mvrService;
+        this.lookupService      = lookupService;
+        this.pdfService         = pdfService;
+        this.appSession         = appSession;
     }
 
     // ── Entry point ───────────────────────────────────────────────────────
@@ -160,6 +178,7 @@ public class EmployeeMaintenanceController {
         Button btnEdit  = btnSecondary("✎ Edit");
         Button btnTerm  = btnDanger("⏻ Terminate");
         Button btnLeave = btnSecondary("⏱ Leave Balances");
+        Button btnPrint = btnSecondary("⎙ Print");
         Button btnRef   = btnSecondary("↺");
 
         btnAdd.setOnAction(e -> openDialog(null, stage));
@@ -192,6 +211,11 @@ public class EmployeeMaintenanceController {
             if (sel != null) openLeaveBalances(sel, stage);
             else showInfo("Leave Balances", "Select an employee.");
         });
+        btnPrint.setOnAction(e -> {
+            Employee sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) printEmployee(sel, stage);
+            else showInfo("Print", "Select an employee to print.");
+        });
         btnRef.setOnAction(e -> loadList());
         btnShowTerminated.setOnAction(e -> {
             showTerminated = btnShowTerminated.isSelected();
@@ -202,7 +226,7 @@ public class EmployeeMaintenanceController {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         HBox toolbar = new HBox(8,
-            btnAdd, btnEdit, btnTerm, btnLeave,
+            btnAdd, btnEdit, btnTerm, btnLeave, btnPrint,
             new Separator(Orientation.VERTICAL),
             fSearch,
             spacer,
@@ -278,6 +302,36 @@ public class EmployeeMaintenanceController {
                         status("Terminate error: " + ex.getMessage(), true));
                 }
             });
+        });
+    }
+
+    // ── Print employee record (PDF) ───────────────────────────────────────
+
+    private void printEmployee(Employee emp, Window owner) {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Save Employee PDF");
+        fc.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("PDF document (*.pdf)", "*.pdf"));
+        String safeName = (emp.surname == null ? "employee" : emp.surname)
+            .replaceAll("[^A-Za-z0-9]", "_");
+        fc.setInitialFileName(String.format("Employee_%d_%s.pdf",
+            emp.employeeNo, safeName));
+        java.io.File picked = fc.showSaveDialog(owner);
+        if (picked == null) return;
+
+        int coNo = appSession.getCompanyNo();
+        String companyName = appSession.getCompanyName();
+        status("Printing employee " + emp.employeeNo + "…", false);
+        exec.submit(() -> {
+            try {
+                List<EmployeePay> splits = employeePayService.findByEmployee(coNo, emp.employeeNo);
+                pdfService.export(emp, splits, companyName, coNo, picked.toPath());
+                Platform.runLater(() ->
+                    status("Printed: " + picked.getName(), false));
+            } catch (Exception ex) {
+                Platform.runLater(() ->
+                    status("Print error: " + ex.getMessage(), true));
+            }
         });
     }
 
@@ -453,11 +507,37 @@ public class EmployeeMaintenanceController {
         TextField fSalary  = tf(decStr(e.annualSalary), 12);
         TextField fStdHrs  = tf(e.stdHrs == 0 ? "" : Employee.minutesAsHours(e.stdHrs), 8);
         TextField fRate    = tf(decStr(e.stdRatePerHr), 12);
-        TextField fTfn     = tf(e.taxFileNo, 11);
         TextField fScale   = tf(e.taxScaleNo, 4);
         TextField fExtra   = tf(decStr(e.extraTaxAmt), 12);
 
-        Label tfnHint = hint("Stored encrypted; never logged. Display masks all but last 3 digits.");
+        // TFN — held off-screen in rawTfn, masked in fTfn; "Show" toggles reveal/edit.
+        final String[] rawTfn = { e.taxFileNo == null ? "" : e.taxFileNo.trim() };
+        TextField fTfn = tf(Employee.maskTfn(rawTfn[0]), 11);
+        fTfn.setEditable(false);
+        ToggleButton btnTfnShow = new ToggleButton("Show");
+        btnTfnShow.setFocusTraversable(false);
+        btnTfnShow.setStyle(
+            "-fx-background-color:white;-fx-text-fill:#1A6EF5;" +
+            "-fx-border-color:#D0CFC8;-fx-border-width:1;" +
+            "-fx-background-radius:0 7 7 0;-fx-border-radius:0 7 7 0;" +
+            "-fx-padding:4 12;-fx-cursor:hand;");
+        btnTfnShow.setOnAction(ev -> {
+            if (btnTfnShow.isSelected()) {
+                fTfn.setText(rawTfn[0]);
+                fTfn.setEditable(true);
+                btnTfnShow.setText("Hide");
+                fTfn.requestFocus();
+            } else {
+                rawTfn[0] = fTfn.getText().trim();
+                fTfn.setText(Employee.maskTfn(rawTfn[0]));
+                fTfn.setEditable(false);
+                btnTfnShow.setText("Show");
+            }
+        });
+        HBox tfnBox = new HBox(0, fTfn, btnTfnShow);
+        HBox.setHgrow(fTfn, Priority.ALWAYS);
+
+        Label tfnHint = hint("Masked by default. Click Show to view or edit.");
         Label hrsHint = hint("Standard weekly hours (e.g. 38.0)");
 
         GridPane gPay = new GridPane();
@@ -466,16 +546,93 @@ public class EmployeeMaintenanceController {
         addFormRow(gPay, r++, "Annual Salary:",       fSalary);
         addFormRowWithHint(gPay, r++, "Std Hours/Week:", fStdHrs, hrsHint);
         addFormRow(gPay, r++, "Std Rate /hr:",        fRate);
-        addFormRow(gPay, r++, "Tax Scale No:",        fScale);
-        addFormRowWithHint(gPay, r++, "Tax File No:", fTfn, tfnHint);
+        addFormRow(gPay, r++, "Tax Scale No:",
+            lookupField(fScale, LookupDialog.LookupType.TAX_SCALE));
+        addFormRowWithHint(gPay, r++, "Tax File No:", tfnBox, tfnHint);
         addFormRow(gPay, r++, "Extra Tax $:",         fExtra);
+
+        // ── Superannuation tab (PAEM01 S1C) ─────────────────────────────
+        TextField fSuperCode    = tf(e.superCode,     10);
+        TextField fSuperMember  = tf(e.superMemberNo, 20);
+        DatePicker dpSuperComm  = new DatePicker(
+            Employee.isValidDate(e.superCommDate) ? e.superCommDate : null);
+        TextField fQualifyDays  = tf(e.qualifyDays == 0 ? "" : String.valueOf(e.qualifyDays), 6);
+        CheckBox cbForcePay     = new CheckBox("Force payment");
+        cbForcePay.setSelected("Y".equalsIgnoreCase(e.forcePayFlag));
+        CheckBox cbUseExtSuper  = new CheckBox("Calc super based on hrs/$ worked");
+        cbUseExtSuper.setSelected("Y".equalsIgnoreCase(e.useExtSuperFlag));
+
+        // Identity fields the MVR call needs (also useful elsewhere on this screen)
+        ChoiceBox<String> cbSex = new ChoiceBox<>();
+        cbSex.getItems().addAll("", "M — Male", "F — Female");
+        cbSex.getSelectionModel().select(switch (e.sex) {
+            case "M" -> 1; case "F" -> 2; default -> 0;
+        });
+        cbSex.setPrefWidth(180);
+        DatePicker dpDob = new DatePicker(
+            Employee.isValidDate(e.dateOfBirth) ? e.dateOfBirth : null);
+
+        Label lblLastPayrun = new Label(
+            e.lastSuperPayrun == 0 ? "—" : String.valueOf(e.lastSuperPayrun));
+        Label lblLastSuperDate = new Label(
+            Employee.isValidDate(e.lastSuperDate) ? dateStr(e.lastSuperDate) : "—");
+        Label lblCurrPayrun = new Label(
+            e.currentSuperPayrun == 0 ? "—" : String.valueOf(e.currentSuperPayrun));
+
+        Button btnMvr = btnSecondary("🛈 MVR Check");
+        btnMvr.setTooltip(new Tooltip(
+            "Verify the super-fund member number against the ATO MVR service.\n" +
+            "Requires Super code and (Member no OR Tax File No)."));
+
+        GridPane gSuper = new GridPane();
+        gSuper.setHgap(10); gSuper.setVgap(10); gSuper.setPadding(new Insets(16));
+        r = 0;
+        addFormRow(gSuper, r++, "Employer Super Code *:",
+            lookupField(fSuperCode, LookupDialog.LookupType.SUPER_PAY_CODE));
+        addFormRow(gSuper, r++, "Super Member No:",       fSuperMember);
+        addFormRow(gSuper, r++, "Super Commence Date:",   dpSuperComm);
+        addFormRow(gSuper, r++, "Qualifying Days:",       fQualifyDays);
+        addFormRow(gSuper, r++, "Force Payment:",         cbForcePay);
+        addFormRow(gSuper, r++, "Calc Based on Hrs/$:",   cbUseExtSuper);
+        addFormRow(gSuper, r++, "Sex:",                   cbSex);
+        addFormRow(gSuper, r++, "Date of Birth:",         dpDob);
+        addFormRow(gSuper, r++, "MVR (Member Verify):",   btnMvr);
+        addFormRow(gSuper, r++, "Last Super Payrun:",     lblLastPayrun);
+        addFormRow(gSuper, r++, "Last Super Date:",       lblLastSuperDate);
+        addFormRow(gSuper, r++, "Current Super Payrun:",  lblCurrPayrun);
+
+        // MVR button — validate pre-conditions, look up the super fund pacodes
+        // row, and call MvrService.verify().
+        btnMvr.setOnAction(ev -> {
+            // Build a transient Employee from the current form values so the
+            // user doesn't have to Save first.
+            Employee txn = new Employee();
+            txn.employeeNo    = e.employeeNo;
+            txn.firstName     = fFirst.getText().trim();
+            txn.secondName    = fSecond.getText().trim();
+            txn.surname       = fSurname.getText().trim();
+            txn.sex           = code(cbSex.getValue(), "");
+            txn.dateOfBirth   = dpDob.getValue();
+            txn.taxFileNo     = fTfn.getText().trim();
+            txn.superCode     = fSuperCode.getText().trim().toUpperCase();
+            txn.superMemberNo = fSuperMember.getText().trim();
+            performMvrCheck(dlg, txn);
+        });
+
+        // ── Bank / EFT tab (PAEM01 S2 — paempay) ──────────────────────────
+        // Pay-method splits live in their own table (paempay), so this tab
+        // saves immediately on Add/Edit/Delete — independent of the outer
+        // Save/Cancel on the employee record.
+        Node gBank = buildBankTab(dlg, e.employeeNo, isAdd);
 
         TabPane tabs = new TabPane();
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getTabs().addAll(
-            tab("Personal",   gPersonal),
-            tab("Employment", gEmp),
-            tab("Pay & Tax",  gPay));
+            tab("Personal",       gPersonal),
+            tab("Employment",     gEmp),
+            tab("Pay & Tax",      gPay),
+            tab("Bank / EFT",     gBank),
+            tab("Superannuation", gSuper));
 
         // ── Save ──────────────────────────────────────────────────────────
         Button btnSave   = btnPrimary(isAdd ? "Add" : "Save");
@@ -544,9 +701,31 @@ public class EmployeeMaintenanceController {
             out.annualSalary     = salary;
             out.stdHrs           = stdHrsMins;
             out.stdRatePerHr     = rate;
-            out.taxFileNo        = fTfn.getText().trim();
+            // If TFN is currently revealed (Show toggled on), the field has the
+            // raw value; otherwise the field shows the mask and rawTfn[] is canonical.
+            out.taxFileNo        = btnTfnShow.isSelected()
+                                   ? fTfn.getText().trim()
+                                   : rawTfn[0];
             out.taxScaleNo       = fScale.getText().trim().toUpperCase();
             out.extraTaxAmt      = extra;
+            // Superannuation (S1C)
+            out.superCode        = fSuperCode.getText().trim().toUpperCase();
+            out.superMemberNo    = fSuperMember.getText().trim();
+            out.superCommDate    = dpSuperComm.getValue();
+            try { out.qualifyDays = fQualifyDays.getText().trim().isEmpty()
+                                   ? 0 : Integer.parseInt(fQualifyDays.getText().trim()); }
+            catch (NumberFormatException nfe) {
+                markError(fQualifyDays, "Qualifying days must be a whole number.");
+                tabs.getSelectionModel().select(3); return;
+            }
+            out.forcePayFlag     = cbForcePay.isSelected()   ? "Y" : "N";
+            out.useExtSuperFlag  = cbUseExtSuper.isSelected() ? "Y" : "N";
+            out.sex              = code(cbSex.getValue(), "");
+            out.dateOfBirth      = dpDob.getValue();
+            // Carry forward read-only fields so the update doesn't lose them
+            out.lastSuperPayrun    = e.lastSuperPayrun;
+            out.currentSuperPayrun = e.currentSuperPayrun;
+            out.lastSuperDate      = e.lastSuperDate;
 
             int coNo = appSession.getCompanyNo();
             String userId = appSession.getUserId();
@@ -591,7 +770,7 @@ public class EmployeeMaintenanceController {
 
         VBox root = new VBox(0, top, tabs, btnBar);
         VBox.setVgrow(tabs, Priority.ALWAYS);
-        dlg.setScene(new Scene(root, 560, 600));
+        dlg.setScene(new Scene(root, 640, 620));
         dlg.showAndWait();
     }
 
@@ -600,6 +779,314 @@ public class EmployeeMaintenanceController {
         sp.setFitToWidth(true);
         sp.setBorder(null);
         return new Tab(title, sp);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Bank / EFT tab — paempay splits
+    // ═══════════════════════════════════════════════════════════════════
+
+    private Node buildBankTab(Window owner, int employeeNo, boolean isAdd) {
+        TableView<EmployeePay> table = new TableView<>();
+        ObservableList<EmployeePay> rows = FXCollections.observableArrayList();
+        table.setItems(rows);
+        table.setPlaceholder(new Label(
+            isAdd ? "Save the employee first, then add pay splits here."
+                  : "No pay splits — Add to create one."));
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        table.getColumns().add(payCol("#",       p -> String.valueOf(p.paymentNo), 50));
+        table.getColumns().add(payCol("Method",  p -> describePayMethod(p.payMethod), 110));
+        table.getColumns().add(payCol("BSB",     p -> p.tfrToBankNo, 90));
+        table.getColumns().add(payCol("Account", p -> p.tfrToBankAcctNo, 150));
+        table.getColumns().add(payCol("Payee",   p -> p.payeeName, 200));
+        table.getColumns().add(payCol("Amount",  p -> describeAmount(p), 100));
+
+        final int coNo = appSession.getCompanyNo();
+        Runnable reload = () -> {
+            if (isAdd) { rows.clear(); return; }
+            try {
+                List<EmployeePay> data = employeePayService.findByEmployee(coNo, employeeNo);
+                Platform.runLater(() -> rows.setAll(data));
+            } catch (Exception ex) {
+                Platform.runLater(() -> status("Bank load error: " + ex.getMessage(), true));
+            }
+        };
+        if (!isAdd) exec.submit(reload);
+
+        Button btnAdd  = btnSecondary("Add Split");
+        Button btnEdit = btnSecondary("Edit");
+        Button btnDel  = btnDanger("Delete");
+        btnAdd.setDisable(isAdd);
+        btnEdit.setDisable(true);
+        btnDel.setDisable(true);
+        table.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
+            boolean has = n != null;
+            btnEdit.setDisable(!has);
+            btnDel.setDisable(!has);
+        });
+
+        btnAdd.setOnAction(ev -> openSplitDialog(owner, null, employeeNo, reload));
+        btnEdit.setOnAction(ev -> {
+            EmployeePay sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) openSplitDialog(owner, sel, employeeNo, reload);
+        });
+        btnDel.setOnAction(ev -> {
+            EmployeePay sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null) confirmDeleteSplit(sel, reload);
+        });
+
+        HBox bar = new HBox(8, btnAdd, btnEdit, btnDel);
+        bar.setPadding(new Insets(10, 12, 10, 12));
+        bar.setAlignment(Pos.CENTER_LEFT);
+
+        VBox box = new VBox(0, bar, table);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        box.setPadding(new Insets(0));
+        return box;
+    }
+
+    private TableColumn<EmployeePay, String> payCol(String header,
+                                                     Function<EmployeePay, String> fn,
+                                                     double w) {
+        TableColumn<EmployeePay, String> c = new TableColumn<>(header);
+        c.setCellValueFactory(p -> new SimpleStringProperty(safe(fn.apply(p.getValue()))));
+        c.setPrefWidth(w);
+        return c;
+    }
+
+    private void openSplitDialog(Window owner, EmployeePay existing,
+                                  int employeeNo, Runnable reload) {
+        boolean isAddSplit = (existing == null);
+        Stage dlg = new Stage();
+        dlg.initOwner(owner);
+        dlg.initModality(Modality.WINDOW_MODAL);
+        dlg.setTitle((isAddSplit ? "Add" : "Edit") + " Pay Split — PAEM01 S2");
+        dlg.setResizable(false);
+
+        final int coNo = appSession.getCompanyNo();
+        EmployeePay p = isAddSplit ? new EmployeePay() : existing;
+        if (isAddSplit) {
+            p.companyNo  = coNo;
+            p.employeeNo = employeeNo;
+            p.paymentNo  = employeePayService.nextPaymentNo(coNo, employeeNo);
+            p.payMethod  = "E";   // sensible default: EFT
+            p.payCalcMethod = "B"; // balance
+        }
+
+        TextField fSeq = tf(String.valueOf(p.paymentNo), 4);
+        fSeq.setEditable(false);
+        fSeq.setDisable(true);
+
+        ChoiceBox<String> cbMethod = new ChoiceBox<>();
+        cbMethod.getItems().addAll(
+            "E — EFT (bank transfer)",
+            "C — Cheque",
+            "X — Cash",
+            "O — Other");
+        cbMethod.getSelectionModel().select(switch (p.payMethod == null ? "" : p.payMethod) {
+            case "C" -> 1; case "X" -> 2; case "O" -> 3; default -> 0;
+        });
+
+        ChoiceBox<String> cbCalc = new ChoiceBox<>();
+        cbCalc.getItems().addAll(
+            "B — Balance (whatever's left)",
+            "P — Percent of net",
+            "A — Fixed amount $");
+        cbCalc.getSelectionModel().select(switch (p.payCalcMethod == null ? "" : p.payCalcMethod) {
+            case "P" -> 1; case "A" -> 2; default -> 0;
+        });
+
+        TextField fAmt    = tf(decStr(p.payAmtPerc), 12);
+        TextField fBsb    = tf(p.tfrToBankNo, 7);
+        TextField fAcct   = tf(p.tfrToBankAcctNo, 20);
+        TextField fBank   = tf(p.bankCode, 2);
+        TextField fPayee  = tf(p.payeeName, 50);
+
+        // Disable amount/BSB/acct based on the calc/method choice
+        Runnable applyFieldStates = () -> {
+            String calc = code(cbCalc.getValue(), "B");
+            String meth = code(cbMethod.getValue(), "E");
+            boolean amountUsed = !"B".equals(calc);
+            fAmt.setDisable(!amountUsed);
+            boolean bankUsed = "E".equals(meth);
+            fBsb.setDisable(!bankUsed);
+            fAcct.setDisable(!bankUsed);
+            fBank.setDisable(!bankUsed);
+        };
+        cbCalc.valueProperty().addListener((obs, o, n) -> applyFieldStates.run());
+        cbMethod.valueProperty().addListener((obs, o, n) -> applyFieldStates.run());
+        applyFieldStates.run();
+
+        GridPane g = new GridPane();
+        g.setHgap(10); g.setVgap(10); g.setPadding(new Insets(16));
+        int r = 0;
+        addFormRow(g, r++, "Sequence:",      fSeq);
+        addFormRow(g, r++, "Pay Method:",    cbMethod);
+        addFormRow(g, r++, "Calc Method:",   cbCalc);
+        addFormRow(g, r++, "Amount / %:",    fAmt);
+        addFormRow(g, r++, "BSB:",           fBsb);
+        addFormRow(g, r++, "Account No:",    fAcct);
+        addFormRow(g, r++, "Bank Code:",     fBank);
+        addFormRow(g, r++, "Payee Name:",    fPayee);
+
+        Button btnOk     = btnPrimary(isAddSplit ? "Add" : "Save");
+        Button btnCancel = btnSecondary("Cancel");
+        btnCancel.setOnAction(ev -> dlg.close());
+
+        btnOk.setOnAction(ev -> {
+            String calc = code(cbCalc.getValue(),   "B");
+            String meth = code(cbMethod.getValue(), "E");
+            BigDecimal amt = parseDec(fAmt, "Amount / %");
+            if (amt == null) return;
+            if ("P".equals(calc) && (amt.signum() < 0
+                    || amt.compareTo(new BigDecimal("100")) > 0)) {
+                markError(fAmt, "Percent must be between 0 and 100.");
+                return;
+            }
+            if ("E".equals(meth) && fBsb.getText().trim().isEmpty()) {
+                markError(fBsb, "BSB is required for EFT.");
+                return;
+            }
+            if ("E".equals(meth) && fAcct.getText().trim().isEmpty()) {
+                markError(fAcct, "Account number is required for EFT.");
+                return;
+            }
+
+            EmployeePay out = new EmployeePay();
+            out.companyNo       = coNo;
+            out.employeeNo      = employeeNo;
+            out.paymentNo       = p.paymentNo;
+            out.payMethod       = meth;
+            out.payCalcMethod   = calc;
+            out.payAmtPerc      = "B".equals(calc) ? BigDecimal.ZERO : amt;
+            out.tfrToBankNo     = "E".equals(meth) ? fBsb.getText().trim()   : "";
+            out.tfrToBankAcctNo = "E".equals(meth) ? fAcct.getText().trim()  : "";
+            out.bankCode        = "E".equals(meth) ? fBank.getText().trim().toUpperCase() : "";
+            out.payeeName       = fPayee.getText().trim();
+            out.noteNo          = p.noteNo;
+
+            String userId = appSession.getUserId();
+            exec.submit(() -> {
+                try {
+                    if (isAddSplit) employeePayService.insert(out, userId);
+                    else            employeePayService.update(out, userId);
+                    Platform.runLater(() -> {
+                        status((isAddSplit ? "Added" : "Updated") +
+                            " split " + out.paymentNo +
+                            " for employee " + employeeNo + ".", false);
+                        dlg.close();
+                        reload.run();
+                    });
+                } catch (Exception ex) {
+                    Platform.runLater(() ->
+                        status("Split save error: " + ex.getMessage(), true));
+                }
+            });
+        });
+
+        HBox bar = new HBox(10, btnOk, btnCancel);
+        bar.setPadding(new Insets(10, 20, 16, 20));
+        bar.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox top = new VBox(2, headerLine(
+            (isAddSplit ? "Add" : "Edit") + " pay split #" + p.paymentNo));
+        top.setPadding(new Insets(16, 20, 8, 20));
+
+        VBox root = new VBox(0, top, g, bar);
+        dlg.setScene(new Scene(root, 460, 420));
+        dlg.showAndWait();
+    }
+
+    private void confirmDeleteSplit(EmployeePay sel, Runnable reload) {
+        Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+            "Delete pay split #" + sel.paymentNo + "?",
+            ButtonType.OK, ButtonType.CANCEL);
+        a.setTitle("Delete split"); a.setHeaderText(null);
+        a.showAndWait().ifPresent(bt -> {
+            if (bt != ButtonType.OK) return;
+            exec.submit(() -> {
+                try {
+                    employeePayService.delete(sel.companyNo, sel.employeeNo, sel.paymentNo);
+                    Platform.runLater(() -> {
+                        status("Deleted split " + sel.paymentNo +
+                            " for employee " + sel.employeeNo + ".", false);
+                        reload.run();
+                    });
+                } catch (Exception ex) {
+                    Platform.runLater(() ->
+                        status("Split delete error: " + ex.getMessage(), true));
+                }
+            });
+        });
+    }
+
+    private static String describePayMethod(String code) {
+        return switch (code == null ? "" : code) {
+            case "E" -> "E — EFT";
+            case "C" -> "C — Cheque";
+            case "X" -> "X — Cash";
+            case "O" -> "O — Other";
+            case ""  -> "";
+            default  -> code;
+        };
+    }
+
+    private static String describeAmount(EmployeePay p) {
+        return switch (p.payCalcMethod == null ? "" : p.payCalcMethod) {
+            case "B" -> "Balance";
+            case "P" -> p.payAmtPerc.stripTrailingZeros().toPlainString() + " %";
+            case "A" -> "$ " + p.payAmtPerc.stripTrailingZeros().toPlainString();
+            default  -> "";
+        };
+    }
+
+
+    /**
+     * MVR (Member Verification Request) — PAEM01 S1C "🛈 MVR Check" button.
+     *
+     * <p>Mirrors COBOL {@code DO-MVR-CHECK} in {@code paem01.pl}: validates
+     * super_code + member_no/TFN, looks up the super-fund pacodes row for
+     * ABN/USI/ESA, and dispatches the request to {@link MvrService} (which
+     * stubs the real ATO call for now).
+     */
+    private void performMvrCheck(Window owner, Employee txn) {
+        // Quick UI-side validation before going to the service
+        if (txn.superCode.isBlank()) {
+            showInfo("MVR", "Super code required for MVR check.");
+            return;
+        }
+        if (txn.superMemberNo.isBlank() && txn.taxFileNo.isBlank()) {
+            showInfo("MVR", "Member no or TFN required for MVR.");
+            return;
+        }
+
+        final int coNo = appSession.getCompanyNo();
+        final int yearNo = appSession.getYearNo();   // STP year (calendar)
+
+        exec.submit(() -> {
+            try {
+                // Look up the super fund's pacodes row (for ABN / USI / ESA / fund-type)
+                PayCode fund = payCodeService.findOne(coNo, txn.superCode).orElse(null);
+                if (fund == null) {
+                    Platform.runLater(() -> showInfo("MVR",
+                        "Super code '" + txn.superCode + "' not found in pay codes."));
+                    return;
+                }
+                MvrService.Result res = mvrService.verify(coNo, yearNo, txn, fund);
+                Platform.runLater(() -> {
+                    Alert a = new Alert(res.ok() ? Alert.AlertType.INFORMATION
+                                                  : Alert.AlertType.WARNING);
+                    a.setTitle("MVR — " + res.status());
+                    a.setHeaderText(null);
+                    a.setContentText(res.message());
+                    a.initOwner(owner);
+                    a.showAndWait();
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() ->
+                    showInfo("MVR", "MVR check failed: " + ex.getMessage()));
+            }
+        });
     }
 
     private Label headerLine(String text) {

@@ -102,6 +102,18 @@ public class CodeLookupService {
         return query(PayrollSql.SEARCH_JOB_CLASSES, companyNo, like, like, like);
     }
 
+    /** Pacodes filtered to super-fund types (17 = Super, 20 = Employer Super). */
+    public List<Map<String, String>> searchSuperPayCodes(int companyNo, String filter) {
+        String like = like(filter);
+        return query(PayrollSql.SEARCH_SUPER_PAY_CODES, companyNo, like, like);
+    }
+
+    /** Pataxfl — ATO tax scales (1-13 etc.) for the employee Tax Scale lookup. */
+    public List<Map<String, String>> searchTaxScales(int companyNo, String filter) {
+        String like = like(filter);
+        return query(PayrollSql.SEARCH_TAX_SCALES, companyNo, like, like);
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────
 
     private static String like(String filter) {

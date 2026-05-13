@@ -35,7 +35,48 @@ public final class PayrollSql {
     private static final String PACODES_COLS =
         "pay_code, type, desc1, payslip_desc, abbrev_desc, " +
         "print_on_payslip_flag, super_flag, wcomp_flag, term_e_flag, " +
-        "pay_rate, pay_factor, allow_rate, allow_amt, dedn_perc, dedn_amt";
+        "pay_rate, pay_factor, allow_rate, allow_amt, dedn_perc, dedn_amt, " +
+        // PAY-type flags exposed on PACD01S2 (types 1-3)
+        "pay_payable_flag, pay_rdo_accrual_flag, pay_lsl_accrual_flag, " +
+        "pay_al_accrual_flag, pay_sick_accrual_flag, pay_lsl_cas_accrual, " +
+        "pay_include_for_rdo, pay_ret_comm_ind, pay_lsl_return_flag, " +
+        "pay_usual_paid_flag, pay_cdep_flag, " +
+        // ALLOW-type fields (S2A/S2B — types 10-14)
+        "allow_unit_per_desc, allow_lsl_return_flag, allow_payroll_tax_flag, " +
+        "allow_lsl_accrual_flag, allow_al_accrual_flag, allow_sl_accrual_flag, " +
+        "allow_rdo_accrual_flag, allow_include_for_rdo, allow_ret_comm_ind, " +
+        "allow_include_for_gc, allow_lsl_cas_accrual, allow_fbt_flag, " +
+        "allow_rpt_inc_flag, allow_gst_flag, allow_gst_code, allow_cdep_flag, " +
+        // DEDN-type fields (S2D — types 15, 16)
+        "dedn_sal_sac_flag, dedn_pay_method, dedn_remittance_freq, " +
+        "dedn_clear_acct_main, dedn_clear_acct_sub, dedn_reportable_flag, " +
+        "dedn_wplace_give_flag, dedn_union_fees_flag, dedn_used_for_super, " +
+        // LEAVE-type fields (S2C/S2F — types 4-9)
+        "leave_max_taken, leave_lsl_accrual_flag, leave_al_accrual_flag, " +
+        "leave_sl_accrual_flag, leave_rdo_accrual_flag, leave_payable_flag, " +
+        "leave_include_for_rdo, leave_pay_factor, leave_lsl_return_flag, " +
+        "leave_term_pay_flag, leave_max_period, leave_usual_paid_flag, " +
+        "leave_lsl_cas_accrual, leave_cdep_flag, " +
+        // SUPER-type fields (S2E — types 17, 20)
+        "super_employee_perc, super_pay_method, super_remittance_freq, " +
+        "super_clear_acct_main, super_clear_acct_sub, super_tfr_file_flag, " +
+        "super_payroll_tax_flag, super_reportable_flag, super_before_after_tax, " +
+        "max_super_ytd, plan_no, " +
+        // CONTRIB-type fields (S2H — type 21)
+        "contrib_paid_flag, contrib_remit_freq, contrib_pay_method, " +
+        "contrib_fbt_flag, contrib_rpt_inc_flag, contrib_clear_main, " +
+        "contrib_clear_sub, contrib_report_flag, contrib_deduct_taxable, " +
+        "contrib_pay_tax_flag, contrib_gst_flag, contrib_gst_code, " +
+        "contrib_used_for_super, " +
+        // TAX-type fields (S2I)
+        "tax_remit_freq, tax_pay_method, eft_reference, " +
+        // Fund/payee details (S2D/S2E/S2H/S2I)
+        "fund_name, fund_addr_1, fund_addr_2, fund_addr_3, " +
+        "contact_name, contact_phone, fund_abn, fund_usi, fund_esa, " +
+        // EFT details (S2G — sub-modal)
+        "bank_code, acct_name, bank_bsb, bank_acct_no, " +
+        // SuperStream / fund classification (S2D/S2E/S2H)
+        "apra_smsf_fund_ind, superstream_category";
 
     /** All pay codes for a company, ordered by type then code. Params: companyNo. */
     public static final String FIND_ALL_PAYCODES =
@@ -78,7 +119,48 @@ public final class PayrollSql {
         "type=?, desc1=?, payslip_desc=?, abbrev_desc=?, " +
         "print_on_payslip_flag=?, super_flag=?, wcomp_flag=?, term_e_flag=?, " +
         "pay_rate=?, pay_factor=?, allow_rate=?, allow_amt=?, " +
-        "dedn_perc=?, dedn_amt=? " +
+        "dedn_perc=?, dedn_amt=?, " +
+        // PAY-type flags
+        "pay_payable_flag=?, pay_rdo_accrual_flag=?, pay_lsl_accrual_flag=?, " +
+        "pay_al_accrual_flag=?, pay_sick_accrual_flag=?, pay_lsl_cas_accrual=?, " +
+        "pay_include_for_rdo=?, pay_ret_comm_ind=?, pay_lsl_return_flag=?, " +
+        "pay_usual_paid_flag=?, pay_cdep_flag=?, " +
+        // ALLOW-type fields
+        "allow_unit_per_desc=?, allow_lsl_return_flag=?, allow_payroll_tax_flag=?, " +
+        "allow_lsl_accrual_flag=?, allow_al_accrual_flag=?, allow_sl_accrual_flag=?, " +
+        "allow_rdo_accrual_flag=?, allow_include_for_rdo=?, allow_ret_comm_ind=?, " +
+        "allow_include_for_gc=?, allow_lsl_cas_accrual=?, allow_fbt_flag=?, " +
+        "allow_rpt_inc_flag=?, allow_gst_flag=?, allow_gst_code=?, allow_cdep_flag=?, " +
+        // DEDN-type fields
+        "dedn_sal_sac_flag=?, dedn_pay_method=?, dedn_remittance_freq=?, " +
+        "dedn_clear_acct_main=?, dedn_clear_acct_sub=?, dedn_reportable_flag=?, " +
+        "dedn_wplace_give_flag=?, dedn_union_fees_flag=?, dedn_used_for_super=?, " +
+        // LEAVE-type fields
+        "leave_max_taken=?, leave_lsl_accrual_flag=?, leave_al_accrual_flag=?, " +
+        "leave_sl_accrual_flag=?, leave_rdo_accrual_flag=?, leave_payable_flag=?, " +
+        "leave_include_for_rdo=?, leave_pay_factor=?, leave_lsl_return_flag=?, " +
+        "leave_term_pay_flag=?, leave_max_period=?, leave_usual_paid_flag=?, " +
+        "leave_lsl_cas_accrual=?, leave_cdep_flag=?, " +
+        // SUPER-type fields
+        "super_employee_perc=?, super_pay_method=?, super_remittance_freq=?, " +
+        "super_clear_acct_main=?, super_clear_acct_sub=?, super_tfr_file_flag=?, " +
+        "super_payroll_tax_flag=?, super_reportable_flag=?, super_before_after_tax=?, " +
+        "max_super_ytd=?, plan_no=?, " +
+        // CONTRIB-type fields
+        "contrib_paid_flag=?, contrib_remit_freq=?, contrib_pay_method=?, " +
+        "contrib_fbt_flag=?, contrib_rpt_inc_flag=?, contrib_clear_main=?, " +
+        "contrib_clear_sub=?, contrib_report_flag=?, contrib_deduct_taxable=?, " +
+        "contrib_pay_tax_flag=?, contrib_gst_flag=?, contrib_gst_code=?, " +
+        "contrib_used_for_super=?, " +
+        // TAX-type fields
+        "tax_remit_freq=?, tax_pay_method=?, eft_reference=?, " +
+        // Fund/payee shared
+        "fund_name=?, fund_addr_1=?, fund_addr_2=?, fund_addr_3=?, " +
+        "contact_name=?, contact_phone=?, fund_abn=?, fund_usi=?, fund_esa=?, " +
+        // EFT details
+        "bank_code=?, acct_name=?, bank_bsb=?, bank_acct_no=?, " +
+        // SuperStream / fund classification
+        "apra_smsf_fund_ind=?, superstream_category=? " +
         "WHERE company_no=? AND pay_code=?";
 
     /** Hard-delete a pay code. Caller must verify it's not in use. Params: companyNo, payCode. */
@@ -96,7 +178,11 @@ public final class PayrollSql {
         "date_started, date_terminated, pay_freq, award, job_class, " +
         "annual_salary, std_hrs, std_rate_per_hr, " +
         "tax_file_no, tax_scale_no, extra_tax_amt, " +
-        "al_hrs_accrued, accrued_sick_leave, lsl_weeks_accrued";
+        "al_hrs_accrued, accrued_sick_leave, lsl_weeks_accrued, " +
+        // Superannuation (PAEM01 S1C)
+        "super_code, super_member_no, super_comm_date, qualify_days, " +
+        "force_pay_flag, use_ext_super_flag, last_super_payrun, " +
+        "current_super_payrun, last_super_date, sex, date_of_birth";
 
     /** All employees for a company, ordered by employee_no. Params: companyNo. */
     public static final String FIND_ALL_EMPLOYEES =
@@ -149,6 +235,46 @@ public final class PayrollSql {
         "WHERE company_no=? AND (award_code LIKE ? OR desc1 LIKE ?) " +
         "ORDER BY award_code LIMIT 200";
 
+    /** Columns returned by SEARCH_FUNDS / FIND_FUND. Internal. */
+    private static final String PAFUNDS_COLS =
+        "apra_smsf_fund_ind, fund_id, smsf_abn, fund_abn, fund_name, fund_name_2, " +
+        "product_name, fund_addr_1, fund_addr_2, fund_addr_3, " +
+        "contact_name, contact_phone, contact_email, " +
+        "bank_code, bank_bsb, bank_acct_no, acct_name, employer_no";
+
+    /**
+     * Live-search super funds, filtered by fund type indicator ('A' APRA or 'S' SMSF).
+     * Filter matches fund_id (USI/ESA), fund_name, or fund_abn (LIKE).
+     * Params: companyNo, fundTypeInd, like, like, like.
+     */
+    public static final String SEARCH_FUNDS =
+        "SELECT " + PAFUNDS_COLS + " FROM pafunds " +
+        "WHERE company_no=? AND apra_smsf_fund_ind=? " +
+        "AND (fund_id LIKE ? OR fund_name LIKE ? OR fund_abn LIKE ?) " +
+        "ORDER BY fund_id LIMIT 200";
+
+    /**
+     * Live-search tax scales — pataxfl table. Used by the F5 dropdown on
+     * PAEM01 S1A (employee Tax Scale No). Filter matches scale_no or desc_1.
+     * Params: companyNo, like, like.
+     */
+    public static final String SEARCH_TAX_SCALES =
+        "SELECT scale_no, desc_1 FROM pataxfl " +
+        "WHERE company_no=? AND (scale_no LIKE ? OR desc_1 LIKE ?) " +
+        "ORDER BY scale_no LIMIT 200";
+
+    /**
+     * Live-search super pay codes — pacodes filtered to type 17 (Super)
+     * and type 20 (Employer Super). Used by the F5 dropdown on PAEM01 S1C
+     * (employee Super Code). Filter matches pay_code or desc1 (LIKE).
+     * Params: companyNo, like, like.
+     */
+    public static final String SEARCH_SUPER_PAY_CODES =
+        "SELECT pay_code, desc1, type FROM pacodes " +
+        "WHERE company_no=? AND type IN (17, 20) " +
+        "AND (pay_code LIKE ? OR desc1 LIKE ?) " +
+        "ORDER BY pay_code LIMIT 200";
+
     /**
      * Live-search job classifications for the lookup popup.
      * Filter matches award_code, job_class_code or description (LIKE).
@@ -179,6 +305,8 @@ public final class PayrollSql {
      *   date_started, date_terminated, pay_freq, award, job_class,
      *   annual_salary, std_hrs, std_rate_per_hr,
      *   tax_file_no, tax_scale_no, extra_tax_amt,
+     *   super_code, super_member_no, super_comm_date, qualify_days,
+     *   force_pay_flag, use_ext_super_flag, sex, date_of_birth,
      *   companyNo, employeeNo.
      */
     public static final String UPDATE_EMPLOYEE =
@@ -190,8 +318,29 @@ public final class PayrollSql {
         "date_started=?, date_terminated=?, pay_freq=?, " +
         "award=?, job_class=?, " +
         "annual_salary=?, std_hrs=?, std_rate_per_hr=?, " +
-        "tax_file_no=?, tax_scale_no=?, extra_tax_amt=? " +
+        "tax_file_no=?, tax_scale_no=?, extra_tax_amt=?, " +
+        // Superannuation (S1C)
+        "super_code=?, super_member_no=?, super_comm_date=?, qualify_days=?, " +
+        "force_pay_flag=?, use_ext_super_flag=?, sex=?, date_of_birth=? " +
         "WHERE company_no=? AND employee_no=?";
+
+    /**
+     * Read papsdat (STP submission control) for the MVR employer details
+     * — ABN, name, contact, email. Primary source per the COBOL design.
+     * Params: companyNo, yearNo.
+     */
+    public static final String FIND_PAPSDAT_EMPLOYER =
+        "SELECT employer_abn, employer_name_1, employer_email, " +
+        "employer_contact_phone, employer_contact_name " +
+        "FROM papsdat WHERE company_no=? AND year_no=?";
+
+    /**
+     * Fallback when papsdat has no row — read cpcoyco (always loaded) for
+     * the structural fields (ABN/name/phone). Contact email + name fall
+     * through to {@link OzediProperties}. Params: companyNo.
+     */
+    public static final String FIND_CPCOYCO_EMPLOYER =
+        "SELECT abn, name1, phone, addr_1 FROM cpcoyco WHERE company_no=?";
 
     /**
      * Soft-delete an employee — sets employee_status='T' and date_terminated.
@@ -221,9 +370,10 @@ public final class PayrollSql {
         "allow_include_for_rdo, allow_ret_comm_ind, allow_include_for_gc, " +
         "cg_costing_split_flag, allow_lsl_cas_accrual, allow_fbt_flag, " +
         "allow_rpt_inc_flag, allow_gst_flag, allow_gst_code, allow_cdep_flag, " +
-        "dedn_perc, dedn_amt, dedn_pay_method, dedn_remittance_freq, " +
-        "dedn_clear_acct_main, dedn_clear_acct_sub, dedn_reportable_flag, " +
-        "dedn_wplace_give_flag, dedn_union_fees_flag, dedn_used_for_super, " +
+        "dedn_perc, dedn_amt, dedn_sal_sac_flag, dedn_pay_method, " +
+        "dedn_remittance_freq, dedn_clear_acct_main, dedn_clear_acct_sub, " +
+        "dedn_reportable_flag, dedn_wplace_give_flag, dedn_union_fees_flag, " +
+        "dedn_used_for_super, " +
         "super_employee_perc, super_pay_method, super_remittance_freq, " +
         "super_clear_acct_main, super_clear_acct_sub, super_tfr_file_flag, " +
         "super_payroll_tax_flag, " +
@@ -266,7 +416,7 @@ public final class PayrollSql {
         "?,?,?,?,?,?,?,?,?,?," +  //  91-100
         "?,?,?,?,?,?,?,?,?,?," +  // 101-110
         "?,?,?,?,?,?,?,?,?,?," +  // 111-120
-        "?" +                      // 121
+        "?,?" +                    // 121-122
         ")";
 
     // ─── pastaff — full INSERT (120 columns) ────────────────────────────
