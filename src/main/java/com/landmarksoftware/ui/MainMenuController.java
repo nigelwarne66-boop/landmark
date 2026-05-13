@@ -18,6 +18,13 @@ import com.landmarksoftware.payroll.ui.AwardMaintenanceController;
 import com.landmarksoftware.payroll.ui.PayGroupMaintenanceController;
 import com.landmarksoftware.payroll.ui.PayrollMenuController;
 import com.landmarksoftware.payroll.ui.TaxScaleLoadController;
+import com.landmarksoftware.payroll.ui.SetSuperPercentageController;
+import com.landmarksoftware.payroll.ui.UpdateAwardRateChangesController;
+import com.landmarksoftware.payroll.ui.GlobalEmployeeAwardUpdateController;
+import com.landmarksoftware.payroll.ui.ChangeEmployeePayRatesController;
+import com.landmarksoftware.payroll.ui.DuplicateTimesheetsController;
+import com.landmarksoftware.payroll.ui.LeaveAccrualReversalController;
+import com.landmarksoftware.payroll.ui.TimesheetSplitsController;
 import com.landmarksoftware.payroll.ui.TaxScaleMaintenanceController;
 import com.landmarksoftware.payroll.ui.PayCodeMaintenanceController;
 import com.landmarksoftware.payroll.ui.EmployeeMaintenanceController;
@@ -77,6 +84,13 @@ public class MainMenuController {
     private final TaxScaleMaintenanceController      taxScaleScreen;
     private final AwardMaintenanceController         awardScreen;
     private final TaxScaleLoadController             taxScaleLoadScreen;
+    private final SetSuperPercentageController       setSuperPercentageScreen;
+    private final UpdateAwardRateChangesController   updateAwardRatesScreen;
+    private final GlobalEmployeeAwardUpdateController globalAwardUpdateScreen;
+    private final ChangeEmployeePayRatesController   changeEmpPayRatesScreen;
+    private final DuplicateTimesheetsController      dupTimesheetsScreen;
+    private final LeaveAccrualReversalController     leaveAccrualScreen;
+    private final TimesheetSplitsController          timesheetSplitsScreen;
     private final JdbcTemplate                       jdbc;
     private final SessionService                     sessionService;
     private final CompanyRepository                  companyRepo;
@@ -114,6 +128,13 @@ public class MainMenuController {
                                TaxScaleMaintenanceController taxScaleScreen,
                                AwardMaintenanceController awardScreen,
                                TaxScaleLoadController taxScaleLoadScreen,
+                               SetSuperPercentageController setSuperPercentageScreen,
+                               UpdateAwardRateChangesController updateAwardRatesScreen,
+                               GlobalEmployeeAwardUpdateController globalAwardUpdateScreen,
+                               ChangeEmployeePayRatesController changeEmpPayRatesScreen,
+                               DuplicateTimesheetsController dupTimesheetsScreen,
+                               LeaveAccrualReversalController leaveAccrualScreen,
+                               TimesheetSplitsController timesheetSplitsScreen,
                                JdbcTemplate jdbc,
                                SessionService sessionService,
                                CompanyRepository companyRepo,
@@ -133,6 +154,13 @@ public class MainMenuController {
         this.taxScaleScreen        = taxScaleScreen;
         this.awardScreen           = awardScreen;
         this.taxScaleLoadScreen    = taxScaleLoadScreen;
+        this.setSuperPercentageScreen = setSuperPercentageScreen;
+        this.updateAwardRatesScreen = updateAwardRatesScreen;
+        this.globalAwardUpdateScreen = globalAwardUpdateScreen;
+        this.changeEmpPayRatesScreen = changeEmpPayRatesScreen;
+        this.dupTimesheetsScreen   = dupTimesheetsScreen;
+        this.leaveAccrualScreen    = leaveAccrualScreen;
+        this.timesheetSplitsScreen = timesheetSplitsScreen;
         this.jdbc                  = jdbc;
         this.sessionService        = sessionService;
         this.companyRepo           = companyRepo;
@@ -600,8 +628,21 @@ public class MainMenuController {
         grid.add(buildPayrollModuleCard("Year End",
             "#D97706",
             "Year close and carry-forward processing",
-            List.of(entry("PY","PATX01"), entry("PY","PADE01"),
-                    entry("PY","PASU11"), entry("PY","PASU55"))), 1, 1);
+            List.of(entry("PY","PATX01"), entry("PY","PADE01"))), 1, 1);
+
+        // Mass Update card (Wave 2 batch utilities)
+        grid.add(buildPayrollModuleCard("Mass Update",
+            "#7C3AED",
+            "Batch changes across employees and pay codes",
+            List.of(entry("PY","PASU14"), entry("PY","PASU11"),
+                    entry("PY","PASU15"), entry("PY","PAEM60"))), 0, 2);
+
+        // Batch Operations card (pay-run + timesheet utilities)
+        grid.add(buildPayrollModuleCard("Batch Operations",
+            "#0EA5E9",
+            "Pay run and timesheet utilities",
+            List.of(entry("PY","PAEM11"), entry("PY","PASU55"),
+                    entry("PY","PAPC01"))), 1, 2);
 
         tab.getChildren().add(grid);
         VBox.setVgrow(grid, Priority.ALWAYS);
@@ -970,6 +1011,27 @@ public class MainMenuController {
         allEntries.add(new MenuEntry("PY", "PATX01", "Load ATO Tax Scales",
             "Annual NAT_1004 / NAT_3539 update",
             true, this::openTaxScaleLoad));
+        allEntries.add(new MenuEntry("PY", "PASU14", "Set Super Percentage",
+            "Change super rate % on selected pay codes",
+            true, this::openSetSuperPercentage));
+        allEntries.add(new MenuEntry("PY", "PASU11", "Update Award Rate Changes",
+            "Apply award rate changes to active employees",
+            true, this::openUpdateAwardRateChanges));
+        allEntries.add(new MenuEntry("PY", "PASU15", "Global Employee Award Update",
+            "Move employees between awards globally",
+            true, this::openGlobalEmployeeAwardUpdate));
+        allEntries.add(new MenuEntry("PY", "PAEM60", "Change Employee Pay Rates",
+            "Mass update employee pay rates",
+            true, this::openChangeEmployeePayRates));
+        allEntries.add(new MenuEntry("PY", "PAEM11", "Duplicate Default Timesheets",
+            "Copy default timesheets to many employees",
+            true, this::openDuplicateTimesheets));
+        allEntries.add(new MenuEntry("PY", "PASU55", "Leave Accrual Reversal",
+            "Reverse leave accruals for a payrun",
+            true, this::openLeaveAccrualReversal));
+        allEntries.add(new MenuEntry("PY", "PAPC01", "Timesheet Splits",
+            "Maintain pay phase / phase group splits",
+            true, this::openTimesheetSplits));
 
         // System maintenance programs
         allEntries.add(new MenuEntry("SYS", "MENU22", "Company Maintenance",
@@ -1097,6 +1159,48 @@ public class MainMenuController {
         Stage s = new Stage(); s.setTitle("Load ATO Tax Scales — PATX01");
         s.setScene(taxScaleLoadScreen.buildScene(s));
         s.setMinWidth(600); s.setMinHeight(320); s.show();
+    }
+
+    private void openSetSuperPercentage() {
+        Stage s = new Stage(); s.setTitle("Set Super Percentage — PASU14");
+        s.setScene(setSuperPercentageScreen.buildScene(s));
+        s.setMinWidth(600); s.setMinHeight(400); s.show();
+    }
+
+    private void openUpdateAwardRateChanges() {
+        Stage s = new Stage(); s.setTitle("Update Award Rate Changes — PASU11");
+        s.setScene(updateAwardRatesScreen.buildScene(s));
+        s.setMinWidth(640); s.setMinHeight(380); s.show();
+    }
+
+    private void openGlobalEmployeeAwardUpdate() {
+        Stage s = new Stage(); s.setTitle("Global Employee Award Update — PASU15");
+        s.setScene(globalAwardUpdateScreen.buildScene(s));
+        s.setMinWidth(720); s.setMinHeight(580); s.show();
+    }
+
+    private void openChangeEmployeePayRates() {
+        Stage s = new Stage(); s.setTitle("Change Employee Pay Rates — PAEM60");
+        s.setScene(changeEmpPayRatesScreen.buildScene(s));
+        s.setMinWidth(760); s.setMinHeight(660); s.show();
+    }
+
+    private void openDuplicateTimesheets() {
+        Stage s = new Stage(); s.setTitle("Duplicate Default Timesheets — PAEM11");
+        s.setScene(dupTimesheetsScreen.buildScene(s));
+        s.setMinWidth(680); s.setMinHeight(440); s.show();
+    }
+
+    private void openLeaveAccrualReversal() {
+        Stage s = new Stage(); s.setTitle("Leave Accrual Reversal — PASU55");
+        s.setScene(leaveAccrualScreen.buildScene(s));
+        s.setMinWidth(840); s.setMinHeight(560); s.show();
+    }
+
+    private void openTimesheetSplits() {
+        Stage s = new Stage(); s.setTitle("Timesheet Splits — PAPC01");
+        s.setScene(timesheetSplitsScreen.buildScene(s));
+        s.setMinWidth(920); s.setMinHeight(560); s.show();
     }
 
     // ═══════════════════════════════════════════════════════════════

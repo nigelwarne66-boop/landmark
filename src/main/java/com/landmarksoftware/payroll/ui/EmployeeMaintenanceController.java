@@ -292,7 +292,8 @@ public class EmployeeMaintenanceController {
             exec.submit(() -> {
                 try {
                     employeeService.terminate(
-                        appSession.getCompanyNo(), emp.employeeNo, date);
+                        appSession.getCompanyNo(), emp.employeeNo, date,
+                        appSession.getUserId());
                     Platform.runLater(() -> {
                         loadList();
                         status("Terminated: " + emp.employeeNo + " " + emp.fullName(), false);
@@ -741,7 +742,7 @@ public class EmployeeMaintenanceController {
                         }
                         employeeService.insert(coNo, out, userId);
                     } else {
-                        employeeService.update(coNo, out);
+                        employeeService.update(coNo, out, userId);
                     }
                     Platform.runLater(() -> {
                         status((isAdd ? "Added: " : "Updated: ")

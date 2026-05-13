@@ -44,9 +44,11 @@ public class EmployeeService {
     private static final LocalDate DATE_ZERO = LocalDate.of(1899, 12, 31);
 
     private final JdbcTemplate jdbc;
+    private final MasterFileAuditService audit;
 
-    public EmployeeService(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public EmployeeService(JdbcTemplate jdbc, MasterFileAuditService audit) {
+        this.jdbc  = jdbc;
+        this.audit = audit;
     }
 
     // ── List ──────────────────────────────────────────────────────────────
@@ -206,6 +208,8 @@ public class EmployeeService {
             // 115-120 audit
             userId, today, hr, min, sec, 0
         );
+        audit.auditEmployee(companyNo, e.employeeNo,
+            MasterFileAuditService.MAINT_ADD, null, e, userId);
     }
 
     /**
@@ -215,7 +219,8 @@ public class EmployeeService {
      * other 90+ pastaff columns are left untouched.
      */
     @Transactional
-    public void update(int companyNo, Employee e) {
+    public void update(int companyNo, Employee e, String userId) {
+        Employee before = findOne(companyNo, e.employeeNo).orElse(null);
         jdbc.update(
             PayrollSql.UPDATE_EMPLOYEE,
             trimUp(e.surname, 30), trim(e.firstName, 30), trim(e.secondName, 30),
@@ -236,6 +241,8 @@ public class EmployeeService {
             yn(e.forcePayFlag), yn(e.useExtSuperFlag),
             trimUp(e.sex, 1), sqlDate(e.dateOfBirth),
             companyNo, e.employeeNo);
+        audit.auditEmployee(companyNo, e.employeeNo,
+            MasterFileAuditService.MAINT_MODIFY, before, e, userId);
     }
 
     /**
@@ -243,10 +250,14 @@ public class EmployeeService {
      * Sets employee_status='T' and date_terminated=date.
      */
     @Transactional
-    public void terminate(int companyNo, int employeeNo, LocalDate date) {
+    public void terminate(int companyNo, int employeeNo, LocalDate date, String userId) {
+        Employee before = findOne(companyNo, employeeNo).orElse(null);
         jdbc.update(
             PayrollSql.TERMINATE_EMPLOYEE,
             sqlDate(date), companyNo, employeeNo);
+        Employee after = findOne(companyNo, employeeNo).orElse(null);
+        audit.auditEmployee(companyNo, employeeNo,
+            MasterFileAuditService.MAINT_DELETE, before, after, userId);
     }
 
     // ── Row mapper ────────────────────────────────────────────────────────

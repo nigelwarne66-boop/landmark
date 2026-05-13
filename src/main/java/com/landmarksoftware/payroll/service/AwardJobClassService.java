@@ -39,8 +39,12 @@ import java.util.Optional;
 public class AwardJobClassService {
 
     private final JdbcTemplate jdbc;
+    private final MasterFileAuditService audit;
 
-    public AwardJobClassService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public AwardJobClassService(JdbcTemplate jdbc, MasterFileAuditService audit) {
+        this.jdbc  = jdbc;
+        this.audit = audit;
+    }
 
     private static final RowMapper<AwardJobClass> ROW = (rs, i) -> {
         AwardJobClass j = new AwardJobClass();
@@ -162,12 +166,14 @@ public class AwardJobClassService {
     public void insert(AwardJobClass j, String userId) {
         Stamp s = stamp(userId);
         jdbc.update(INSERT_SQL, args(j, s, true));
+        audit.auditAwardChange(j.companyNo, j.awardCode, j.jobClassCode);
     }
 
     @Transactional
     public void update(AwardJobClass j, String userId) {
         Stamp s = stamp(userId);
         jdbc.update(UPDATE_SQL, args(j, s, false));
+        audit.auditAwardChange(j.companyNo, j.awardCode, j.jobClassCode);
     }
 
     @Transactional
@@ -178,6 +184,9 @@ public class AwardJobClassService {
             companyNo, awardCode, jobClassCode);
         jdbc.update(
             "DELETE FROM paawjob WHERE company_no=? AND award_code=? AND job_class_code=?",
+            companyNo, awardCode, jobClassCode);
+        jdbc.update(
+            "DELETE FROM paawchg WHERE company_no=? AND award=? AND job_class=?",
             companyNo, awardCode, jobClassCode);
     }
 

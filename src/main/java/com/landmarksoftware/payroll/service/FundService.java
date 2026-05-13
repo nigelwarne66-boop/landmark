@@ -22,6 +22,15 @@ import java.util.List;
 /**
  * pafunds lookup — drives the USI / ESA dropdowns on PACD01 S2E (SUPER) and
  * S2H (CONTRIB). Selecting a fund auto-populates the pacodes fund_* fields.
+ *
+ * <p><b>Wave 1.5 audit contract:</b> a future Super Fund Maintenance screen
+ * (currently no insert/update/delete here — pafunds is read-only in Wave 1)
+ * MUST call {@link MasterFileAuditService#auditFund} from each write method
+ * within the same {@code @Transactional} block. The {@code pafuaud} table
+ * and its loader path are already in place. PAEM01 super-tab edits (the
+ * employee's super_code, member_no, etc.) are captured by {@code paemaud}
+ * via {@link EmployeeService} — they do not also write {@code pafuaud}
+ * because pafuaud is keyed by the fund identity, not the employee.
  */
 @Service
 public class FundService {

@@ -33,8 +33,12 @@ import java.util.Optional;
 public class AwardService {
 
     private final JdbcTemplate jdbc;
+    private final MasterFileAuditService audit;
 
-    public AwardService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public AwardService(JdbcTemplate jdbc, MasterFileAuditService audit) {
+        this.jdbc  = jdbc;
+        this.audit = audit;
+    }
 
     private static final RowMapper<Award> ROW = (rs, i) -> {
         Award a = new Award();
@@ -93,6 +97,7 @@ public class AwardService {
             ") VALUES (?,?,?,?, ?,?,?,?,?,?)",
             a.companyNo, a.awardCode, a.desc1, a.noteNo,
             s.user, s.date, s.hr, s.mi, s.sec, s.hun);
+        audit.auditAwardChange(a.companyNo, a.awardCode, "");
     }
 
     @Transactional
@@ -106,6 +111,7 @@ public class AwardService {
             a.desc1,
             s.user, s.date, s.hr, s.mi, s.sec, s.hun,
             a.companyNo, a.awardCode);
+        audit.auditAwardChange(a.companyNo, a.awardCode, "");
     }
 
     /**
@@ -120,6 +126,9 @@ public class AwardService {
         jdbc.update("DELETE FROM paawjob WHERE company_no=? AND award_code=?",
                     companyNo, awardCode);
         jdbc.update("DELETE FROM paawhed WHERE company_no=? AND award_code=?",
+                    companyNo, awardCode);
+        // Cascade the dirty-flag too: drop any paawchg rows for this award.
+        jdbc.update("DELETE FROM paawchg WHERE company_no=? AND award=?",
                     companyNo, awardCode);
     }
 

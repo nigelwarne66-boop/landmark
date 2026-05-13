@@ -60,11 +60,11 @@ The COBOL canonical source for `.fd`/`.ws` is `C:\landmark\compile\` (with rare 
 | **PAAW01** Award Maintenance | paawhed + paawjob (~80 cols, 7 sub-tabs) + paawwcp | P1 list + 3-tab dialog (General / Job Classes / WC) |
 | **PATX01** Load ATO Tax Scales | `tax_brackets` (Java-managed) | Year End → File picker dialog, runs `TaxBracketLoader` |
 
-### Wave 1.5 — Audit back-fill 🔲 **DO THIS BEFORE WAVE 2**
-The Wave 1 maintenance screens already populate the per-row `audit_user_id/date/time*` columns, but the COBOL has a heavier per-change audit trail we haven't wired. See "Audit framework" section below for the full plan.
+### Wave 1.5 — Audit back-fill ✅ Complete
+Per-change audit trail wired alongside the existing per-row `audit_user_id/date/time*` columns. See "Audit framework" section below for what landed and what's deferred.
 
-### Wave 2 — Batch operations 🔲 After audit back-fill
-PAEM11, PAPC01, PAEM60, PASU55, PASU11/14/15. Each needs **preview mode**, batch-level audit row in `pa_audit` (option B — batch metadata only, no per-row detail; the per-row trail is the Wave 1.5 audit tables), and progress indicator for large employee counts.
+### Wave 2 — Batch operations ✅ Complete (with two CRUD-style screens trimmed)
+Foundation + 5 full batch programs + 2 thin maintenance screens. See "Wave 2 detail" section below.
 
 ### Wave 3, 4, 5
 Per `PAYROLL_PLAN.md`. The `PaygTaxCalculator` will be built **as part of PATM01 / PAPP01 in Wave 3** (user's call — deferred from Wave 1).
@@ -109,33 +109,38 @@ The `padepts` table has 18 GL account columns. The COBOL S2 maintenance screen o
 
 ---
 
-## Audit framework — Wave 1.5 plan
+## Audit framework — Wave 1.5 state
 
-COBOL has a two-flavour audit on master files. Our Java port populates the per-row `audit_user_id/date/time*` stamp on every write, but does **not** yet write to the per-change audit tables. **Close this gap before Wave 2.**
+COBOL has a two-flavour audit on master files. Our Java port populates the per-row `audit_user_id/date/time*` stamp on every write **and** writes the per-change audit tables in the same transaction as the data write.
 
-### Existing COBOL pattern
+### Audit table coverage
 
 | Table | Captures | Pattern | In extract? | Java writes? |
 |-------|----------|---------|-------------|--------------|
-| `paemaud` | Employee changes — full 1500-byte before/after snapshot + maint-type | Heavyweight | ❌ | ❌ |
-| `pafuaud` | Super fund changes — 1500-byte before/after | Heavyweight | ❌ | ❌ |
-| `papcaud` | Per-employee pay-code row changes | Per-row tracker | ✅ | ❌ |
-| `pacdchg` | Pay code rate-before / amt-before; drives downstream recalc | Lightweight | ❌ | ❌ |
-| `paawchg` | Award / job class last change date; drives recalc | Lightweight | ❌ | ❌ |
+| `paemaud` | Employee changes — JSON before/after + maint-type | Heavyweight | ✅ | ✅ via `EmployeeService` |
+| `pafuaud` | Super fund changes — JSON before/after | Heavyweight | ✅ | ⏳ infrastructure ready, awaiting Super Fund Maintenance CRUD |
+| `papcaud` | Per-employee `paecode` row changes | Per-row tracker | ✅ | ⏳ awaiting Wave 3 paecode CRUD (PATM01/PAPP01) |
+| `pacdchg` | Pay code rate-before / amt-before; drives downstream recalc | Lightweight | ✅ | ✅ via `PayCodeService` on rate/amount change |
+| `paawchg` | Award / job class last change date; drives recalc | Lightweight | ✅ | ✅ via `AwardService` + `AwardJobClassService` |
 | `glchaud` / `apspaud` / `arcuaud` / `faasaud` / `fadraud` | Other modules' equivalents | Mixed | ✅ | n/a in payroll scope |
 
-### Wave 1.5 task list
+### What landed
 
-1. **Add missing tables to the extract pipeline** (`C:\landmark_extract\sql\create/insert` + `pafiles.txt`):
-   - `paemaud`, `pafuaud`, `paawchg`, `pacdchg`.
-   - The COBOL FDs at `C:\landmark\compile\` are the canonical source.
-2. **Decide the heavyweight before/after column format.** Recommended: store as `LONGTEXT` containing a **JSON snapshot** of the record (one row per change). Cleaner than COBOL's 1500-byte fixed blob, queryable via `JSON_EXTRACT`, and a future "show me employee 1234's change history" view works the same way COBOL does.
-3. **Wire writes in existing Wave 1 services** — every update/insert/delete on master data writes one audit row in the same transaction:
-   - `EmployeeService` → `paemaud` (full before/after JSON).
-   - `PayCodeService` → `pacdchg` when rate/amount changes; existing `papcaud` (already in extract) on paecode row changes.
-   - `AwardService` + `AwardJobClassService` → `paawchg` (last-change-date pattern).
-   - PAEM01 super tab edits + a future Super Fund Maintenance → `pafuaud`.
-4. **Audit service abstraction.** Each `*Service` shouldn't hand-roll JSON serialisation — add a `MasterFileAuditService` that takes `(table_name, pk_map, before_object, after_object, user, maint_type)` and writes the appropriate audit row. Keep transaction scope on the parent service method.
+- Extract pipeline schemas in `C:\landmark_extract\sql\create\` + matching `insert/select/values` triples. Heavyweight tables use `LONGTEXT` (JSON snapshot) instead of COBOL's fixed 1500-byte blob.
+- `pafiles.txt` updated with `paemaud`, `pafuaud`, `paawchg`, `pacdchg`.
+- `MasterFileAuditService` in `com.landmarksoftware.payroll.service` — single entry point per audit table:
+  - `auditEmployee(...)` writes paemaud
+  - `auditFund(...)` writes pafuaud
+  - `auditPayCodeRateChange(...)` UPSERTs pacdchg
+  - `auditAwardChange(...)` UPSERTs paawchg
+- JSON serialisation via Spring's Jackson with TFN masking applied to every employee snapshot (CLAUDE.md TFN rule).
+- `EmployeeService.update/terminate` now take `userId` so the audit row carries an attribution.
+
+### What's deferred
+
+- `pafuaud` writes — no pafunds CRUD today (FundService is read-only). When Super Fund Maintenance lands, every write must call `MasterFileAuditService.auditFund` in the same `@Transactional` block. Note: PAEM01 super-tab edits go to `paemaud` (they change pastaff, not pafunds).
+- `papcaud` writes — paecode CRUD doesn't exist until Wave 3 (PATM01/PAPP01).
+- pastaff's own `audit_user_id/date/time*` columns are still left stale by `EmployeeService.update` — only the audit ROW is correctly attributed. The per-row stamp on update of pastaff is a pre-existing gap, separate from the audit-trail work.
 
 ### Wave 2 fits on top
 
@@ -150,10 +155,52 @@ The `pa_audit` table (option B from the chat — batch-level metadata only) sits
 - Maven picks up `JAVA_HOME` from env — set to `C:\Program Files\Java\latest\jdk-25` before running.
 - ProGuard runs at `package` phase (rules in `src/main/proguard/rules.pro`) — not in normal dev cycle.
 
+## Wave 2 detail — Batch operations
+
+### Foundation (shared by every Wave 2 program)
+- `pa_audit` table (option B — batch metadata only). Auto-created on startup by `BatchAuditService.ensureTable()` (same pattern as `tax_brackets`). Schema: `(audit_id PK, company_no, run_timestamp, user_id, program_code, description, rows_affected, status, notes)`.
+- `BatchAuditService` — `start(...) → auditId`, `complete`, `fail`, `updateRowsAffected`, `appendNote`. Statuses: `R` running, `C` complete, `F` failed, `P` preview.
+- `BatchPreviewDialog<T>` — reusable modal that shows what will change before any DB write. Takes a list of preview rows + column specs; returns `true` on Apply, `false` on Cancel/Esc.
+- `BatchProgressDialog` — reusable progress bar + Cancel button bound to a `Task<R>`. Daemon executor; auto-closes when the task finishes.
+- 6 new extract-pipeline schemas added: `paemwk1`, `pasuwk3` (work files), `pasphde`, `pasphdg`, `paspgre`, `paspgrg` (production tables for pay-phase splits). Each has create/insert/select/values plus a `pafiles.txt` entry. SQL was applied manually by the user on 2026-05-13.
+
+### Programs
+
+| Program | Tables touched | Pattern | Status |
+|---------|----------------|---------|--------|
+| **PASU14** Set Super Percentage | paecode, papcaud, pa_audit | Full preview + progress | ✅ |
+| **PASU11** Update Award Rate Changes | paawchg → pastaff, paecode, paemaud, papcaud, pa_audit | Full preview + progress; clears paawchg rows after processing | ✅ |
+| **PASU15** Global Employee Award Update | pastaff, paecode, paemaud, papcaud, pa_audit | Full preview + progress; 4 behaviour switches (rate/salary/timesheet/super) | ✅ |
+| **PAEM60** Change Employee Pay Rates | pastaff, paecode, paemaud, papcaud, pa_audit | Full preview + progress; %-change semantics; 4 pay-type sections | ✅ |
+| **PAEM11** Duplicate Default Timesheets | paecode (source → targets) + paemwk1 snapshot | Full preview + progress; REPLACE target paecode | ✅ |
+| **PASU55** Leave Accrual Reversal | paleave, pasuwk3, paemaud, pa_audit | Thin: list-by-employee + bulk-reverse. Per-row Add/Edit dialogs **deferred** | ⏳ |
+| **PAPC01** Timesheet Splits | pasphde, paspgre, pa_audit | Thin: master/detail viewer + delete-employee-split. Add/Edit dialogs + by-paygroup variant (`pasphdg`/`paspgrg`) **deferred** | ⏳ |
+
+### What's wired into the audit trail
+
+Every batch program writes:
+1. **One pa_audit row** per run with the parameter summary and final row-count.
+2. **paemaud** snapshots (employee before/after) on every pastaff change.
+3. **papcaud** snapshots on every paecode change, including a "marker" row (`pay_code_type=1`, blank `pay_code`) when pastaff std rate/hrs/gross moves — mirrors COBOL `WRITE-PAY-CODE-AUDIT`.
+
+### What's deferred (PASU55 + PAPC01)
+
+These two were CRUD-style screens in the COBOL, not batch utilities. They don't fit the
+`BatchPreviewDialog`/`BatchProgressDialog` pattern and need design treatment closer to
+PAEM01 (multi-tab dialog with per-field validation). What's there now:
+- **PASU55** — read-only paleave listing per employee + bulk-reverse-all button. Service has the right shape (`pa_audit` + `pasuwk3` + `paemaud` all wired). Missing: per-row Add/Edit dialogs.
+- **PAPC01** — pasphde/paspgre master-detail viewer + delete-employee-split. Missing: per-row Add/Edit; entire by-paygroup variant (pasphdg/paspgrg).
+
+Both are wired into both menus (PayrollMenuController + MainMenuController) and the Spring beans + services are in place — the next iteration just adds the dialogs.
+
+### MenuEntry note (carried from Wave 1)
+`MainMenuController` has its own quick-launch grid separate from `PayrollMenuController`. When wiring a new program, add a `MenuEntry` to both lists. Wave 2 added a third grid row to PayrollMenuController ("Mass Update" + "Batch Operations" cards). MainMenuController gained the same two cards at row 2.
+
 ## Things deferred / open
 
-- **Wave 1.5 — Audit back-fill** — see "Audit framework" section above. **Next concrete task.**
-- **`pa_audit` batch metadata table** — option B agreed: `(audit_id PK, company_no, run_timestamp, user_id, program_code, description, rows_affected, status, notes)`. Built as part of Wave 2 alongside the heavier per-change tables.
+- **PASU55 + PAPC01 per-row dialogs** — see Wave 2 detail above.
+- **PAPC01 by-paygroup variant** (pasphdg/paspgrg) — schema present, UI not yet built.
+- **Wave 3 — Pay run processing** — PATM01 (Timesheet Entry), PAPP01 (Pay Run Processing). Includes the `PaygTaxCalculator` deferred from Wave 1 + paecode CRUD which then activates the deferred papcaud writes.
 - **PaygTaxCalculator service** — bracket lookup against `tax_brackets`. Wave 3 / PATM01.
 - **PASU04 manual bracket editing** — currently read-only; if users need to hand-tweak coefficients (e.g. custom scale "H"), needs Add/Edit/Delete UI on the Brackets tab.
 - **Print everywhere** — PAEM01 has a Print button + `EmployeePdfService`. PAPG01 / PASU04 / PAAW01 don't (low priority).

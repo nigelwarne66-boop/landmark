@@ -52,6 +52,13 @@ public class PayrollMenuController {
     private final TaxScaleMaintenanceController    pasu04;
     private final AwardMaintenanceController       paaw01;
     private final TaxScaleLoadController           taxScaleLoad;
+    private final SetSuperPercentageController     pasu14;
+    private final UpdateAwardRateChangesController pasu11;
+    private final GlobalEmployeeAwardUpdateController pasu15;
+    private final ChangeEmployeePayRatesController paem60;
+    private final DuplicateTimesheetsController    paem11;
+    private final LeaveAccrualReversalController   pasu55;
+    private final TimesheetSplitsController        papc01;
     private final AppSession                       appSession;
 
     public PayrollMenuController(PayCodeMaintenanceController pacd01,
@@ -60,6 +67,13 @@ public class PayrollMenuController {
                                   TaxScaleMaintenanceController pasu04,
                                   AwardMaintenanceController paaw01,
                                   TaxScaleLoadController taxScaleLoad,
+                                  SetSuperPercentageController pasu14,
+                                  UpdateAwardRateChangesController pasu11,
+                                  GlobalEmployeeAwardUpdateController pasu15,
+                                  ChangeEmployeePayRatesController paem60,
+                                  DuplicateTimesheetsController paem11,
+                                  LeaveAccrualReversalController pasu55,
+                                  TimesheetSplitsController papc01,
                                   AppSession appSession) {
         this.pacd01       = pacd01;
         this.paem01       = paem01;
@@ -67,6 +81,13 @@ public class PayrollMenuController {
         this.pasu04       = pasu04;
         this.paaw01       = paaw01;
         this.taxScaleLoad = taxScaleLoad;
+        this.pasu14       = pasu14;
+        this.pasu11       = pasu11;
+        this.pasu15       = pasu15;
+        this.paem60       = paem60;
+        this.paem11       = paem11;
+        this.pasu55       = pasu55;
+        this.papc01       = papc01;
         this.appSession   = appSession;
     }
 
@@ -186,14 +207,43 @@ public class PayrollMenuController {
                     true, () -> openTaxScaleLoad(parentStage)),
                 new PayrollMenuEntry("PADE01", "Payroll Year End",
                     "Roll forward to new payroll year",
-                    false, null),
-                new PayrollMenuEntry("PASU11", "Carry Forward Leave",
-                    "Carry forward leave balances",
-                    false, null),
-                new PayrollMenuEntry("PASU55", "Recalculate YTD",
-                    "Rebuild year-to-date totals",
                     false, null)
             )), 1, 1);
+
+        // Col 0 row 2: Mass Update — Wave 2 batch utilities
+        grid.add(buildCard(parentStage,
+            "Mass Update",
+            "Batch changes across employees and pay codes",
+            List.of(
+                new PayrollMenuEntry("PASU14", "Set Super Percentage",
+                    "Change super rate % on selected pay codes",
+                    true, () -> openSetSuperPercentage(parentStage)),
+                new PayrollMenuEntry("PASU11", "Update Award Rate Changes",
+                    "Apply award rate changes to active employees",
+                    true, () -> openUpdateAwardRateChanges(parentStage)),
+                new PayrollMenuEntry("PASU15", "Global Employee Award Update",
+                    "Move employees between awards globally",
+                    true, () -> openGlobalEmployeeAwardUpdate(parentStage)),
+                new PayrollMenuEntry("PAEM60", "Change Employee Pay Rates",
+                    "Mass update employee pay rates",
+                    true, () -> openChangeEmployeePayRates(parentStage))
+            )), 0, 2);
+
+        // Col 1 row 2: Batch Operations
+        grid.add(buildCard(parentStage,
+            "Batch Operations",
+            "Pay run and timesheet utilities",
+            List.of(
+                new PayrollMenuEntry("PAEM11", "Duplicate Default Timesheets",
+                    "Copy default timesheets to many employees",
+                    true, () -> openDuplicateTimesheets(parentStage)),
+                new PayrollMenuEntry("PASU55", "Leave Accrual Reversal",
+                    "Reverse leave accruals for a payrun",
+                    true, () -> openLeaveAccrualReversal(parentStage)),
+                new PayrollMenuEntry("PAPC01", "Timesheet Splits",
+                    "Maintain pay phase / phase group splits",
+                    true, () -> openTimesheetSplits(parentStage))
+            )), 1, 2);
 
         // Equal column widths
         ColumnConstraints cc = new ColumnConstraints();
@@ -337,6 +387,76 @@ public class PayrollMenuController {
         s.setScene(taxScaleLoad.buildScene(s));
         s.setMinWidth(600);
         s.setMinHeight(320);
+        s.show();
+    }
+
+    private void openSetSuperPercentage(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Set Super Percentage — PASU14");
+        s.setScene(pasu14.buildScene(s));
+        s.setMinWidth(600);
+        s.setMinHeight(400);
+        s.show();
+    }
+
+    private void openUpdateAwardRateChanges(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Update Award Rate Changes — PASU11");
+        s.setScene(pasu11.buildScene(s));
+        s.setMinWidth(640);
+        s.setMinHeight(380);
+        s.show();
+    }
+
+    private void openGlobalEmployeeAwardUpdate(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Global Employee Award Update — PASU15");
+        s.setScene(pasu15.buildScene(s));
+        s.setMinWidth(720);
+        s.setMinHeight(580);
+        s.show();
+    }
+
+    private void openChangeEmployeePayRates(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Change Employee Pay Rates — PAEM60");
+        s.setScene(paem60.buildScene(s));
+        s.setMinWidth(760);
+        s.setMinHeight(660);
+        s.show();
+    }
+
+    private void openDuplicateTimesheets(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Duplicate Default Timesheets — PAEM11");
+        s.setScene(paem11.buildScene(s));
+        s.setMinWidth(680);
+        s.setMinHeight(440);
+        s.show();
+    }
+
+    private void openLeaveAccrualReversal(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Leave Accrual Reversal — PASU55");
+        s.setScene(pasu55.buildScene(s));
+        s.setMinWidth(840);
+        s.setMinHeight(560);
+        s.show();
+    }
+
+    private void openTimesheetSplits(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Timesheet Splits — PAPC01");
+        s.setScene(papc01.buildScene(s));
+        s.setMinWidth(920);
+        s.setMinHeight(560);
         s.show();
     }
 

@@ -38,9 +38,11 @@ import java.util.Optional;
 public class PayCodeService {
 
     private final JdbcTemplate jdbc;
+    private final MasterFileAuditService audit;
 
-    public PayCodeService(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public PayCodeService(JdbcTemplate jdbc, MasterFileAuditService audit) {
+        this.jdbc  = jdbc;
+        this.audit = audit;
     }
 
     // ── List ──────────────────────────────────────────────────────────────
@@ -214,6 +216,14 @@ public class PayCodeService {
      */
     @Transactional
     public void update(int companyNo, PayCode pc) {
+        // Capture the OLD primary rate/amount for the pacdchg dirty-flag.
+        BigDecimal oldRate = BigDecimal.ZERO;
+        BigDecimal oldAmt  = BigDecimal.ZERO;
+        Optional<PayCode> existing = findOne(companyNo, pc.payCode);
+        if (existing.isPresent()) {
+            oldRate = primaryRate(existing.get());
+            oldAmt  = primaryAmt(existing.get());
+        }
         jdbc.update(
             PayrollSql.UPDATE_PAYCODE,
             pc.payType, trim(pc.desc1, 30),
@@ -278,11 +288,45 @@ public class PayCodeService {
             trim(pc.apraSmsfFundInd, 1).toUpperCase(),
             trim(pc.superstreamCategory, 1),
             companyNo, pc.payCode);
+
+        // pacdchg dirty-flag: only if the rate or amount actually moved.
+        BigDecimal newRate = primaryRate(pc);
+        BigDecimal newAmt  = primaryAmt(pc);
+        if (oldRate.compareTo(newRate) != 0 || oldAmt.compareTo(newAmt) != 0) {
+            audit.auditPayCodeRateChange(companyNo, pc.payCode, oldRate, oldAmt);
+        }
     }
 
     @Transactional
     public void delete(int companyNo, String payCode) {
+        Optional<PayCode> existing = findOne(companyNo, payCode);
         jdbc.update(PayrollSql.DELETE_PAYCODE, companyNo, payCode);
+        existing.ifPresent(pc ->
+            audit.auditPayCodeRateChange(companyNo, payCode,
+                primaryRate(pc), primaryAmt(pc)));
+    }
+
+    /**
+     * The rate column to capture in {@code pacdchg.rate_before} — depends
+     * on the pay-type's field group. Mirrors {@link PayCode#primaryRate()}
+     * but returns the {@link BigDecimal} so we can compare for equality.
+     */
+    private static BigDecimal primaryRate(PayCode pc) {
+        return switch (PayCode.fieldGroupFor(pc.payType)) {
+            case PAY   -> nz(pc.payRate);
+            case ALLOW -> nz(pc.allowRate);
+            case DEDN  -> nz(pc.dednPerc);
+            default    -> BigDecimal.ZERO;
+        };
+    }
+
+    /** Amount column for {@code pacdchg.amt_before} — same dispatch as primaryRate. */
+    private static BigDecimal primaryAmt(PayCode pc) {
+        return switch (PayCode.fieldGroupFor(pc.payType)) {
+            case ALLOW -> nz(pc.allowAmt);
+            case DEDN  -> nz(pc.dednAmt);
+            default    -> BigDecimal.ZERO;
+        };
     }
 
     // ── Row mapper ────────────────────────────────────────────────────────
