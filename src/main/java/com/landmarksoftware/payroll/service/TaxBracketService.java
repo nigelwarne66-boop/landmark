@@ -97,6 +97,23 @@ public class TaxBracketService {
             companyNo, sourceFile);
     }
 
+    /**
+     * Latest publication that was in effect on {@code asOf} — i.e. the largest
+     * {@code effective_from} ≤ {@code asOf}. Returns null if no publication is
+     * yet in force (e.g. payrun-date precedes any loaded ATO publication).
+     *
+     * <p>Used by {@link PaygTaxCalculator} so historical / back-dated pay runs
+     * resolve to the bracket coefficients that applied at the time.
+     */
+    public LocalDate findEffectiveFromOnOrBefore(int companyNo, String sourceFile,
+                                                  LocalDate asOf) {
+        return jdbc.query(
+            "SELECT MAX(effective_from) FROM tax_brackets " +
+            "WHERE company_no=? AND source_file=? AND effective_from<=?",
+            rs -> rs.next() ? rs.getDate(1) == null ? null : rs.getDate(1).toLocalDate() : null,
+            companyNo, sourceFile, java.sql.Date.valueOf(asOf));
+    }
+
     /** Count brackets loaded for a publication (zero = not loaded yet). */
     public int countBrackets(int companyNo, String sourceFile, LocalDate effectiveFrom) {
         Integer n = jdbc.queryForObject(
