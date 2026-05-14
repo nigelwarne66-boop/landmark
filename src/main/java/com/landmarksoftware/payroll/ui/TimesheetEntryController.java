@@ -897,9 +897,13 @@ public class TimesheetEntryController {
 
     // ── P3 — employee / timesheet list ───────────────────────────────────
 
+    /**
+     * Open P3. Pass {@code null} to show every patimhd on the current payrun
+     * (the "Create Payrun" / PATM02 flow); pass a {@link PayrunGroup} to
+     * filter to one paygroup (the "Select ▸ Timesheets" flow on P2).
+     */
     private void showP3(PayrunGroup pg) {
-        if (pg == null) return;
-        p3Paygroup = pg;
+        p3Paygroup = pg;   // null = all paygroups for the payrun
 
         p3Table = new TableView<>(p3Rows);
         p3Table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
@@ -956,9 +960,12 @@ public class TimesheetEntryController {
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setStyle("-fx-background-color:#FFFFFF;");
 
+        String pgLabel = pg == null
+            ? "All paygroups"
+            : "Paygroup " + pg.paygroup
+                + (pg.paygroupDesc.isBlank() ? "" : " — " + pg.paygroupDesc);
         Label crumb = new Label("Payrun " + p2Payrun.payrunNo + " · "
-            + fmt(p2Payrun.payrunDate) + " · Paygroup " + pg.paygroup
-            + (pg.paygroupDesc.isBlank() ? "" : " — " + pg.paygroupDesc));
+            + fmt(p2Payrun.payrunDate) + " · " + pgLabel);
         crumb.setStyle("-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
         HBox crumbBar = new HBox(crumb);
         crumbBar.setPadding(new Insets(10, 14, 6, 14));
@@ -974,12 +981,16 @@ public class TimesheetEntryController {
     }
 
     private void loadP3() {
+        String filter = p3Paygroup == null ? null : p3Paygroup.paygroup;
         List<TimesheetHeader> list = timesheetHeaders.findForPayrun(
-            p2Payrun.companyNo, p2Payrun.payrunNo, p3Paygroup.paygroup);
+            p2Payrun.companyNo, p2Payrun.payrunNo, filter);
         p3Rows.setAll(list);
         TimesheetHeaderService.Totals t = timesheetHeaders.rollupForPayrun(
-            p2Payrun.companyNo, p2Payrun.payrunNo, p3Paygroup.paygroup);
+            p2Payrun.companyNo, p2Payrun.payrunNo, filter);
+        String scope = p3Paygroup == null ? "all paygroups"
+            : "paygroup " + p3Paygroup.paygroup;
         p3Status.setText(t.count() + " timesheet" + (t.count() == 1 ? "" : "s")
+            + " · " + scope
             + " · gross $" + money(t.gross()) + " · net $" + money(t.net()));
     }
 
@@ -1138,10 +1149,11 @@ public class TimesheetEntryController {
                 + ".\n\nUse Options → Select (or the Add button) to attach paygroups first.");
             return;
         }
-        info("Create Payrun → PATM02 (timesheet builder, my P3).\n\n"
-            + p.payrunNo + " has " + attached.size() + " paygroup"
-            + (attached.size() == 1 ? "" : "s") + " attached and is ready.\n\n"
-            + "P3 / timesheet entry is the next Wave 3 step — not yet built.");
+        // COBOL CREATE-PAYRUN destroys P1+P2 windows then calls PATM02 which is
+        // the all-paygroups timesheet builder. Mirror by opening P3 in
+        // "all paygroups" mode (null filter) so the user can add timesheets
+        // across every attached paygroup.
+        showP3(null);
     }
 
     /**
