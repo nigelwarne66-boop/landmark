@@ -71,6 +71,18 @@ public class Employee {
     public String    taxFileNo        = "";      // pastaff.tax_file_no — never log
     public String    taxScaleNo       = "";      // pastaff.tax_scale_no
     public BigDecimal extraTaxAmt     = BigDecimal.ZERO;  // pastaff.extra_tax_amt
+    /** {@code "Y"} when employee has a HECS / HELP debt (legacy). */
+    public String    hecsDebtFlag     = "N";     // pastaff.hecs_debt_flag
+    /**
+     * STSL = Study and Training Support Loan (HELP + others). When {@code "Y"}
+     * (or {@code hecsDebtFlag="Y"}) tax must use NAT_3539 — see PaygTaxCalculator.
+     */
+    public String    stslFlag         = "N";     // pastaff.stsl_flag
+
+    /** Does this employee need STSL withholding? Either flag = "Y" triggers it. */
+    public boolean hasStsl() {
+        return "Y".equalsIgnoreCase(stslFlag) || "Y".equalsIgnoreCase(hecsDebtFlag);
+    }
 
     // ── Leave balances ────────────────────────────────────────────────────
     // al_hrs_accrued is stored in MINUTES; accrued_sick_leave appears as a

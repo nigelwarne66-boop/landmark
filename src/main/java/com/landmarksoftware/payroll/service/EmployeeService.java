@@ -293,6 +293,8 @@ public class EmployeeService {
         e.taxFileNo        = strDefault(rs, "tax_file_no", "");
         e.taxScaleNo       = strDefault(rs, "tax_scale_no", "");
         e.extraTaxAmt      = dec(rs, "extra_tax_amt");
+        e.hecsDebtFlag     = strDefault(rs, "hecs_debt_flag", "N");
+        e.stslFlag         = strDefault(rs, "stsl_flag", "N");
         e.alHrsAccrued     = safeInt(rs, "al_hrs_accrued");
         e.accruedSickLeave = safeInt(rs, "accrued_sick_leave");
         e.lslWeeksAccrued  = dec(rs, "lsl_weeks_accrued");

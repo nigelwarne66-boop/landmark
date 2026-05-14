@@ -60,6 +60,7 @@ public class PayrollMenuController {
     private final LeaveAccrualReversalController   pasu55;
     private final TimesheetSplitsController        papc01;
     private final TimesheetEntryController         patm01;
+    private final PayRunProcessingController       papp01;
     private final AppSession                       appSession;
 
     public PayrollMenuController(PayCodeMaintenanceController pacd01,
@@ -76,6 +77,7 @@ public class PayrollMenuController {
                                   LeaveAccrualReversalController pasu55,
                                   TimesheetSplitsController papc01,
                                   TimesheetEntryController patm01,
+                                  PayRunProcessingController papp01,
                                   AppSession appSession) {
         this.pacd01       = pacd01;
         this.paem01       = paem01;
@@ -91,6 +93,7 @@ public class PayrollMenuController {
         this.pasu55       = pasu55;
         this.papc01       = papc01;
         this.patm01       = patm01;
+        this.papp01       = papp01;
         this.appSession   = appSession;
     }
 
@@ -168,17 +171,20 @@ public class PayrollMenuController {
                     "Enter employee timesheets",
                     true, () -> openTimesheetEntry(parentStage)),
                 new PayrollMenuEntry("PAPP01", "Pay Run Processing",
-                    "Create and process pay runs",
-                    false, null),
+                    "Recalculate tax and totals",
+                    true, () -> openPayRunProcessing(parentStage)),
                 new PayrollMenuEntry("PABK02", "ABA Payment File",
                     "Generate bank payment (ABA) file",
-                    false, null),
+                    true, () -> stubInfo(parentStage, "PABK02 — ABA Payment File",
+                        "ABA file generation lands after PAPP01 posting (PAPP28).")),
                 new PayrollMenuEntry("PAPA14", "Leave Processing",
                     "Process leave payouts and accruals",
-                    false, null),
+                    true, () -> stubInfo(parentStage, "PAPA14 — Leave Processing",
+                        "Leave payout and accrual processing is the next iteration after PAPP01.")),
                 new PayrollMenuEntry("PAPP28", "Payroll Posting",
                     "Post pay run to General Ledger",
-                    false, null)
+                    true, () -> stubInfo(parentStage, "PAPP28 — Payroll Posting",
+                        "GL posting (patimes → paehist + GL journal) is the final Wave 3 piece."))
             )), 1, 0);
 
         // Col 0 row 1: Reporting
@@ -351,6 +357,23 @@ public class PayrollMenuController {
         s.setMinWidth(1000);
         s.setMinHeight(620);
         s.show();
+    }
+
+    private void openPayRunProcessing(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Pay Run Processing — PAPP01");
+        s.setScene(papp01.buildScene(s));
+        s.setMinWidth(1000);
+        s.setMinHeight(580);
+        s.show();
+    }
+
+    private void stubInfo(Stage parentStage, String title, String body) {
+        Alert a = new Alert(Alert.AlertType.INFORMATION, body, ButtonType.OK);
+        a.setHeaderText(title);
+        a.initOwner(parentStage);
+        a.showAndWait();
     }
 
     private void openEmployeeMaintenance(Stage parentStage) {

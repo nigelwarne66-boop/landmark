@@ -66,24 +66,43 @@ Per-change audit trail wired alongside the existing per-row `audit_user_id/date/
 ### Wave 2 — Batch operations ✅ Complete (with two CRUD-style screens trimmed)
 Foundation + 5 full batch programs + 2 thin maintenance screens. See "Wave 2 detail" section below.
 
-### Wave 3 — Pay run processing 🟡 In progress
-- **`PaygTaxCalculator`** ✅ — single-lookup against `tax_brackets` (NAT_1004 / NAT_3539). Verified scale 2, $1500 STSL → $336. Weekly base + ATO conversion for F/M. As-of-date lookup so back-dated runs pick the publication in force at the time. Not yet wired in (no caller until P3).
-- **Extract pipeline schemas** ✅ added for `patimhd`, `patimes`, `parungr` in `C:\landmark_extract\sql\` + `pafiles.txt`. SQL applied by user 2026-05-14.
-- **PATM01 S0 / P1 / P2 / Options** ✅ Done, validated by user.
-  - S0 (filter dialog): date range, include-fully-posted, include-cancelled, payrun-type filter.
-  - P1 (payrun list): Add / Options ▸ / Cancel / Refresh / Filter. Add chains into Options after insert. Double-click row → Options.
-  - **Options dialog** (5 buttons mirroring COBOL post-Add modal):
-    - 1 Edit — re-open header editor.
-    - 2 Default — modal for parunhd flags (cost type **I/G/L**, calc tax/super, skip-paygroup, retainer/splits/RDO).
-    - 3 Select — opens the paygroup-range picker.
-    - 4 Create — stubbed until P3.
-    - 5 Import — stubbed until P3.
-    - All transitions deferred via `Platform.runLater` to avoid nested-modal input lockup.
-  - **Select Paygroups picker**: start/end combos sourced from `pagroup` master (rendered as `code  —  description`), Validate-before-selection checkbox. OK **auto-attaches** every paygroup in the range to the payrun (inserts parungr rows with default pay-thru dates seeded from the payrun's end date). Validate=on prompts per paygroup.
-  - P2 (paygroup pick): toolbar matches COBOL — Back · Select ▸ Timesheets · Add · Edit · Delete · Create Payrun · Status · Range… · Refresh. Description joined from `pagroup`. Delete blocked when `patimhd` has rows. Range button reopens the picker.
-  - **Create Payrun** (P2) — verified against COBOL `patm01.pl:1027` CREATE-PAYRUN: misleadingly named. Validates payrun is open and ≥1 parungr row exists, then transitions to PATM02 (= my P3). Stubbed until P3 lands.
-- **PATM01 P3 (employee list) + S3B (line entry) + paecode CRUD** — not yet built. Will wire `PaygTaxCalculator` + paecode + patimhd/patimes when it lands. paecode CRUD lives inside PATM01 (Insert button) per user direction.
-- **PAPP01 / PABK02 / PAPA14 / PAPP28** — Wave 3 tail.
+### Wave 3 — Pay run processing ✅ Core complete (Wave 3 tail stubbed)
+- **`PaygTaxCalculator`** ✅ — single-lookup against `tax_brackets` (NAT_1004 / NAT_3539). Verified scale 2, $1500 STSL → $336. Weekly base + ATO conversion for F/M. As-of-date lookup. Wired into `PayrollCalcService`.
+- **Extract pipeline schemas** ✅ for `patimhd`, `patimes`, `parungr` in `C:\landmark_extract\sql\` + `pafiles.txt`. SQL applied 2026-05-14.
+- **PATM01** ✅ — S0 / P1 / P2 / P3 / S3 / S3B all wired:
+  - S0: date range + include-fully-posted / cancelled / type filter.
+  - P1: Add (chains into Options) / Options ▸ / Cancel / Refresh / Filter.
+  - **Options dialog**: 1 Edit · 2 Default (cost type **I/G/L**, calc tax/super, skip-paygroup, retainer/splits/RDO) · 3 Select · 4 Create · 5 Import. Transitions use `Platform.runLater` to avoid nested-modal input lockup.
+  - **Select Paygroups picker**: start/end combos sourced from `pagroup` master, rendered as `code — description`. Validate-before-selection checkbox. OK auto-attaches the range to the payrun.
+  - P2: Back · Select ▸ Timesheets · Add · Edit · Delete · Create Payrun · Status · Range… · Refresh. Create Payrun matches COBOL CREATE-PAYRUN (validates parungr non-empty, hands off to P3).
+  - **P3** (employee/timesheet list): Surname | First Name | Employee No | Paygroup | Total Hours | Gross | Net. Toolbar: Back · Add · Edit · Delete · Pay Method · Print · Super · **Standing Lines** · Refresh. Delete cascades patimes; Pay Method / Print / Super still stubbed.
+  - **S3** (Add/Edit timesheet header): prompts for employee, validates pastaff, opens header dialog (pay-thru dates, status, default/costed/calc-tax flags). On OK offers "Seed from paecode" → inserts patimes from the standing rows, then drills into S3B.
+  - **S3B** (per-line patimes editor): modal listbox of timesheet lines with Add / Edit / Delete; per-line dialog covers pay type/code, paygroup/dept/award/job class, hours/qty/rate/ext amt, date, ref.
+  - **paecode CRUD** ✅ — Standing Lines button on P3 opens a modal listbox of paecode rows for the selected employee. Add/Edit/Delete all flow through `MasterFileAuditService.auditPaeCode` → activates the Wave 1.5 `papcaud` audit hook.
+- **PAPP01 — Pay Run Processing** ✅
+  - `PayrollCalcService.recalcPayrun` reads patimes for every patimhd on the payrun, categorises by pay_type (24-code map, see service Javadoc), updates patimhd running totals, then calls `PaygTaxCalculator` for PAYG withholding using the employee's tax_scale_no + STSL flag + pay_freq. On full success flips `parunhd.calcs_completed_flag` to `Y`.
+  - `PayRunProcessingController` lists open payruns with a "Calculate Tax + Totals" button. Wired into both menus.
+- **PABK02 / PAPA14 / PAPP28** 🟡 menu entries wired pointing at info-stubs explaining what each will do — full builds are the next session's work.
+
+### Pay-type → patimhd column mapping (PayrollCalcService)
+The mapping is best-guess based on the 24-code pacodes set; refine as gaps surface. Pay-types not listed fall into `total_other_pay`.
+| Pay type | Bucket |
+|----------|--------|
+| 1 | Normal pay + normal minutes |
+| 2 | Overtime + otime minutes |
+| 3 | Annual leave + AL minutes |
+| 4 | AL loading (no minutes) |
+| 5 | Sick leave + sick minutes |
+| 6 | LSL + LSL minutes |
+| 7 | Other leave + other-leave minutes |
+| 8 | Other pay + other minutes |
+| 11 | Taxable allowance |
+| 12 | Non-taxable allowance |
+| 13–18 | Term A / B / C / D / E / W |
+| 19 | Before-tax deduction |
+| 20 | After-tax deduction |
+| 21 | Super (employee contribution) |
+| 23 | Backpay |
 
 ### Cross-cutting — Session persistence
 `LastSessionStore` (`~/.fixedassets/session.properties`) ✅ persists the user's MENU23 pick (`lastCompanyNo` + `lastYearNo`). `loadDefaultSession` honours it on next login when the company still exists; otherwise falls back to first-company + latest-year.
