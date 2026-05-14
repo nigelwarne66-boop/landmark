@@ -12,16 +12,20 @@
 package com.landmarksoftware.payroll.ui;
 
 import com.landmarksoftware.model.AppSession;
+import com.landmarksoftware.payroll.model.Employee;
 import com.landmarksoftware.payroll.model.Paecode;
 import com.landmarksoftware.payroll.model.PayGroup;
 import com.landmarksoftware.payroll.model.Payrun;
 import com.landmarksoftware.payroll.model.PayrunGroup;
 import com.landmarksoftware.payroll.model.TimesheetHeader;
+import com.landmarksoftware.payroll.model.TimesheetLine;
+import com.landmarksoftware.payroll.service.EmployeeService;
 import com.landmarksoftware.payroll.service.PaecodeService;
 import com.landmarksoftware.payroll.service.PayGroupService;
 import com.landmarksoftware.payroll.service.PayrunGroupService;
 import com.landmarksoftware.payroll.service.PayrunService;
 import com.landmarksoftware.payroll.service.TimesheetHeaderService;
+import com.landmarksoftware.payroll.service.TimesheetLineService;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -68,7 +72,9 @@ public class TimesheetEntryController {
     private final PayrunGroupService      groups;
     private final PayGroupService         payGroupMaster;
     private final TimesheetHeaderService  timesheetHeaders;
+    private final TimesheetLineService    timesheetLines;
     private final PaecodeService          paecodes;
+    private final EmployeeService         employees;
     private final AppSession              appSession;
 
     private Stage      stage;
@@ -102,13 +108,17 @@ public class TimesheetEntryController {
                                      PayrunGroupService groups,
                                      PayGroupService payGroupMaster,
                                      TimesheetHeaderService timesheetHeaders,
+                                     TimesheetLineService timesheetLines,
                                      PaecodeService paecodes,
+                                     EmployeeService employees,
                                      AppSession appSession) {
         this.payruns          = payruns;
         this.groups           = groups;
         this.payGroupMaster   = payGroupMaster;
         this.timesheetHeaders = timesheetHeaders;
+        this.timesheetLines   = timesheetLines;
         this.paecodes         = paecodes;
+        this.employees        = employees;
         this.appSession       = appSession;
     }
 
@@ -927,11 +937,11 @@ public class TimesheetEntryController {
             p3Rows.clear();
             openP2(p2Payrun);
         });
-        bAdd.setOnAction(e -> info(
-            "Add timesheet — S3 dialog not yet built.\n\n"
-            + "Use Standing Lines to maintain default paecode rows for an employee."));
-        bEdit.setOnAction(e -> info(
-            "Edit timesheet — S3B per-line dialog not yet built."));
+        bAdd.setOnAction(e -> openS3Add());
+        bEdit.setOnAction(e -> {
+            TimesheetHeader sel = p3Table.getSelectionModel().getSelectedItem();
+            if (sel != null) openS3Edit(sel);
+        });
         bDelete.setOnAction(e -> deleteTimesheet(p3Table.getSelectionModel().getSelectedItem()));
         bPayMtd.setOnAction(e -> info("Payment Method (P3A) — not yet built."));
         bPrint.setOnAction(e -> info("Print payrun — not yet built."));
@@ -1192,6 +1202,392 @@ public class TimesheetEntryController {
     }
     private static String statusCode(int idx) {
         return switch (idx) { case 1 -> "C"; case 2 -> "F"; default -> "O"; };
+    }
+
+    // ── S3 — Add / Edit timesheet header for an employee ────────────────
+
+    private void openS3Add() {
+        // Prompt for employee number, look up pastaff, then open S3.
+        TextInputDialog t = new TextInputDialog();
+        t.setTitle("Add Timesheet");
+        t.setHeaderText("Add a timesheet for an employee on payrun " + p2Payrun.payrunNo);
+        t.setContentText("Employee #:");
+        t.initOwner(stage);
+        var input = t.showAndWait();
+        if (input.isEmpty()) return;
+        int empNo;
+        try { empNo = Integer.parseInt(input.get().trim()); }
+        catch (NumberFormatException e) { error("Employee number must be numeric."); return; }
+
+        Employee emp = employees.findOne(p2Payrun.companyNo, empNo).orElse(null);
+        if (emp == null) {
+            error("Employee " + empNo + " not found in pastaff.");
+            return;
+        }
+        if (timesheetHeaders.findOne(p2Payrun.companyNo, p2Payrun.payrunNo, empNo).isPresent()) {
+            error("Employee " + empNo + " already has a timesheet on this payrun. "
+                + "Use Edit instead.");
+            return;
+        }
+
+        TimesheetHeader h = new TimesheetHeader();
+        h.companyNo        = p2Payrun.companyNo;
+        h.payrunNo         = p2Payrun.payrunNo;
+        h.employeeNo       = empNo;
+        h.surname          = emp.surname;
+        h.firstName        = emp.firstName;
+        h.altPayrunNo      = p2Payrun.payrunNo;
+        h.altPaygroup      = emp.paygroup;
+        h.altDept          = emp.dept;
+        h.altEmployeeNo    = empNo;
+        h.payThruStartDate = p2Payrun.startDate;
+        h.payThruToDate    = p2Payrun.endDate != null ? p2Payrun.endDate : p2Payrun.payrunDate;
+        h.timesheetStatus  = "O";
+        h.timesheetInUse   = "Y";
+        h.defaultTimesheetFlag  = "Y";
+        h.costedTimesheetFlag   = "N";
+        h.calcTaxUsingPayDates  = "Y";
+
+        if (!editTimesheetHeader(h, true)) return;
+
+        // S3 returned OK and the header is saved. Offer to seed from paecode.
+        List<Paecode> standing = paecodes.findByEmployee(h.companyNo, h.employeeNo);
+        if (!standing.isEmpty()) {
+            Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+                "Seed " + standing.size() + " standing pay line"
+                    + (standing.size() == 1 ? "" : "s")
+                    + " from paecode into this timesheet?",
+                ButtonType.YES, ButtonType.NO);
+            a.setHeaderText("Seed timesheet from standing lines");
+            a.initOwner(stage);
+            var ans = a.showAndWait();
+            if (ans.isPresent() && ans.get() == ButtonType.YES) {
+                int n = timesheetLines.seedFromPaecode(h.companyNo, h.payrunNo,
+                    h.employeeNo, standing, appSession.getUserId());
+                info(n + " line" + (n == 1 ? "" : "s") + " seeded.");
+            }
+        }
+
+        // Drill into S3B so the user can edit lines straight away.
+        openS3B(h);
+        loadP3();
+    }
+
+    private void openS3Edit(TimesheetHeader source) {
+        TimesheetHeader h = copyOfHeader(source);
+        if (editTimesheetHeader(h, false)) {
+            openS3B(h);
+            loadP3();
+        }
+    }
+
+    /**
+     * S3 — Add/Edit Timesheet header dialog. Returns true if saved.
+     * Captures the editable subset of patimhd (dates, status, flags); the
+     * monetary totals come from S3B (per-line entry).
+     */
+    private boolean editTimesheetHeader(TimesheetHeader h, boolean isAdd) {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle(isAdd ? "Add Timesheet — Employee " + h.employeeNo
+                            : "Edit Timesheet — Employee " + h.employeeNo);
+        dlg.setHeaderText(h.displayName().isBlank()
+            ? "Employee " + h.employeeNo
+            : h.displayName() + "  ·  Employee " + h.employeeNo);
+        dlg.initOwner(stage);
+        dlg.initModality(Modality.WINDOW_MODAL);
+
+        DatePicker dpStart   = new DatePicker(h.payThruStartDate);
+        DatePicker dpEnd     = new DatePicker(h.payThruToDate);
+        TextField  tfPaygrp  = new TextField(h.altPaygroup);
+        TextField  tfDept    = new TextField(h.altDept);
+        CheckBox   cbDefault = new CheckBox("Default timesheet (seed from paecode)");
+        cbDefault.setSelected("Y".equalsIgnoreCase(h.defaultTimesheetFlag));
+        CheckBox   cbCosted  = new CheckBox("Costed timesheet");
+        cbCosted.setSelected("Y".equalsIgnoreCase(h.costedTimesheetFlag));
+        CheckBox   cbCalcTax = new CheckBox("Calc tax using pay dates");
+        cbCalcTax.setSelected("Y".equalsIgnoreCase(h.calcTaxUsingPayDates));
+        ComboBox<String> cbStatus = new ComboBox<>(FXCollections.observableArrayList(
+            "Open (O)", "Closed (C)", "Posted (P)"));
+        cbStatus.getSelectionModel().select(tsStatusIndex(h.timesheetStatus));
+
+        GridPane g = new GridPane();
+        g.setHgap(10); g.setVgap(8); g.setPadding(new Insets(14));
+        int r = 0;
+        g.add(new Label("Period start:"), 0, r); g.add(dpStart,   1, r++);
+        g.add(new Label("Period end:"),   0, r); g.add(dpEnd,     1, r++);
+        g.add(new Label("Paygroup:"),     0, r); g.add(tfPaygrp,  1, r++);
+        g.add(new Label("Department:"),   0, r); g.add(tfDept,    1, r++);
+        g.add(new Label("Status:"),       0, r); g.add(cbStatus,  1, r++);
+        g.add(cbDefault, 1, r++);
+        g.add(cbCosted,  1, r++);
+        g.add(cbCalcTax, 1, r++);
+        dlg.getDialogPane().setContent(g);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        var res = dlg.showAndWait();
+        if (res.isEmpty() || res.get() != ButtonType.OK) return false;
+
+        h.payThruStartDate     = dpStart.getValue();
+        h.payThruToDate        = dpEnd.getValue();
+        h.altPaygroup          = nz(tfPaygrp.getText()).trim().toUpperCase();
+        h.altDept              = nz(tfDept.getText()).trim().toUpperCase();
+        h.defaultTimesheetFlag = cbDefault.isSelected() ? "Y" : "N";
+        h.costedTimesheetFlag  = cbCosted.isSelected()  ? "Y" : "N";
+        h.calcTaxUsingPayDates = cbCalcTax.isSelected() ? "Y" : "N";
+        h.timesheetStatus      = tsStatusCode(cbStatus.getSelectionModel().getSelectedIndex());
+
+        try {
+            if (isAdd) timesheetHeaders.insert(h, appSession.getUserId());
+            // Edit-only: header totals are recomputed in PAPP01, so we don't
+            // update them here — only header flags / dates change via S3.
+            return true;
+        } catch (Exception ex) {
+            error("Could not save timesheet header: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private static int tsStatusIndex(String code) {
+        return switch (code == null ? "" : code.toUpperCase()) {
+            case "C" -> 1; case "P" -> 2; default -> 0;
+        };
+    }
+    private static String tsStatusCode(int idx) {
+        return switch (idx) { case 1 -> "C"; case 2 -> "P"; default -> "O"; };
+    }
+
+    // ── S3B — per-line patimes editor ───────────────────────────────────
+
+    /**
+     * Modal listbox of patimes lines for a single patimhd, with Add / Edit /
+     * Delete. Mirrors PATM01 S3B in COBOL. Totals on the parent patimhd are
+     * NOT recomputed here — that's PAPP01's job.
+     */
+    private void openS3B(TimesheetHeader h) {
+        Stage dlg = new Stage();
+        dlg.initOwner(stage);
+        dlg.initModality(Modality.WINDOW_MODAL);
+        dlg.setTitle("Timesheet Lines — Employee " + h.employeeNo
+            + " · Payrun " + h.payrunNo);
+
+        ObservableList<TimesheetLine> rows = FXCollections.observableArrayList();
+        TableView<TimesheetLine> table = new TableView<>(rows);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setPlaceholder(new Label(
+            "No timesheet lines. Click Add or seed from paecode via the header dialog."));
+        addCol(table, "Line", 50,
+            r -> new SimpleStringProperty(String.valueOf(r.lineNo)));
+        addCol(table, "Pay Type", 70,
+            r -> new SimpleStringProperty(String.valueOf(r.payType)));
+        addCol(table, "Pay Code", 90,
+            r -> new SimpleStringProperty(r.payCode));
+        addCol(table, "Paygroup", 80,
+            r -> new SimpleStringProperty(r.paygroup));
+        addCol(table, "Dept", 70,
+            r -> new SimpleStringProperty(r.dept));
+        addCol(table, "Hours", 70,
+            r -> new SimpleStringProperty(money(r.hours())));
+        addCol(table, "Qty", 70,
+            r -> new SimpleStringProperty(money(r.qty)));
+        addCol(table, "Rate", 80,
+            r -> new SimpleStringProperty(money(r.ratePerc)));
+        addCol(table, "Ext Amt", 90,
+            r -> new SimpleStringProperty(money(r.extAmt)));
+        addCol(table, "Ref", 200,
+            r -> new SimpleStringProperty(r.ref));
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Runnable reload = () ->
+            rows.setAll(timesheetLines.findByHeader(h.companyNo, h.payrunNo, h.employeeNo));
+
+        Button bAdd    = new Button("Add");
+        Button bEdit   = new Button("Edit");
+        Button bDelete = new Button("Delete");
+        Button bClose  = new Button("Close");
+
+        bAdd.setOnAction(e -> {
+            TimesheetLine seed = new TimesheetLine();
+            seed.companyNo  = h.companyNo;
+            seed.payrunNo   = h.payrunNo;
+            seed.employeeNo = h.employeeNo;
+            seed.lineNo     = timesheetLines.nextLineNo(h.companyNo, h.payrunNo, h.employeeNo);
+            seed.timesheetDate = h.payThruToDate;
+            seed.paygroup   = h.altPaygroup;
+            seed.dept       = h.altDept;
+            if (editTimesheetLine(seed, dlg, true)) reload.run();
+        });
+        bEdit.setOnAction(e -> {
+            TimesheetLine sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null && editTimesheetLine(copyOfLine(sel), dlg, false)) reload.run();
+        });
+        bDelete.setOnAction(e -> {
+            TimesheetLine sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+                "Delete line " + sel.lineNo + " ("
+                    + (sel.payCode.isBlank() ? "type " + sel.payType : sel.payCode)
+                    + ")?",
+                ButtonType.YES, ButtonType.NO);
+            a.setHeaderText(null);
+            a.initOwner(dlg);
+            var res = a.showAndWait();
+            if (res.isPresent() && res.get() == ButtonType.YES) {
+                try {
+                    timesheetLines.delete(sel.companyNo, sel.payrunNo,
+                        sel.employeeNo, sel.lineNo);
+                    reload.run();
+                } catch (Exception ex) {
+                    error("Could not delete: " + ex.getMessage());
+                }
+            }
+        });
+        bClose.setOnAction(e -> dlg.close());
+
+        HBox toolbar = new HBox(8, bAdd, bEdit, bDelete);
+        toolbar.setPadding(new Insets(10, 14, 10, 14));
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        HBox closeBar = new HBox(bClose);
+        closeBar.setPadding(new Insets(8, 14, 14, 14));
+        closeBar.setAlignment(Pos.CENTER_RIGHT);
+
+        Label crumb = new Label(h.displayName().isBlank()
+            ? "Employee " + h.employeeNo + "  ·  Payrun " + h.payrunNo
+            : h.displayName() + "  ·  Employee " + h.employeeNo
+              + "  ·  Payrun " + h.payrunNo);
+        crumb.setStyle("-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        HBox crumbBar = new HBox(crumb);
+        crumbBar.setPadding(new Insets(12, 14, 6, 14));
+
+        VBox content = new VBox(crumbBar, toolbar, table, closeBar);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        dlg.setScene(new Scene(content, 1000, 480));
+        reload.run();
+        dlg.showAndWait();
+    }
+
+    /** Add/Edit dialog for a single patimes row. Returns true if saved. */
+    private boolean editTimesheetLine(TimesheetLine l, Stage owner, boolean isAdd) {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle(isAdd ? "Add Timesheet Line"
+                            : "Edit Timesheet Line " + l.lineNo);
+        dlg.setHeaderText("Employee " + l.employeeNo
+            + " · payrun " + l.payrunNo + " · line " + l.lineNo);
+        dlg.initOwner(owner);
+        dlg.initModality(Modality.WINDOW_MODAL);
+
+        TextField tfPayType  = new TextField(String.valueOf(l.payType));
+        TextField tfPayCode  = new TextField(l.payCode);
+        TextField tfPaygrp   = new TextField(l.paygroup);
+        TextField tfDept     = new TextField(l.dept);
+        TextField tfAward    = new TextField(l.award);
+        TextField tfJobClass = new TextField(l.jobClass);
+        TextField tfHours    = new TextField(money(l.hours()));
+        TextField tfQty      = new TextField(money(l.qty));
+        TextField tfRate     = new TextField(money(l.ratePerc));
+        TextField tfExt      = new TextField(money(l.extAmt));
+        DatePicker dpDate    = new DatePicker(l.timesheetDate);
+        TextField tfRef      = new TextField(l.ref);
+
+        GridPane g = new GridPane();
+        g.setHgap(10); g.setVgap(8); g.setPadding(new Insets(14));
+        int r = 0;
+        g.add(new Label("Pay type:"),   0, r); g.add(tfPayType,  1, r);
+        g.add(new Label("Pay code:"),   2, r); g.add(tfPayCode,  3, r++);
+        g.add(new Label("Paygroup:"),   0, r); g.add(tfPaygrp,   1, r);
+        g.add(new Label("Dept:"),       2, r); g.add(tfDept,     3, r++);
+        g.add(new Label("Award:"),      0, r); g.add(tfAward,    1, r);
+        g.add(new Label("Job class:"),  2, r); g.add(tfJobClass, 3, r++);
+        g.add(new Label("Hours:"),      0, r); g.add(tfHours,    1, r);
+        g.add(new Label("Quantity:"),   2, r); g.add(tfQty,      3, r++);
+        g.add(new Label("Rate / %:"),   0, r); g.add(tfRate,     1, r);
+        g.add(new Label("Ext amount:"), 2, r); g.add(tfExt,      3, r++);
+        g.add(new Label("Date:"),       0, r); g.add(dpDate,     1, r++);
+        g.add(new Label("Reference:"),  0, r); g.add(tfRef,      1, r, 3, 1);
+        dlg.getDialogPane().setContent(g);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        var res = dlg.showAndWait();
+        if (res.isEmpty() || res.get() != ButtonType.OK) return false;
+
+        try {
+            l.payType        = parseIntOrZero(tfPayType.getText());
+            l.payCode        = nz(tfPayCode.getText()).trim().toUpperCase();
+            l.paygroup       = nz(tfPaygrp.getText()).trim().toUpperCase();
+            l.dept           = nz(tfDept.getText()).trim().toUpperCase();
+            l.award          = nz(tfAward.getText()).trim().toUpperCase();
+            l.jobClass       = nz(tfJobClass.getText()).trim().toUpperCase();
+            l.min            = hoursToMin(tfHours.getText());
+            l.qty            = parseMoneyOrZero(tfQty.getText());
+            l.ratePerc       = parseMoneyOrZero(tfRate.getText());
+            l.extAmt         = parseMoneyOrZero(tfExt.getText());
+            l.timesheetDate  = dpDate.getValue();
+            l.ref            = nz(tfRef.getText());
+
+            if (isAdd) timesheetLines.insert(l, appSession.getUserId());
+            else       timesheetLines.update(l, appSession.getUserId());
+            return true;
+        } catch (Exception ex) {
+            error("Could not save line: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private static TimesheetHeader copyOfHeader(TimesheetHeader s) {
+        TimesheetHeader h = new TimesheetHeader();
+        h.companyNo            = s.companyNo;
+        h.payrunNo             = s.payrunNo;
+        h.employeeNo           = s.employeeNo;
+        h.surname              = s.surname;
+        h.firstName            = s.firstName;
+        h.altPayrunNo          = s.altPayrunNo;
+        h.altPaygroup          = s.altPaygroup;
+        h.altDept              = s.altDept;
+        h.altEmployeeNo        = s.altEmployeeNo;
+        h.payThruStartDate     = s.payThruStartDate;
+        h.payThruToDate        = s.payThruToDate;
+        h.defaultTimesheetFlag = s.defaultTimesheetFlag;
+        h.costedTimesheetFlag  = s.costedTimesheetFlag;
+        h.calcTaxUsingPayDates = s.calcTaxUsingPayDates;
+        h.timesheetStatus      = s.timesheetStatus;
+        h.timesheetInUse       = s.timesheetInUse;
+        h.noteNo               = s.noteNo;
+        return h;
+    }
+
+    private static TimesheetLine copyOfLine(TimesheetLine s) {
+        TimesheetLine l = new TimesheetLine();
+        l.companyNo            = s.companyNo;
+        l.payrunNo             = s.payrunNo;
+        l.employeeNo           = s.employeeNo;
+        l.lineNo               = s.lineNo;
+        l.payType              = s.payType;
+        l.payCode              = s.payCode;
+        l.min                  = s.min;
+        l.qty                  = s.qty;
+        l.ratePerc             = s.ratePerc;
+        l.extAmt               = s.extAmt;
+        l.paygroup             = s.paygroup;
+        l.dept                 = s.dept;
+        l.award                = s.award;
+        l.jobClass             = s.jobClass;
+        l.employeeDept         = s.employeeDept;
+        l.costType             = s.costType;
+        l.timesheetDate        = s.timesheetDate;
+        l.ref                  = s.ref;
+        l.leaveStartDate       = s.leaveStartDate;
+        l.leaveReturnDate      = s.leaveReturnDate;
+        l.reasonCode           = s.reasonCode;
+        l.glAcctNoMain         = s.glAcctNoMain;
+        l.glAcctNoSub          = s.glAcctNoSub;
+        l.ledgerType           = s.ledgerType;
+        l.ledgerCode           = s.ledgerCode;
+        l.analysisCode         = s.analysisCode;
+        l.absorpType           = s.absorpType;
+        l.absorpAmt            = s.absorpAmt;
+        l.gstFlag              = s.gstFlag;
+        l.gstCode              = s.gstCode;
+        l.noteNo               = s.noteNo;
+        return l;
     }
 
     // ── paecode CRUD — standing pay lines for one employee ──────────────
