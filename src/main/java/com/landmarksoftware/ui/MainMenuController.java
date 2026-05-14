@@ -96,6 +96,7 @@ public class MainMenuController {
     private final JdbcTemplate                       jdbc;
     private final SessionService                     sessionService;
     private final CompanyRepository                  companyRepo;
+    private final LastSessionStore                   lastSessionStore;
     private final AppSession                         appSession;
 
     // ── Session state (mirrors GLPASS / MENU23 selection) ────────
@@ -141,6 +142,7 @@ public class MainMenuController {
                                JdbcTemplate jdbc,
                                SessionService sessionService,
                                CompanyRepository companyRepo,
+                               LastSessionStore lastSessionStore,
                                AppSession appSession) {
         this.projectionScreen      = projectionScreen;
         this.transactionListScreen = transactionListScreen;
@@ -168,6 +170,7 @@ public class MainMenuController {
         this.jdbc                  = jdbc;
         this.sessionService        = sessionService;
         this.companyRepo           = companyRepo;
+        this.lastSessionStore      = lastSessionStore;
         this.appSession            = appSession;
     }
 
@@ -202,19 +205,44 @@ public class MainMenuController {
         return scene;
     }
 
-    /** Load first available company + most recent year as default session */
+    /**
+     * Restore the previous session's company + year if a previous MENU23
+     * pick was persisted via {@link LastSessionStore}; otherwise default to
+     * the first available company + most recent year.
+     */
     private void loadDefaultSession() {
-        try {
-            var companies = companyRepo.findAll();
-            if (!companies.isEmpty()) {
-                var c = companies.get(0);
-                sessionCompanyNo   = c.getCompanyNo();
-                sessionCompanyName = c.getName() != null ? c.getName() : "Company " + c.getCompanyNo();
+        var companies = java.util.Collections.<com.landmarksoftware.model.CompanyRow>emptyList();
+        try { companies = companyRepo.findAll(); }
+        catch (Exception ignored) { /* fall through to placeholder */ }
+
+        com.landmarksoftware.model.CompanyRow chosen = null;
+        // Try the persisted last pick first — only honour it if that company
+        // still exists in the master list.
+        if (lastSessionStore != null && lastSessionStore.hasLast()) {
+            int wanted = lastSessionStore.getLastCompanyNo();
+            for (var c : companies) {
+                if (c.getCompanyNo() == wanted) { chosen = c; break; }
             }
-        } catch (Exception e) {
+        }
+        if (chosen == null && !companies.isEmpty()) chosen = companies.get(0);
+
+        if (chosen != null) {
+            sessionCompanyNo   = chosen.getCompanyNo();
+            sessionCompanyName = chosen.getName() != null
+                ? chosen.getName() : "Company " + chosen.getCompanyNo();
+        } else {
             sessionCompanyName = "Company " + sessionCompanyNo;
         }
-        loadYearForSession();
+
+        // Prefer the persisted year if it's still valid for this company.
+        int persistedYear = lastSessionStore == null ? 0 : lastSessionStore.getLastYearNo();
+        if (chosen != null && persistedYear > 0
+                && sessionService.findCurrentYear(sessionCompanyNo) > 0) {
+            sessionYearNo   = persistedYear;
+            sessionYearDesc = buildYearDesc(persistedYear % 100);
+        } else {
+            loadYearForSession();
+        }
         pushToAppSession();
     }
 
@@ -1374,6 +1402,11 @@ public class MainMenuController {
             int yr             = selYr.twoDigit();
             sessionYearNo      = yr < 40 ? 2000 + yr : 1900 + yr;
             sessionYearDesc    = selYr.desc();
+
+            // Persist for next login
+            if (lastSessionStore != null) {
+                lastSessionStore.save(sessionCompanyNo, sessionYearNo);
+            }
 
             // Update sidebar live
             lblFooterCompany.setText(sessionCompanyName);
