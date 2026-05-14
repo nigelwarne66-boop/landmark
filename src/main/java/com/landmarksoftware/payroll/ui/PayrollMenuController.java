@@ -61,6 +61,7 @@ public class PayrollMenuController {
     private final TimesheetSplitsController        papc01;
     private final TimesheetEntryController         patm01;
     private final PayRunProcessingController       papp01;
+    private final AbaPaymentController             pabk02;
     private final AppSession                       appSession;
 
     public PayrollMenuController(PayCodeMaintenanceController pacd01,
@@ -78,6 +79,7 @@ public class PayrollMenuController {
                                   TimesheetSplitsController papc01,
                                   TimesheetEntryController patm01,
                                   PayRunProcessingController papp01,
+                                  AbaPaymentController pabk02,
                                   AppSession appSession) {
         this.pacd01       = pacd01;
         this.paem01       = paem01;
@@ -94,6 +96,7 @@ public class PayrollMenuController {
         this.papc01       = papc01;
         this.patm01       = patm01;
         this.papp01       = papp01;
+        this.pabk02       = pabk02;
         this.appSession   = appSession;
     }
 
@@ -175,8 +178,7 @@ public class PayrollMenuController {
                     true, () -> openPayRunProcessing(parentStage)),
                 new PayrollMenuEntry("PABK02", "ABA Payment File",
                     "Generate bank payment (ABA) file",
-                    true, () -> stubInfo(parentStage, "PABK02 — ABA Payment File",
-                        "ABA file generation lands after PAPP01 posting (PAPP28).")),
+                    true, () -> openAbaPayment(parentStage)),
                 new PayrollMenuEntry("PAPA14", "Leave Processing",
                     "Process leave payouts and accruals",
                     true, () -> stubInfo(parentStage, "PAPA14 — Leave Processing",
@@ -366,6 +368,16 @@ public class PayrollMenuController {
         s.setScene(papp01.buildScene(s));
         s.setMinWidth(1000);
         s.setMinHeight(580);
+        s.show();
+    }
+
+    private void openAbaPayment(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("ABA Payment File — PABK02");
+        s.setScene(pabk02.buildScene(s));
+        s.setMinWidth(1000);
+        s.setMinHeight(560);
         s.show();
     }
 

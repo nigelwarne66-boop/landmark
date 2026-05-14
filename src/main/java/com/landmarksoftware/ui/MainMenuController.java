@@ -24,6 +24,7 @@ import com.landmarksoftware.payroll.ui.GlobalEmployeeAwardUpdateController;
 import com.landmarksoftware.payroll.ui.ChangeEmployeePayRatesController;
 import com.landmarksoftware.payroll.ui.DuplicateTimesheetsController;
 import com.landmarksoftware.payroll.ui.LeaveAccrualReversalController;
+import com.landmarksoftware.payroll.ui.AbaPaymentController;
 import com.landmarksoftware.payroll.ui.PayRunProcessingController;
 import com.landmarksoftware.payroll.ui.TimesheetEntryController;
 import com.landmarksoftware.payroll.ui.TimesheetSplitsController;
@@ -95,6 +96,7 @@ public class MainMenuController {
     private final TimesheetSplitsController          timesheetSplitsScreen;
     private final TimesheetEntryController           timesheetEntryScreen;
     private final PayRunProcessingController         payRunProcessingScreen;
+    private final AbaPaymentController               abaPaymentScreen;
     private final JdbcTemplate                       jdbc;
     private final SessionService                     sessionService;
     private final CompanyRepository                  companyRepo;
@@ -142,6 +144,7 @@ public class MainMenuController {
                                TimesheetSplitsController timesheetSplitsScreen,
                                TimesheetEntryController timesheetEntryScreen,
                                PayRunProcessingController payRunProcessingScreen,
+                               AbaPaymentController abaPaymentScreen,
                                JdbcTemplate jdbc,
                                SessionService sessionService,
                                CompanyRepository companyRepo,
@@ -171,6 +174,7 @@ public class MainMenuController {
         this.timesheetSplitsScreen = timesheetSplitsScreen;
         this.timesheetEntryScreen  = timesheetEntryScreen;
         this.payRunProcessingScreen = payRunProcessingScreen;
+        this.abaPaymentScreen      = abaPaymentScreen;
         this.jdbc                  = jdbc;
         this.sessionService        = sessionService;
         this.companyRepo           = companyRepo;
@@ -1076,7 +1080,7 @@ public class MainMenuController {
             true, this::openPayRunProcessing));
         allEntries.add(new MenuEntry("PY", "PABK02", "ABA Payment File",
             "Generate bank payment (ABA) file",
-            true, this::stubPaBk02));
+            true, this::openAbaPayment));
         allEntries.add(new MenuEntry("PY", "PAPA14", "Leave Processing",
             "Process leave payouts and accruals",
             true, this::stubPaPa14));
@@ -1266,8 +1270,11 @@ public class MainMenuController {
         s.setMinWidth(1000); s.setMinHeight(580); s.show();
     }
 
-    private void stubPaBk02() { stubInfo("PABK02 — ABA Payment File",
-        "ABA file generation lands after PAPP01 posting (PAPP28)."); }
+    private void openAbaPayment() {
+        Stage s = new Stage(); s.setTitle("ABA Payment File — PABK02");
+        s.setScene(abaPaymentScreen.buildScene(s));
+        s.setMinWidth(1000); s.setMinHeight(560); s.show();
+    }
     private void stubPaPa14() { stubInfo("PAPA14 — Leave Processing",
         "Leave payout and accrual processing is the next iteration after PAPP01."); }
     private void stubPaPp28() { stubInfo("PAPP28 — Payroll Posting",
