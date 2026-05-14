@@ -24,6 +24,7 @@ import com.landmarksoftware.payroll.ui.GlobalEmployeeAwardUpdateController;
 import com.landmarksoftware.payroll.ui.ChangeEmployeePayRatesController;
 import com.landmarksoftware.payroll.ui.DuplicateTimesheetsController;
 import com.landmarksoftware.payroll.ui.LeaveAccrualReversalController;
+import com.landmarksoftware.payroll.ui.TimesheetEntryController;
 import com.landmarksoftware.payroll.ui.TimesheetSplitsController;
 import com.landmarksoftware.payroll.ui.TaxScaleMaintenanceController;
 import com.landmarksoftware.payroll.ui.PayCodeMaintenanceController;
@@ -91,6 +92,7 @@ public class MainMenuController {
     private final DuplicateTimesheetsController      dupTimesheetsScreen;
     private final LeaveAccrualReversalController     leaveAccrualScreen;
     private final TimesheetSplitsController          timesheetSplitsScreen;
+    private final TimesheetEntryController           timesheetEntryScreen;
     private final JdbcTemplate                       jdbc;
     private final SessionService                     sessionService;
     private final CompanyRepository                  companyRepo;
@@ -135,6 +137,7 @@ public class MainMenuController {
                                DuplicateTimesheetsController dupTimesheetsScreen,
                                LeaveAccrualReversalController leaveAccrualScreen,
                                TimesheetSplitsController timesheetSplitsScreen,
+                               TimesheetEntryController timesheetEntryScreen,
                                JdbcTemplate jdbc,
                                SessionService sessionService,
                                CompanyRepository companyRepo,
@@ -161,6 +164,7 @@ public class MainMenuController {
         this.dupTimesheetsScreen   = dupTimesheetsScreen;
         this.leaveAccrualScreen    = leaveAccrualScreen;
         this.timesheetSplitsScreen = timesheetSplitsScreen;
+        this.timesheetEntryScreen  = timesheetEntryScreen;
         this.jdbc                  = jdbc;
         this.sessionService        = sessionService;
         this.companyRepo           = companyRepo;
@@ -1032,6 +1036,9 @@ public class MainMenuController {
         allEntries.add(new MenuEntry("PY", "PAPC01", "Timesheet Splits",
             "Maintain pay phase / phase group splits",
             true, this::openTimesheetSplits));
+        allEntries.add(new MenuEntry("PY", "PATM01", "Timesheet Entry",
+            "Enter employee timesheets for a payrun",
+            true, this::openTimesheetEntry));
 
         // System maintenance programs
         allEntries.add(new MenuEntry("SYS", "MENU22", "Company Maintenance",
@@ -1201,6 +1208,12 @@ public class MainMenuController {
         Stage s = new Stage(); s.setTitle("Timesheet Splits — PAPC01");
         s.setScene(timesheetSplitsScreen.buildScene(s));
         s.setMinWidth(920); s.setMinHeight(560); s.show();
+    }
+
+    private void openTimesheetEntry() {
+        Stage s = new Stage(); s.setTitle("Timesheet Entry — PATM01");
+        s.setScene(timesheetEntryScreen.buildScene(s));
+        s.setMinWidth(1000); s.setMinHeight(620); s.show();
     }
 
     // ═══════════════════════════════════════════════════════════════

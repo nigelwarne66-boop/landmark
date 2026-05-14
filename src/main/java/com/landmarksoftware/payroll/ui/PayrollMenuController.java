@@ -59,6 +59,7 @@ public class PayrollMenuController {
     private final DuplicateTimesheetsController    paem11;
     private final LeaveAccrualReversalController   pasu55;
     private final TimesheetSplitsController        papc01;
+    private final TimesheetEntryController         patm01;
     private final AppSession                       appSession;
 
     public PayrollMenuController(PayCodeMaintenanceController pacd01,
@@ -74,6 +75,7 @@ public class PayrollMenuController {
                                   DuplicateTimesheetsController paem11,
                                   LeaveAccrualReversalController pasu55,
                                   TimesheetSplitsController papc01,
+                                  TimesheetEntryController patm01,
                                   AppSession appSession) {
         this.pacd01       = pacd01;
         this.paem01       = paem01;
@@ -88,6 +90,7 @@ public class PayrollMenuController {
         this.paem11       = paem11;
         this.pasu55       = pasu55;
         this.papc01       = papc01;
+        this.patm01       = patm01;
         this.appSession   = appSession;
     }
 
@@ -163,7 +166,7 @@ public class PayrollMenuController {
             List.of(
                 new PayrollMenuEntry("PATM01", "Timesheet Entry",
                     "Enter employee timesheets",
-                    false, null),
+                    true, () -> openTimesheetEntry(parentStage)),
                 new PayrollMenuEntry("PAPP01", "Pay Run Processing",
                     "Create and process pay runs",
                     false, null),
@@ -337,6 +340,16 @@ public class PayrollMenuController {
         s.setScene(pacd01.buildScene(s));
         s.setMinWidth(820);
         s.setMinHeight(480);
+        s.show();
+    }
+
+    private void openTimesheetEntry(Stage parentStage) {
+        Stage s = new Stage();
+        s.initOwner(parentStage);
+        s.setTitle("Timesheet Entry — PATM01");
+        s.setScene(patm01.buildScene(s));
+        s.setMinWidth(1000);
+        s.setMinHeight(620);
         s.show();
     }
 
