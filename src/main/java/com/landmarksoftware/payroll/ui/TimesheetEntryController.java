@@ -706,7 +706,8 @@ public class TimesheetEntryController {
         // CORRECT-DATE).
         int attached = 0;
         int skipped  = 0;
-        int blank    = 0;
+        StringBuilder leftOut = new StringBuilder();
+        int leftOutCount = 0;
         for (PayGroup pg : master) {
             String code = pg.paygroup;
             if (code == null) continue;
@@ -723,8 +724,18 @@ public class TimesheetEntryController {
                             || d4Wk != null || dMth != null;
             if (!anyDate) {
                 // Matches COBOL: WS-PAYRUN-DATES-SET stays "N", paygroup is
-                // not attached. Surface this so an empty result isn't silent.
-                blank++;
+                // not attached. Build a per-frequency diagnostic so the user
+                // can tell whether it's stale active flags or zero paid-thrus.
+                leftOutCount++;
+                if (leftOutCount <= 5) {
+                    leftOut.append("\n  • ").append(code)
+                        .append(pg.desc1 == null || pg.desc1.isBlank() ? "" : " (" + pg.desc1 + ")")
+                        .append("\n        Wk   : ").append(reason(pg.paidThruToWeek,  pg.payrunActiveWeek))
+                        .append("\n        Fort : ").append(reason(pg.paidThruToFort,  pg.payrunActiveFort))
+                        .append("\n        Bim  : ").append(reason(pg.paidThruToBimth, pg.payrunActiveBimth))
+                        .append("\n        4Wk  : ").append(reason(pg.paidThruTo4Wk,   pg.payrunActive4Wk))
+                        .append("\n        Mth  : ").append(reason(pg.paidThruToMth,   pg.payrunActiveMth));
+                }
                 continue;
             }
             if (cbValidate.isSelected()) {
@@ -761,20 +772,44 @@ public class TimesheetEntryController {
                 error("Could not attach " + code + ": " + ex.getMessage());
             }
         }
-        if (attached > 0 || skipped > 0 || blank > 0) {
+        if (attached > 0 || skipped > 0 || leftOutCount > 0) {
             StringBuilder msg = new StringBuilder();
             msg.append(attached).append(" paygroup")
                 .append(attached == 1 ? "" : "s").append(" attached");
             if (skipped > 0) msg.append(" · ").append(skipped).append(" skipped");
-            if (blank > 0) {
-                msg.append("\n").append(blank).append(" paygroup")
-                    .append(blank == 1 ? " was" : "s were")
-                    .append(" left out — paid_thru_to is zero or "
-                        + "already active in another payrun.");
+            if (leftOutCount > 0) {
+                msg.append("\n\n").append(leftOutCount).append(" paygroup")
+                    .append(leftOutCount == 1 ? " was" : "s were")
+                    .append(" left out — every frequency was either already "
+                        + "active in another payrun, or paid_thru_to_X is 0 "
+                        + "on the pagroup row:");
+                msg.append(leftOut);
+                if (leftOutCount > 5) {
+                    msg.append("\n  … and ").append(leftOutCount - 5).append(" more.");
+                }
+                msg.append("\n\nFor a paygroup that's never been paid yet, "
+                    + "use P2 → Add to attach with manually-entered dates.");
             }
             info(msg.toString());
         }
         openP2(p);
+    }
+
+    /**
+     * Produce a one-line reason for why a frequency was left blank during
+     * Select auto-attach. Used in the "left out" diagnostic message.
+     */
+    private static String reason(int paidThruYmd, String activeFlag) {
+        if ("Y".equalsIgnoreCase(activeFlag)) {
+            return "active in another payrun (payrun_active=Y)";
+        }
+        if (paidThruYmd <= 0) {
+            return "no history (paid_thru_to=0)";
+        }
+        // Shouldn't reach here if this frequency was "left out", but be safe.
+        LocalDate d = ymmddToDate(paidThruYmd);
+        return d == null ? "invalid paid_thru_to=" + paidThruYmd
+                         : "paid_thru_to=" + d + " (would attach — bug?)";
     }
 
     private static String nz(String s) { return s == null ? "" : s; }
