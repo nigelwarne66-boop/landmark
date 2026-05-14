@@ -745,13 +745,15 @@ public class TimesheetEntryController {
             return row;
         });
 
-        Button bBack    = new Button("◂ Back");
-        Button bSelect  = new Button("Select ▸ Timesheets");
-        Button bAdd     = new Button("Add");
-        Button bEdit    = new Button("Edit");
-        Button bDelete  = new Button("Delete");
-        Button bRange   = new Button("Range…");
-        Button bRefresh = new Button("Refresh");
+        Button bBack         = new Button("◂ Back");
+        Button bSelect       = new Button("Select ▸ Timesheets");
+        Button bAdd          = new Button("Add");
+        Button bEdit         = new Button("Edit");
+        Button bDelete       = new Button("Delete");
+        Button bCreatePayrun = new Button("Create Payrun");
+        Button bStatus       = new Button("Status");
+        Button bRange        = new Button("Range…");
+        Button bRefresh      = new Button("Refresh");
 
         bBack.setOnAction(e -> {
             appSession.clearPayrun();
@@ -765,11 +767,26 @@ public class TimesheetEntryController {
         bAdd.setOnAction(e -> editPaygroup(null));
         bEdit.setOnAction(e -> editPaygroup(p2Table.getSelectionModel().getSelectedItem()));
         bDelete.setOnAction(e -> deletePaygroup(p2Table.getSelectionModel().getSelectedItem()));
+        bCreatePayrun.setOnAction(e -> {
+            // Mirrors COBOL P2 "&Create Payrun" — spawn a brand-new payrun
+            // without returning to P1. On success, switch context to it.
+            Payrun added = addPayrun();
+            if (added != null) {
+                p2Payrun = added;
+                appSession.setSelectedPayrunNo(added.payrunNo);
+                appSession.setSelectedPayrunDate(fmt(added.payrunDate));
+                appSession.setSelectedPayrunDesc(added.ref);
+                Platform.runLater(() -> openOptions(added, true));
+            }
+        });
+        bStatus.setOnAction(e -> inquirePaygroup(p2Table.getSelectionModel().getSelectedItem()));
         bRange.setOnAction(e -> openSelectPaygroups(p2Payrun));
         bRefresh.setOnAction(e -> loadP2());
 
         HBox toolbar = new HBox(8, bBack, sep(), bSelect, sep(),
-                                   bAdd, bEdit, bDelete, sep(), bRange, bRefresh);
+                                   bAdd, bEdit, bDelete, sep(),
+                                   bCreatePayrun, bStatus, sep(),
+                                   bRange, bRefresh);
         toolbar.setPadding(new Insets(10, 14, 10, 14));
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setStyle("-fx-background-color:#FFFFFF;");
@@ -916,6 +933,34 @@ public class TimesheetEntryController {
         } catch (Exception ex) {
             error("Could not save paygroup: " + ex.getMessage());
         }
+    }
+
+    /**
+     * COBOL P2 "Stat&us" — read-only inquiry on the selected paygroup row.
+     * Surfaces audit attribution and pay-thru detail in a non-editable popup.
+     */
+    private void inquirePaygroup(PayrunGroup g) {
+        if (g == null) return;
+        StringBuilder sb = new StringBuilder()
+            .append("Payrun : ").append(g.payrunNo).append("\n")
+            .append("Paygroup : ").append(g.paygroup);
+        if (!g.paygroupDesc.isBlank()) sb.append("  —  ").append(g.paygroupDesc);
+        sb.append("\nStatus : ").append(g.statusDisplay()).append("\n\n")
+          .append("Weekly pay-thru   : ").append(fmt(g.payThruToWeek)).append("\n")
+          .append("Fortnight pay-thru: ").append(fmt(g.payThruToFort)).append("\n")
+          .append("Bimthly pay-thru  : ").append(fmt(g.payThruToBimth)).append("\n")
+          .append("4-weekly pay-thru : ").append(fmt(g.payThruTo4Wk)).append("\n")
+          .append("Monthly pay-thru  : ").append(fmt(g.payThruToMth)).append("\n\n")
+          .append("Last modified by ").append(g.auditUserId.isBlank() ? "—" : g.auditUserId);
+        if (g.auditDate != null && g.auditDate.getYear() > 1900) {
+            sb.append(" on ").append(fmt(g.auditDate))
+              .append(" at ").append(String.format("%02d:%02d:%02d",
+                  g.auditTimeHr, g.auditTimeMin, g.auditTimeSec));
+        }
+        Alert a = new Alert(Alert.AlertType.INFORMATION, sb.toString(), ButtonType.CLOSE);
+        a.setHeaderText("Paygroup status");
+        a.initOwner(stage);
+        a.showAndWait();
     }
 
     private void deletePaygroup(PayrunGroup g) {
