@@ -67,16 +67,26 @@ Per-change audit trail wired alongside the existing per-row `audit_user_id/date/
 Foundation + 5 full batch programs + 2 thin maintenance screens. See "Wave 2 detail" section below.
 
 ### Wave 3 — Pay run processing 🟡 In progress
-Foundation pieces landing first so PATM01/PAPP01 are unblocked:
-- **`PaygTaxCalculator`** ✅ — single-lookup against `tax_brackets` (NAT_1004 / NAT_3539). Verified scale 2, $1500 STSL → $336. Weekly base + ATO conversion for F/M. As-of-date lookup so back-dated runs pick the publication in force at the time. Not yet wired in (no caller until PATM01 P3).
-- **Extract pipeline schemas** added for `patimhd`, `patimes`, `parungr` in `C:\landmark_extract\sql\` + `pafiles.txt`. **Apply these SQL files to MySQL** before exercising PATM01 P2 (parungr) — P1 will work without them.
-- **PATM01 S0 + P1 + P2** ✅ Done — awaiting user validation of the paygroup pick. Wired into both menus.
+- **`PaygTaxCalculator`** ✅ — single-lookup against `tax_brackets` (NAT_1004 / NAT_3539). Verified scale 2, $1500 STSL → $336. Weekly base + ATO conversion for F/M. As-of-date lookup so back-dated runs pick the publication in force at the time. Not yet wired in (no caller until P3).
+- **Extract pipeline schemas** ✅ added for `patimhd`, `patimes`, `parungr` in `C:\landmark_extract\sql\` + `pafiles.txt`. SQL applied by user 2026-05-14.
+- **PATM01 S0 / P1 / P2 / Options** ✅ Done, validated by user.
   - S0 (filter dialog): date range, include-fully-posted, include-cancelled, payrun-type filter.
-  - P1 (payrun list): Add / Edit / Cancel(→status D) / Open / Refresh / Filter.
-  - P2 (paygroup pick): Select(stub) / Add / Edit / Delete / Back. Description joined from `pagroup`. Delete blocked when `patimhd` has rows. Sets `appSession.selectedPayrunNo` on entry.
-  - paecode CRUD folded into PATM01 per user — lands with P3.
-- **PATM01 P3 (employee list) + S3B (line entry)** — not yet built. Will wire `PaygTaxCalculator` + paecode + patimhd/patimes when it lands.
+  - P1 (payrun list): Add / Options ▸ / Cancel / Refresh / Filter. Add chains into Options after insert. Double-click row → Options.
+  - **Options dialog** (5 buttons mirroring COBOL post-Add modal):
+    - 1 Edit — re-open header editor.
+    - 2 Default — modal for parunhd flags (cost type **I/G/L**, calc tax/super, skip-paygroup, retainer/splits/RDO).
+    - 3 Select — opens the paygroup-range picker.
+    - 4 Create — stubbed until P3.
+    - 5 Import — stubbed until P3.
+    - All transitions deferred via `Platform.runLater` to avoid nested-modal input lockup.
+  - **Select Paygroups picker**: start/end combos sourced from `pagroup` master (rendered as `code  —  description`), Validate-before-selection checkbox. OK **auto-attaches** every paygroup in the range to the payrun (inserts parungr rows with default pay-thru dates seeded from the payrun's end date). Validate=on prompts per paygroup.
+  - P2 (paygroup pick): toolbar matches COBOL — Back · Select ▸ Timesheets · Add · Edit · Delete · Create Payrun · Status · Range… · Refresh. Description joined from `pagroup`. Delete blocked when `patimhd` has rows. Range button reopens the picker.
+  - **Create Payrun** (P2) — verified against COBOL `patm01.pl:1027` CREATE-PAYRUN: misleadingly named. Validates payrun is open and ≥1 parungr row exists, then transitions to PATM02 (= my P3). Stubbed until P3 lands.
+- **PATM01 P3 (employee list) + S3B (line entry) + paecode CRUD** — not yet built. Will wire `PaygTaxCalculator` + paecode + patimhd/patimes when it lands. paecode CRUD lives inside PATM01 (Insert button) per user direction.
 - **PAPP01 / PABK02 / PAPA14 / PAPP28** — Wave 3 tail.
+
+### Cross-cutting — Session persistence
+`LastSessionStore` (`~/.fixedassets/session.properties`) ✅ persists the user's MENU23 pick (`lastCompanyNo` + `lastYearNo`). `loadDefaultSession` honours it on next login when the company still exists; otherwise falls back to first-company + latest-year.
 
 ### Wave 4, 5
 Per `PAYROLL_PLAN.md`.
