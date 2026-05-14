@@ -82,6 +82,12 @@ public class TimesheetEntryController {
     private Label                             p2Status;
     private Payrun                            p2Payrun;   // current parent
 
+    /** Active paygroup-range filter on P2 — set by the "Select Paygroups" modal. */
+    private String  p2RangeStart    = "";       // empty = no lower bound
+    private String  p2RangeEnd      = "zzzz";   // 'zzzz' = no upper bound
+    /** Validate flag from "Select Paygroups" modal — prompts on each P2 Select. */
+    private boolean p2ValidateOnSelect = false;
+
     public TimesheetEntryController(PayrunService payruns,
                                      PayrunGroupService groups,
                                      AppSession appSession) {
@@ -409,7 +415,7 @@ public class TimesheetEntryController {
 
         b1.setOnAction(e -> { dlg.close(); editPayrun(p); refreshAndReopen(p, false); });
         b2.setOnAction(e -> { openDefaultsDialog(p); });
-        b3.setOnAction(e -> { dlg.close(); openP2(p); });
+        b3.setOnAction(e -> { dlg.close(); openSelectPaygroups(p); });
         b4.setOnAction(e -> info(
             "Create timesheets from defaults — coming with P3 / paecode CRUD."));
         b5.setOnAction(e -> info(
@@ -464,7 +470,10 @@ public class TimesheetEntryController {
         dlg.initModality(Modality.WINDOW_MODAL);
 
         ComboBox<String> cbCost = new ComboBox<>(FXCollections.observableArrayList(
-            "(none)", "A — Actual", "B — Budget", "S — Standard"));
+            "(none)",
+            "I — Indirect Expenses",
+            "G — General Ledger",
+            "L — Cost Ledger"));
         cbCost.getSelectionModel().select(costIndex(p.defaultCostType));
 
         CheckBox cbCalcTax    = new CheckBox("Calculate tax by default");
@@ -521,11 +530,11 @@ public class TimesheetEntryController {
 
     private static int costIndex(String code) {
         return switch (code == null ? "" : code.toUpperCase()) {
-            case "A" -> 1; case "B" -> 2; case "S" -> 3; default -> 0;
+            case "I" -> 1; case "G" -> 2; case "L" -> 3; default -> 0;
         };
     }
     private static String costCode(int idx) {
-        return switch (idx) { case 1 -> "A"; case 2 -> "B"; case 3 -> "S"; default -> ""; };
+        return switch (idx) { case 1 -> "I"; case 2 -> "G"; case 3 -> "L"; default -> ""; };
     }
 
     private void cancelPayrun(Payrun p) {
@@ -546,6 +555,80 @@ public class TimesheetEntryController {
             loadP1();
         }
     }
+
+    // ── Options → Select : paygroup range + Validate ─────────────────────
+
+    /**
+     * "Select Paygroups" — the screen between Options→Select and the P2
+     * listbox. Captures a paygroup range (start..end) and the "Validate
+     * paygroup before selection" flag, then opens P2 with those filters
+     * applied. If the payrun has no paygroups attached yet, we skip straight
+     * to P2 so the user can Add one.
+     */
+    private void openSelectPaygroups(Payrun p) {
+        if (p == null) return;
+        List<PayrunGroup> attached = groups.findByPayrun(p.companyNo, p.payrunNo);
+        if (attached.isEmpty()) {
+            info("Payrun " + p.payrunNo + " has no paygroups yet. "
+                + "Add one in the next screen, then re-open Options → Select.");
+            // open P2 with an unconstrained range so Add is reachable
+            p2RangeStart       = "";
+            p2RangeEnd         = "zzzz";
+            p2ValidateOnSelect = false;
+            openP2(p);
+            return;
+        }
+
+        // Pre-populate range options from the attached paygroups, sorted.
+        ObservableList<String> codes = FXCollections.observableArrayList(
+            attached.stream().map(g -> g.paygroup).sorted().toList());
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Payrun " + p.payrunNo + " — Select Paygroups");
+        dlg.setHeaderText("Choose the range of paygroups to work on for this payrun.");
+        dlg.initOwner(stage);
+        dlg.initModality(Modality.WINDOW_MODAL);
+
+        ComboBox<String> cbStart = new ComboBox<>(codes);
+        ComboBox<String> cbEnd   = new ComboBox<>(codes);
+        cbStart.getSelectionModel().select(
+            codes.contains(p2RangeStart) ? p2RangeStart : codes.get(0));
+        cbEnd.getSelectionModel().select(
+            codes.contains(p2RangeEnd) ? p2RangeEnd : codes.get(codes.size() - 1));
+
+        CheckBox cbValidate = new CheckBox("Validate paygroup before selection");
+        cbValidate.setSelected(p2ValidateOnSelect);
+        cbValidate.setTooltip(new Tooltip(
+            "When on, P2 prompts for confirmation before drilling into each\n"
+            + "paygroup's timesheet entry."));
+
+        GridPane g = new GridPane();
+        g.setHgap(10); g.setVgap(8); g.setPadding(new Insets(14));
+        int r = 0;
+        g.add(new Label("Start paygroup:"), 0, r); g.add(cbStart, 1, r++);
+        g.add(new Label("End paygroup:"),   0, r); g.add(cbEnd,   1, r++);
+        g.add(cbValidate,                   1, r++);
+        Label count = new Label(attached.size() + " paygroup"
+            + (attached.size() == 1 ? "" : "s") + " attached to this payrun.");
+        count.setStyle("-fx-font-size:11px;-fx-text-fill:#888780;");
+        g.add(count, 0, r, 2, 1);
+
+        dlg.getDialogPane().setContent(g);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        var res = dlg.showAndWait();
+        if (res.isEmpty() || res.get() != ButtonType.OK) return;
+
+        String start = nz(cbStart.getValue());
+        String end   = nz(cbEnd.getValue());
+        if (start.compareToIgnoreCase(end) > 0) { String swap = start; start = end; end = swap; }
+        p2RangeStart       = start;
+        p2RangeEnd         = end;
+        p2ValidateOnSelect = cbValidate.isSelected();
+        openP2(p);
+    }
+
+    private static String nz(String s) { return s == null ? "" : s; }
 
     // ── P2 — paygroup pick (the critical screen) ─────────────────────────
 
@@ -599,20 +682,26 @@ public class TimesheetEntryController {
         Button bAdd     = new Button("Add");
         Button bEdit    = new Button("Edit");
         Button bDelete  = new Button("Delete");
+        Button bRange   = new Button("Range…");
         Button bRefresh = new Button("Refresh");
 
         bBack.setOnAction(e -> {
             appSession.clearPayrun();
+            // Reset the range / validate state so a fresh drill-in starts clean.
+            p2RangeStart       = "";
+            p2RangeEnd         = "zzzz";
+            p2ValidateOnSelect = false;
             showP1();
         });
         bSelect.setOnAction(e -> selectPaygroup(p2Table.getSelectionModel().getSelectedItem()));
         bAdd.setOnAction(e -> editPaygroup(null));
         bEdit.setOnAction(e -> editPaygroup(p2Table.getSelectionModel().getSelectedItem()));
         bDelete.setOnAction(e -> deletePaygroup(p2Table.getSelectionModel().getSelectedItem()));
+        bRange.setOnAction(e -> openSelectPaygroups(p2Payrun));
         bRefresh.setOnAction(e -> loadP2());
 
         HBox toolbar = new HBox(8, bBack, sep(), bSelect, sep(),
-                                   bAdd, bEdit, bDelete, sep(), bRefresh);
+                                   bAdd, bEdit, bDelete, sep(), bRange, bRefresh);
         toolbar.setPadding(new Insets(10, 14, 10, 14));
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setStyle("-fx-background-color:#FFFFFF;");
@@ -635,16 +724,53 @@ public class TimesheetEntryController {
     }
 
     private void loadP2() {
-        List<PayrunGroup> list = groups.findByPayrun(p2Payrun.companyNo, p2Payrun.payrunNo);
+        List<PayrunGroup> all = groups.findByPayrun(p2Payrun.companyNo, p2Payrun.payrunNo);
+        // Apply the active range filter set by Options → Select.
+        List<PayrunGroup> list = all.stream()
+            .filter(g -> rangeIncludes(g.paygroup))
+            .toList();
         p2Rows.setAll(list);
+
         long open   = list.stream().filter(g -> "O".equalsIgnoreCase(g.paygroupStatus)).count();
         long closed = list.size() - open;
-        p2Status.setText(list.size() + " paygroup" + (list.size() == 1 ? "" : "s")
-            + " · " + open + " open · " + closed + " closed/full");
+        StringBuilder s = new StringBuilder()
+            .append(list.size()).append(" paygroup").append(list.size() == 1 ? "" : "s")
+            .append(" · ").append(open).append(" open · ")
+            .append(closed).append(" closed/full");
+        if (isRangeActive()) {
+            s.append(" · range ").append(p2RangeStart.isBlank() ? "*" : p2RangeStart)
+             .append("…").append("zzzz".equals(p2RangeEnd) ? "*" : p2RangeEnd);
+            if (all.size() != list.size()) {
+                s.append(" (").append(all.size() - list.size()).append(" hidden)");
+            }
+        }
+        if (p2ValidateOnSelect) s.append(" · validate on");
+        p2Status.setText(s.toString());
+    }
+
+    private boolean rangeIncludes(String paygroup) {
+        if (paygroup == null) return false;
+        if (!p2RangeStart.isBlank() && paygroup.compareToIgnoreCase(p2RangeStart) < 0) return false;
+        if (paygroup.compareToIgnoreCase(p2RangeEnd) > 0) return false;
+        return true;
+    }
+    private boolean isRangeActive() {
+        return !p2RangeStart.isBlank() || !"zzzz".equalsIgnoreCase(p2RangeEnd);
     }
 
     private void selectPaygroup(PayrunGroup g) {
         if (g == null) return;
+        if (p2ValidateOnSelect) {
+            Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+                "Open timesheet entry for paygroup " + g.paygroup
+                    + (g.paygroupDesc.isBlank() ? "" : " (" + g.paygroupDesc + ")")
+                    + "?\nStatus: " + g.statusDisplay(),
+                ButtonType.YES, ButtonType.NO);
+            a.setHeaderText("Validate paygroup before selection");
+            a.initOwner(stage);
+            var res = a.showAndWait();
+            if (res.isEmpty() || res.get() != ButtonType.YES) return;
+        }
         // P3 / S3B not yet built. Tell the user where we are.
         info("Paygroup " + g.paygroup
             + (g.paygroupDesc.isBlank() ? "" : " (" + g.paygroupDesc + ")")
