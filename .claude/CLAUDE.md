@@ -82,7 +82,10 @@ Foundation + 5 full batch programs + 2 thin maintenance screens. See "Wave 2 det
 - **PAPP01 — Pay Run Processing** ✅
   - `PayrollCalcService.recalcPayrun` reads patimes for every patimhd on the payrun, categorises by pay_type (24-code map, see service Javadoc), updates patimhd running totals, then calls `PaygTaxCalculator` for PAYG withholding using the employee's tax_scale_no + STSL flag + pay_freq. On full success flips `parunhd.calcs_completed_flag` to `Y`.
   - `PayRunProcessingController` lists open payruns with a "Calculate Tax + Totals" button. Wired into both menus.
-- **PABK02 / PAPA14 / PAPP28** 🟡 menu entries wired pointing at info-stubs explaining what each will do — full builds are the next session's work.
+- **PAPP28 — Payroll Posting** ✅ — `PayrollPostingService.postPayrun` moves every patimes line into paehist, writes a synthetic tax line per employee at pay_type=22 carrying PAPP01's total_tax, flips patimhd statuses to P and parunhd to P. All-or-nothing transaction. `unpostPayrun` reverses (deletes paehist + flips statuses back to O). Wired into PayRunProcessingController as **Post ▸ paehist** + **Un-post** buttons next to Calculate.
+- **PABK02 — ABA Payment File** ✅ — `AbaFileService` derives net pay from paehist (`sum(gross_amt) − sum(tax_amt) − sum(ext_amt)` for pay_type 19/20/21), applies paempay split rules (A→P→B), writes APCA fixed-width 120-char records (header / detail / trailer) to `appSession.payrollFilesDir` as `PAYROLL_YYYYMMDD_NNN.aba`. BSB validated 6-digit non-zero; invalid splits warn-and-skip. UI in `AbaPaymentController`.
+- **PAPA14 — Leave Processing** ✅ MVP — `LeaveAccrualService` accrues AL + SL onto pastaff based on `total_normal_min + total_otime_min_actual`. MVP flat factors: AL = 4/52, SL = 2/52 per minute worked. Per-payrun idempotency not yet tracked — surfaces a warning in the confirm dialog. UI in `LeaveProcessingController`.
+- **Award-rate AL/SL overrides** (paawjob.al_accrual_rate per job class), **LSL** accrual (years-of-service tracking), **PAPA30** leave payout, **GL journal posting**, and **PAPP01 Pay Method / Print / Super** P3 buttons are deferred — clearly labelled stubs.
 
 ### Pay-type → patimhd column mapping (PayrollCalcService)
 The mapping is best-guess based on the 24-code pacodes set; refine as gaps surface. Pay-types not listed fall into `total_other_pay`.
