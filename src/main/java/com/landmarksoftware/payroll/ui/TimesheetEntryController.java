@@ -19,6 +19,7 @@ import com.landmarksoftware.payroll.service.PayGroupService;
 import com.landmarksoftware.payroll.service.PayrunGroupService;
 import com.landmarksoftware.payroll.service.PayrunService;
 
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -418,9 +419,23 @@ public class TimesheetEntryController {
             + "/ paecode CRUD lands.");
         Button bClose = new Button("Close");
 
-        b1.setOnAction(e -> { dlg.close(); editPayrun(p); refreshAndReopen(p, false); });
-        b2.setOnAction(e -> { openDefaultsDialog(p); });
-        b3.setOnAction(e -> { dlg.close(); openSelectPaygroups(p); });
+        // Important: when an Options button leads to another dialog, close the
+        // Options Stage first and defer the next dialog to the next FX pulse
+        // via Platform.runLater. Opening a nested showAndWait() before the
+        // outer one returns leaves the new dialog non-interactive (its
+        // ComboBoxes / CheckBoxes silently swallow input).
+        b1.setOnAction(e -> {
+            dlg.close();
+            Platform.runLater(() -> { editPayrun(p); refreshAndReopen(p, false); });
+        });
+        b2.setOnAction(e -> {
+            dlg.close();
+            Platform.runLater(() -> openDefaultsDialog(p));
+        });
+        b3.setOnAction(e -> {
+            dlg.close();
+            Platform.runLater(() -> openSelectPaygroups(p));
+        });
         b4.setOnAction(e -> info(
             "Create timesheets from defaults — coming with P3 / paecode CRUD."));
         b5.setOnAction(e -> info(
