@@ -12,8 +12,10 @@
 package com.landmarksoftware.payroll.ui;
 
 import com.landmarksoftware.model.AppSession;
+import com.landmarksoftware.payroll.model.PayGroup;
 import com.landmarksoftware.payroll.model.Payrun;
 import com.landmarksoftware.payroll.model.PayrunGroup;
+import com.landmarksoftware.payroll.service.PayGroupService;
 import com.landmarksoftware.payroll.service.PayrunGroupService;
 import com.landmarksoftware.payroll.service.PayrunService;
 
@@ -59,6 +61,7 @@ public class TimesheetEntryController {
 
     private final PayrunService      payruns;
     private final PayrunGroupService groups;
+    private final PayGroupService    payGroupMaster;
     private final AppSession         appSession;
 
     private Stage      stage;
@@ -90,10 +93,12 @@ public class TimesheetEntryController {
 
     public TimesheetEntryController(PayrunService payruns,
                                      PayrunGroupService groups,
+                                     PayGroupService payGroupMaster,
                                      AppSession appSession) {
-        this.payruns    = payruns;
-        this.groups     = groups;
-        this.appSession = appSession;
+        this.payruns        = payruns;
+        this.groups         = groups;
+        this.payGroupMaster = payGroupMaster;
+        this.appSession     = appSession;
     }
 
     // ── Entry point ───────────────────────────────────────────────────────
@@ -567,21 +572,21 @@ public class TimesheetEntryController {
      */
     private void openSelectPaygroups(Payrun p) {
         if (p == null) return;
-        List<PayrunGroup> attached = groups.findByPayrun(p.companyNo, p.payrunNo);
-        if (attached.isEmpty()) {
-            info("Payrun " + p.payrunNo + " has no paygroups yet. "
-                + "Add one in the next screen, then re-open Options → Select.");
-            // open P2 with an unconstrained range so Add is reachable
-            p2RangeStart       = "";
-            p2RangeEnd         = "zzzz";
-            p2ValidateOnSelect = false;
-            openP2(p);
+
+        // Source: pagroup master for this company (all defined paygroups), so the
+        // user can pick a range even when no parungr rows are attached yet.
+        // The attached set is only used to surface "(attached)" hints alongside.
+        List<PayGroup> master = payGroupMaster.findAll(p.companyNo);
+        if (master.isEmpty()) {
+            info("No pay groups are defined for this company. Open Pay Group "
+                + "Maintenance (PAPG01) first to create at least one.");
             return;
         }
+        java.util.Set<String> attachedCodes = groups.findByPayrun(p.companyNo, p.payrunNo)
+            .stream().map(g -> g.paygroup).collect(java.util.stream.Collectors.toSet());
 
-        // Pre-populate range options from the attached paygroups, sorted.
         ObservableList<String> codes = FXCollections.observableArrayList(
-            attached.stream().map(g -> g.paygroup).sorted().toList());
+            master.stream().map(pg -> pg.paygroup).sorted().toList());
 
         Dialog<ButtonType> dlg = new Dialog<>();
         dlg.setTitle("Payrun " + p.payrunNo + " — Select Paygroups");
@@ -608,8 +613,9 @@ public class TimesheetEntryController {
         g.add(new Label("Start paygroup:"), 0, r); g.add(cbStart, 1, r++);
         g.add(new Label("End paygroup:"),   0, r); g.add(cbEnd,   1, r++);
         g.add(cbValidate,                   1, r++);
-        Label count = new Label(attached.size() + " paygroup"
-            + (attached.size() == 1 ? "" : "s") + " attached to this payrun.");
+        Label count = new Label(master.size() + " paygroup"
+            + (master.size() == 1 ? "" : "s") + " defined · "
+            + attachedCodes.size() + " attached to this payrun.");
         count.setStyle("-fx-font-size:11px;-fx-text-fill:#888780;");
         g.add(count, 0, r, 2, 1);
 
