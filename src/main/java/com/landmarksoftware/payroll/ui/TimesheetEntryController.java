@@ -609,8 +609,29 @@ public class TimesheetEntryController {
         dlg.initOwner(stage);
         dlg.initModality(Modality.WINDOW_MODAL);
 
+        // Map paygroup code → description for the cell renderer.
+        final java.util.Map<String, String> descByCode = master.stream().collect(
+            java.util.stream.Collectors.toMap(
+                pg -> pg.paygroup,
+                pg -> pg.desc1 == null ? "" : pg.desc1,
+                (a, b) -> a));
         ComboBox<String> cbStart = new ComboBox<>(codes);
         ComboBox<String> cbEnd   = new ComboBox<>(codes);
+        javafx.util.Callback<ListView<String>, ListCell<String>> cellFactory =
+            lv -> new ListCell<>() {
+                @Override protected void updateItem(String code, boolean empty) {
+                    super.updateItem(code, empty);
+                    if (empty || code == null) { setText(null); return; }
+                    String desc = descByCode.getOrDefault(code, "");
+                    setText(desc.isBlank() ? code : code + "  —  " + desc);
+                }
+            };
+        cbStart.setCellFactory(cellFactory);
+        cbStart.setButtonCell(cellFactory.call(null));
+        cbEnd.setCellFactory(cellFactory);
+        cbEnd.setButtonCell(cellFactory.call(null));
+        cbStart.setPrefWidth(280);
+        cbEnd.setPrefWidth(280);
         cbStart.getSelectionModel().select(
             codes.contains(p2RangeStart) ? p2RangeStart : codes.get(0));
         cbEnd.getSelectionModel().select(
@@ -767,18 +788,7 @@ public class TimesheetEntryController {
         bAdd.setOnAction(e -> editPaygroup(null));
         bEdit.setOnAction(e -> editPaygroup(p2Table.getSelectionModel().getSelectedItem()));
         bDelete.setOnAction(e -> deletePaygroup(p2Table.getSelectionModel().getSelectedItem()));
-        bCreatePayrun.setOnAction(e -> {
-            // Mirrors COBOL P2 "&Create Payrun" — spawn a brand-new payrun
-            // without returning to P1. On success, switch context to it.
-            Payrun added = addPayrun();
-            if (added != null) {
-                p2Payrun = added;
-                appSession.setSelectedPayrunNo(added.payrunNo);
-                appSession.setSelectedPayrunDate(fmt(added.payrunDate));
-                appSession.setSelectedPayrunDesc(added.ref);
-                Platform.runLater(() -> openOptions(added, true));
-            }
-        });
+        bCreatePayrun.setOnAction(e -> createPayrunTimesheets(p2Payrun));
         bStatus.setOnAction(e -> inquirePaygroup(p2Table.getSelectionModel().getSelectedItem()));
         bRange.setOnAction(e -> openSelectPaygroups(p2Payrun));
         bRefresh.setOnAction(e -> loadP2());
@@ -933,6 +943,41 @@ public class TimesheetEntryController {
         } catch (Exception ex) {
             error("Could not save paygroup: " + ex.getMessage());
         }
+    }
+
+    /**
+     * COBOL P2 "&Create Payrun" — misleadingly labelled. The actual COBOL
+     * proc (CREATE-PAYRUN in patm01.pl) does NOT create a new parunhd; it
+     * validates the payrun is still open and at least one parungr row
+     * exists, then hands off to PATM02 — the timesheet builder (my P3).
+     *
+     * <p>Behaviour for the open payrun:
+     * <ul>
+     *   <li>If the payrun is posted (P or F) or cancelled (D) — refuse.</li>
+     *   <li>If no parungr rows exist — "No paygroups selected".</li>
+     *   <li>Otherwise — drill into P3 / timesheet creation. Stubbed for now.</li>
+     * </ul>
+     */
+    private void createPayrunTimesheets(Payrun p) {
+        if (p == null) return;
+        if ("P".equalsIgnoreCase(p.payrunStatus) || "F".equalsIgnoreCase(p.payrunStatus)) {
+            error("Payrun " + p.payrunNo + " has been posted — cannot create timesheets.");
+            return;
+        }
+        if ("D".equalsIgnoreCase(p.payrunStatus)) {
+            error("Payrun " + p.payrunNo + " has been cancelled — cannot create timesheets.");
+            return;
+        }
+        List<PayrunGroup> attached = groups.findByPayrun(p.companyNo, p.payrunNo);
+        if (attached.isEmpty()) {
+            error("No paygroups selected for payrun " + p.payrunNo
+                + ".\n\nUse Options → Select (or the Add button) to attach paygroups first.");
+            return;
+        }
+        info("Create Payrun → PATM02 (timesheet builder, my P3).\n\n"
+            + p.payrunNo + " has " + attached.size() + " paygroup"
+            + (attached.size() == 1 ? "" : "s") + " attached and is ready.\n\n"
+            + "P3 / timesheet entry is the next Wave 3 step — not yet built.");
     }
 
     /**
