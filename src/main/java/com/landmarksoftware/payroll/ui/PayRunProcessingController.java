@@ -14,6 +14,7 @@ package com.landmarksoftware.payroll.ui;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.payroll.model.Payrun;
 import com.landmarksoftware.payroll.service.PayrollCalcService;
+import com.landmarksoftware.payroll.service.PayrollPostingService;
 import com.landmarksoftware.payroll.service.PayrunService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -45,9 +46,10 @@ public class PayRunProcessingController {
 
     private static final DateTimeFormatter DDMMYY = DateTimeFormatter.ofPattern("dd/MM/yy");
 
-    private final PayrunService       payruns;
-    private final PayrollCalcService  payrollCalc;
-    private final AppSession          appSession;
+    private final PayrunService           payruns;
+    private final PayrollCalcService      payrollCalc;
+    private final PayrollPostingService   posting;
+    private final AppSession              appSession;
 
     private final ObservableList<Payrun> rows = FXCollections.observableArrayList();
     private TableView<Payrun>            table;
@@ -56,9 +58,11 @@ public class PayRunProcessingController {
 
     public PayRunProcessingController(PayrunService payruns,
                                        PayrollCalcService payrollCalc,
+                                       PayrollPostingService posting,
                                        AppSession appSession) {
-        this.payruns    = payruns;
+        this.payruns     = payruns;
         this.payrollCalc = payrollCalc;
+        this.posting     = posting;
         this.appSession  = appSession;
     }
 
@@ -107,11 +111,15 @@ public class PayRunProcessingController {
         VBox.setVgrow(table, Priority.ALWAYS);
 
         Button bCalc    = new Button("Calculate Tax + Totals");
+        Button bPost    = new Button("Post ▸ paehist");
+        Button bUnpost  = new Button("Un-post");
         Button bRefresh = new Button("Refresh");
         bCalc.setOnAction(e -> calculate(table.getSelectionModel().getSelectedItem()));
+        bPost.setOnAction(e -> post(table.getSelectionModel().getSelectedItem()));
+        bUnpost.setOnAction(e -> unpost(table.getSelectionModel().getSelectedItem()));
         bRefresh.setOnAction(e -> loadList());
 
-        HBox toolbar = new HBox(8, bCalc, bRefresh);
+        HBox toolbar = new HBox(8, bCalc, bPost, bUnpost, bRefresh);
         toolbar.setPadding(new Insets(10, 14, 10, 14));
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setStyle("-fx-background-color:#FFFFFF;");
@@ -136,6 +144,73 @@ public class PayRunProcessingController {
         long calced = list.stream().filter(p -> "Y".equalsIgnoreCase(p.calcsCompletedFlag)).count();
         status.setText(list.size() + " open payrun" + (list.size() == 1 ? "" : "s")
             + " · " + calced + " calc'd");
+    }
+
+    private void post(Payrun p) {
+        if (p == null) { info("Select a payrun first."); return; }
+        if (!"Y".equalsIgnoreCase(p.calcsCompletedFlag)) {
+            error("Run Calculate Tax + Totals (PAPP01) on payrun "
+                + p.payrunNo + " before posting.");
+            return;
+        }
+        if ("P".equalsIgnoreCase(p.payrunStatus) || "F".equalsIgnoreCase(p.payrunStatus)) {
+            error("Payrun " + p.payrunNo + " is already " + p.statusDisplay().toLowerCase()
+                + " — use Un-post first if you need to re-post.");
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+            "Post payrun " + p.payrunNo + " to paehist?\n\n"
+                + "Each patimes line becomes a paehist row, the PAYG tax\n"
+                + "amount calculated by PAPP01 lands as a synthetic tax\n"
+                + "line (pay_type=22), and the payrun status flips to P.\n\n"
+                + "Use Un-post to roll back if a mistake is found.",
+            ButtonType.YES, ButtonType.NO);
+        confirm.setHeaderText("PAPP28 — Payroll Posting");
+        confirm.initOwner(stage);
+        var ans = confirm.showAndWait();
+        if (ans.isEmpty() || ans.get() != ButtonType.YES) return;
+
+        try {
+            PayrollPostingService.Result r = posting.postPayrun(
+                p.companyNo, p.payrunNo, appSession.getUserId());
+            info("Payrun " + p.payrunNo + " posted.\n\n"
+                + r.employees() + " employee" + (r.employees() == 1 ? "" : "s")
+                + " · " + r.linesPosted() + " paehist row"
+                + (r.linesPosted() == 1 ? "" : "s") + " written.");
+            loadList();
+        } catch (Exception ex) {
+            error("Posting failed: " + ex.getMessage()
+                + "\n\nThe whole post was rolled back; payrun remains unposted.");
+        }
+    }
+
+    private void unpost(Payrun p) {
+        if (p == null) { info("Select a payrun first."); return; }
+        if (!"P".equalsIgnoreCase(p.payrunStatus)) {
+            error("Payrun " + p.payrunNo + " is " + p.statusDisplay().toLowerCase()
+                + " — only a Posted payrun can be un-posted.");
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+            "Un-post payrun " + p.payrunNo + "?\n\n"
+                + "All paehist rows for this payrun are deleted; patimhd\n"
+                + "rows flip back to Open. Patimes lines are left intact\n"
+                + "so you can fix and re-post.",
+            ButtonType.YES, ButtonType.NO);
+        confirm.setHeaderText("Reverse PAPP28 posting");
+        confirm.initOwner(stage);
+        var ans = confirm.showAndWait();
+        if (ans.isEmpty() || ans.get() != ButtonType.YES) return;
+
+        try {
+            int removed = posting.unpostPayrun(p.companyNo, p.payrunNo,
+                appSession.getUserId());
+            info("Payrun " + p.payrunNo + " un-posted. " + removed
+                + " paehist row" + (removed == 1 ? "" : "s") + " removed.");
+            loadList();
+        } catch (Exception ex) {
+            error("Un-post failed: " + ex.getMessage());
+        }
     }
 
     private void calculate(Payrun p) {
