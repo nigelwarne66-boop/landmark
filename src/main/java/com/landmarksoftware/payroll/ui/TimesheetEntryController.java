@@ -223,33 +223,31 @@ public class TimesheetEntryController {
             TableRow<Payrun> row = new TableRow<>();
             row.setOnMouseClicked(e -> {
                 if (e.getClickCount() == 2 && !row.isEmpty()) {
-                    openP2(row.getItem());
+                    openOptions(row.getItem(), false);
                 }
             });
             return row;
         });
 
-        Button bFilter = new Button("Filter…");
-        Button bOpen   = new Button("Open ▸");
-        Button bAdd    = new Button("Add");
-        Button bEdit   = new Button("Edit");
-        Button bCancel = new Button("Cancel");
+        Button bFilter  = new Button("Filter…");
+        Button bOptions = new Button("Options ▸");
+        Button bAdd     = new Button("Add");
+        Button bCancel  = new Button("Cancel");
         Button bRefresh = new Button("Refresh");
 
         bFilter.setOnAction(e -> { if (showS0(true)) loadP1(); });
-        bOpen.setOnAction(e -> {
+        bOptions.setOnAction(e -> {
             Payrun sel = p1Table.getSelectionModel().getSelectedItem();
-            if (sel != null) openP2(sel);
+            if (sel != null) openOptions(sel, false);
         });
-        bAdd.setOnAction(e -> editPayrun(null));
-        bEdit.setOnAction(e -> {
-            Payrun sel = p1Table.getSelectionModel().getSelectedItem();
-            if (sel != null) editPayrun(sel);
+        bAdd.setOnAction(e -> {
+            Payrun added = addPayrun();
+            if (added != null) openOptions(added, true);
         });
         bCancel.setOnAction(e -> cancelPayrun(p1Table.getSelectionModel().getSelectedItem()));
         bRefresh.setOnAction(e -> loadP1());
 
-        HBox toolbar = new HBox(8, bFilter, sep(), bOpen, bAdd, bEdit, bCancel, sep(), bRefresh);
+        HBox toolbar = new HBox(8, bFilter, sep(), bOptions, bAdd, bCancel, sep(), bRefresh);
         toolbar.setPadding(new Insets(10, 14, 10, 14));
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setStyle("-fx-background-color:#FFFFFF;");
@@ -278,22 +276,33 @@ public class TimesheetEntryController {
 
     // ── P1 Edit / Add modal ──────────────────────────────────────────────
 
-    private void editPayrun(Payrun source) {
-        boolean isAdd = (source == null);
-        Payrun p = isAdd ? new Payrun() : copyOf(source);
-        if (isAdd) {
-            p.companyNo  = appSession.getCompanyNo();
-            p.payrunNo   = payruns.nextPayrunNo(appSession.getCompanyNo());
-            p.payrunDate = LocalDate.now();
-            p.yrNo       = appSession.getYrNo();
-            p.payrunType = "P";
-            p.payrunStatus = "O";
-            p.startDate  = LocalDate.now();
-            p.endDate    = LocalDate.now();
-            p.paymtDate  = LocalDate.now();
-            p.paymtYrNo  = appSession.getYearNo();
-        }
+    /** Run the Add flow; returns the inserted Payrun, or null on cancel / error. */
+    private Payrun addPayrun() {
+        Payrun seed = new Payrun();
+        seed.companyNo    = appSession.getCompanyNo();
+        seed.payrunNo     = payruns.nextPayrunNo(appSession.getCompanyNo());
+        seed.payrunDate   = LocalDate.now();
+        seed.yrNo         = appSession.getYrNo();
+        seed.payrunType   = "P";
+        seed.payrunStatus = "O";
+        seed.startDate    = LocalDate.now();
+        seed.endDate      = LocalDate.now();
+        seed.paymtDate    = LocalDate.now();
+        seed.paymtYrNo    = appSession.getYearNo();
+        return runPayrunEditor(seed, true);
+    }
 
+    /** Run the Edit flow on an existing row. */
+    private void editPayrun(Payrun source) {
+        if (source == null) return;
+        runPayrunEditor(copyOf(source), false);
+    }
+
+    /**
+     * Common Add/Edit dialog. Returns the saved Payrun on OK, null on cancel or
+     * error. {@code loadP1()} is called on a successful save so the list reflects.
+     */
+    private Payrun runPayrunEditor(Payrun p, boolean isAdd) {
         Dialog<ButtonType> dlg = new Dialog<>();
         dlg.setTitle(isAdd ? "Add Payrun" : "Edit Payrun " + p.payrunNo);
         dlg.setHeaderText(isAdd ? "Create a new payrun." : "Edit payrun " + p.payrunNo + ".");
@@ -325,7 +334,7 @@ public class TimesheetEntryController {
         dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         var res = dlg.showAndWait();
-        if (res.isEmpty() || res.get() != ButtonType.OK) return;
+        if (res.isEmpty() || res.get() != ButtonType.OK) return null;
 
         p.payrunDate = dpDate.getValue();
         p.payrunType = typeCode(cbType.getSelectionModel().getSelectedIndex() + 1);
@@ -338,9 +347,185 @@ public class TimesheetEntryController {
             if (isAdd) payruns.insert(p, appSession.getUserId());
             else       payruns.update(p, appSession.getUserId());
             loadP1();
+            return p;
         } catch (Exception ex) {
             error("Could not save payrun: " + ex.getMessage());
+            return null;
         }
+    }
+
+    // ── Options dialog — 5 buttons mirroring COBOL post-Add flow ──────────
+
+    /**
+     * Post-add Payrun Options dialog. Five actions on the selected payrun:
+     * <ol>
+     *   <li><b>Edit</b> — re-open the header editor.</li>
+     *   <li><b>Default</b> — set parunhd flag defaults (cost type, calc tax /
+     *       super flags, skip-paygroup flags, retainer/splits/RDO flags).</li>
+     *   <li><b>Select</b> — drill into P2 paygroup pick. Closes the modal.</li>
+     *   <li><b>Create</b> — auto-create timesheets from paecode standing rows.
+     *       Stubbed until P3 + paecode CRUD lands.</li>
+     *   <li><b>Import</b> — copy timesheets from a prior payrun. Stubbed.</li>
+     * </ol>
+     *
+     * @param p         the payrun the actions operate on.
+     * @param fromAdd   true if invoked immediately after Add — surfaces the
+     *                  modal automatically with a "Just added" caption.
+     */
+    private void openOptions(Payrun p, boolean fromAdd) {
+        if (p == null) return;
+        if (!p.isOpen()) {
+            info("Payrun " + p.payrunNo + " is " + p.statusDisplay().toLowerCase()
+                + " — options are read-only.");
+        }
+
+        Stage dlg = new Stage();
+        dlg.initOwner(stage);
+        dlg.initModality(Modality.WINDOW_MODAL);
+        dlg.setTitle("Payrun " + p.payrunNo + " — Options");
+
+        Label header = new Label((fromAdd ? "Payrun " + p.payrunNo + " created. "
+                                          : "Payrun " + p.payrunNo + ". ")
+            + "Choose an action:");
+        header.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        Label sub = new Label(fmt(p.payrunDate) + " · " + p.typeDisplay()
+            + (p.ref.isBlank() ? "" : " — " + p.ref));
+        sub.setStyle("-fx-font-size:11px;-fx-text-fill:#888780;");
+
+        Button b1 = optionButton("1  Edit",
+            "Re-open the payrun header editor.");
+        Button b2 = optionButton("2  Default",
+            "Set payrun defaults — cost type, calc tax / super flags,\n"
+            + "skip-paygroup flags, retainer / splits / RDO flags.");
+        Button b3 = optionButton("3  Select",
+            "Drill into Paygroup Pick (P2) for this payrun.");
+        Button b4 = optionButton("4  Create",
+            "Auto-create timesheet rows from each employee's paecode\n"
+            + "standing lines. Available once P3 / paecode CRUD lands.");
+        Button b5 = optionButton("5  Import",
+            "Copy timesheet rows from a prior payrun. Available once P3\n"
+            + "/ paecode CRUD lands.");
+        Button bClose = new Button("Close");
+
+        b1.setOnAction(e -> { dlg.close(); editPayrun(p); refreshAndReopen(p, false); });
+        b2.setOnAction(e -> { openDefaultsDialog(p); });
+        b3.setOnAction(e -> { dlg.close(); openP2(p); });
+        b4.setOnAction(e -> info(
+            "Create timesheets from defaults — coming with P3 / paecode CRUD."));
+        b5.setOnAction(e -> info(
+            "Import timesheets from a prior payrun — coming with P3 / paecode CRUD."));
+        bClose.setOnAction(e -> dlg.close());
+
+        if (!p.isOpen()) { b1.setDisable(true); b2.setDisable(true); b4.setDisable(true); b5.setDisable(true); }
+
+        VBox col = new VBox(8, b1, b2, b3, b4, b5);
+        col.setPadding(new Insets(14, 18, 6, 18));
+
+        HBox closeBar = new HBox(bClose);
+        closeBar.setAlignment(Pos.CENTER_RIGHT);
+        closeBar.setPadding(new Insets(8, 18, 14, 18));
+
+        VBox content = new VBox(4, header, sub, col, new Separator(), closeBar);
+        content.setPadding(new Insets(14, 0, 0, 0));
+        VBox.setVgrow(col, Priority.ALWAYS);
+
+        dlg.setScene(new Scene(content, 380, 360));
+        dlg.showAndWait();
+    }
+
+    private static Button optionButton(String label, String tooltip) {
+        Button b = new Button(label);
+        b.setMaxWidth(Double.MAX_VALUE);
+        b.setAlignment(Pos.CENTER_LEFT);
+        b.setStyle("-fx-padding:8 14 8 14;-fx-font-size:13px;");
+        b.setTooltip(new Tooltip(tooltip));
+        return b;
+    }
+
+    /** Re-fetch the latest copy of a payrun and refresh P1. Used after Edit. */
+    private Payrun refreshAndReopen(Payrun p, boolean reopenOptions) {
+        loadP1();
+        Payrun fresh = payruns.findOne(p.companyNo, p.payrunNo).orElse(p);
+        if (reopenOptions) openOptions(fresh, false);
+        return fresh;
+    }
+
+    /**
+     * Payrun-level defaults editor (Option 2). Captures the parunhd flags that
+     * govern how the payrun behaves for subsequent screens.
+     */
+    private void openDefaultsDialog(Payrun source) {
+        Payrun p = copyOf(source);
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Payrun " + p.payrunNo + " — Defaults");
+        dlg.setHeaderText("Defaults that apply to the rest of this payrun.");
+        dlg.initOwner(stage);
+        dlg.initModality(Modality.WINDOW_MODAL);
+
+        ComboBox<String> cbCost = new ComboBox<>(FXCollections.observableArrayList(
+            "(none)", "A — Actual", "B — Budget", "S — Standard"));
+        cbCost.getSelectionModel().select(costIndex(p.defaultCostType));
+
+        CheckBox cbCalcTax    = new CheckBox("Calculate tax by default");
+        cbCalcTax.setSelected("Y".equalsIgnoreCase(p.defaultCalcTaxFlag));
+        CheckBox cbCalcSuper  = new CheckBox("Calculate super by default");
+        cbCalcSuper.setSelected("Y".equalsIgnoreCase(p.defltCalcSuperFlag));
+        CheckBox cbSkipAdd    = new CheckBox("Skip paygroup prompt on Add");
+        cbSkipAdd.setSelected("Y".equalsIgnoreCase(p.skipPaygroupOnAdd));
+        CheckBox cbSkipEdit   = new CheckBox("Skip paygroup prompt on Edit");
+        cbSkipEdit.setSelected("Y".equalsIgnoreCase(p.skipPaygroupOnEdit));
+        CheckBox cbRetainer   = new CheckBox("Retainer payrun");
+        cbRetainer.setSelected("Y".equalsIgnoreCase(p.retainerRunFlag));
+        CheckBox cbSplits     = new CheckBox("Splits payrun");
+        cbSplits.setSelected("Y".equalsIgnoreCase(p.splitsRunFlag));
+        CheckBox cbRdo        = new CheckBox("Create RDO accruals");
+        cbRdo.setSelected("Y".equalsIgnoreCase(p.createRdoFlag));
+
+        GridPane g = new GridPane();
+        g.setHgap(10); g.setVgap(8); g.setPadding(new Insets(14));
+        int r = 0;
+        g.add(new Label("Default cost type:"), 0, r); g.add(cbCost,      1, r++);
+        g.add(cbCalcTax,                       1, r++);
+        g.add(cbCalcSuper,                     1, r++);
+        g.add(new Separator(),                 0, r, 2, 1); r++;
+        g.add(cbSkipAdd,                       1, r++);
+        g.add(cbSkipEdit,                      1, r++);
+        g.add(new Separator(),                 0, r, 2, 1); r++;
+        g.add(cbRetainer,                      1, r++);
+        g.add(cbSplits,                        1, r++);
+        g.add(cbRdo,                           1, r++);
+
+        dlg.getDialogPane().setContent(g);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        var res = dlg.showAndWait();
+        if (res.isEmpty() || res.get() != ButtonType.OK) return;
+
+        p.defaultCostType    = costCode(cbCost.getSelectionModel().getSelectedIndex());
+        p.defaultCalcTaxFlag = cbCalcTax.isSelected()    ? "Y" : "N";
+        p.defltCalcSuperFlag = cbCalcSuper.isSelected()  ? "Y" : "N";
+        p.skipPaygroupOnAdd  = cbSkipAdd.isSelected()    ? "Y" : "N";
+        p.skipPaygroupOnEdit = cbSkipEdit.isSelected()   ? "Y" : "N";
+        p.retainerRunFlag    = cbRetainer.isSelected()   ? "Y" : "N";
+        p.splitsRunFlag      = cbSplits.isSelected()     ? "Y" : "N";
+        p.createRdoFlag      = cbRdo.isSelected()        ? "Y" : "N";
+
+        try {
+            payruns.update(p, appSession.getUserId());
+            loadP1();
+        } catch (Exception ex) {
+            error("Could not save defaults: " + ex.getMessage());
+        }
+    }
+
+    private static int costIndex(String code) {
+        return switch (code == null ? "" : code.toUpperCase()) {
+            case "A" -> 1; case "B" -> 2; case "S" -> 3; default -> 0;
+        };
+    }
+    private static String costCode(int idx) {
+        return switch (idx) { case 1 -> "A"; case 2 -> "B"; case 3 -> "S"; default -> ""; };
     }
 
     private void cancelPayrun(Payrun p) {
