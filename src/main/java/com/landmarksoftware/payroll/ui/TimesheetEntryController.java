@@ -12,12 +12,16 @@
 package com.landmarksoftware.payroll.ui;
 
 import com.landmarksoftware.model.AppSession;
+import com.landmarksoftware.payroll.model.Paecode;
 import com.landmarksoftware.payroll.model.PayGroup;
 import com.landmarksoftware.payroll.model.Payrun;
 import com.landmarksoftware.payroll.model.PayrunGroup;
+import com.landmarksoftware.payroll.model.TimesheetHeader;
+import com.landmarksoftware.payroll.service.PaecodeService;
 import com.landmarksoftware.payroll.service.PayGroupService;
 import com.landmarksoftware.payroll.service.PayrunGroupService;
 import com.landmarksoftware.payroll.service.PayrunService;
+import com.landmarksoftware.payroll.service.TimesheetHeaderService;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -60,10 +64,12 @@ public class TimesheetEntryController {
 
     private static final DateTimeFormatter DDMMYY = DateTimeFormatter.ofPattern("dd/MM/yy");
 
-    private final PayrunService      payruns;
-    private final PayrunGroupService groups;
-    private final PayGroupService    payGroupMaster;
-    private final AppSession         appSession;
+    private final PayrunService           payruns;
+    private final PayrunGroupService      groups;
+    private final PayGroupService         payGroupMaster;
+    private final TimesheetHeaderService  timesheetHeaders;
+    private final PaecodeService          paecodes;
+    private final AppSession              appSession;
 
     private Stage      stage;
     private BorderPane root;
@@ -95,12 +101,22 @@ public class TimesheetEntryController {
     public TimesheetEntryController(PayrunService payruns,
                                      PayrunGroupService groups,
                                      PayGroupService payGroupMaster,
+                                     TimesheetHeaderService timesheetHeaders,
+                                     PaecodeService paecodes,
                                      AppSession appSession) {
-        this.payruns        = payruns;
-        this.groups         = groups;
-        this.payGroupMaster = payGroupMaster;
-        this.appSession     = appSession;
+        this.payruns          = payruns;
+        this.groups           = groups;
+        this.payGroupMaster   = payGroupMaster;
+        this.timesheetHeaders = timesheetHeaders;
+        this.paecodes         = paecodes;
+        this.appSession       = appSession;
     }
+
+    // ── P3 state ─────────────────────────────────────────────────────────
+    private final ObservableList<TimesheetHeader> p3Rows = FXCollections.observableArrayList();
+    private TableView<TimesheetHeader>            p3Table;
+    private Label                                 p3Status;
+    private PayrunGroup                           p3Paygroup;
 
     // ── Entry point ───────────────────────────────────────────────────────
 
@@ -866,12 +882,150 @@ public class TimesheetEntryController {
             var res = a.showAndWait();
             if (res.isEmpty() || res.get() != ButtonType.YES) return;
         }
-        // P3 / S3B not yet built. Tell the user where we are.
-        info("Paygroup " + g.paygroup
-            + (g.paygroupDesc.isBlank() ? "" : " (" + g.paygroupDesc + ")")
-            + " selected on payrun " + p2Payrun.payrunNo + ".\n\n"
-            + "Timesheet entry (P3 / S3B) is the next Wave 3 step — not yet built.\n"
-            + "P2 paygroup pick is in for review before P3 work begins.");
+        showP3(g);
+    }
+
+    // ── P3 — employee / timesheet list ───────────────────────────────────
+
+    private void showP3(PayrunGroup pg) {
+        if (pg == null) return;
+        p3Paygroup = pg;
+
+        p3Table = new TableView<>(p3Rows);
+        p3Table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        p3Table.setPlaceholder(new Label(
+            "No timesheets recorded for this paygroup. Click Add to create one,\n"
+            + "or Standing Lines to maintain the default paecode rows for an employee."));
+        VBox.setVgrow(p3Table, Priority.ALWAYS);
+
+        addCol(p3Table, "Surname",     180,
+            h -> new SimpleStringProperty(h.surname));
+        addCol(p3Table, "First Name",  140,
+            h -> new SimpleStringProperty(h.firstName));
+        addCol(p3Table, "Employee No",  90,
+            h -> new SimpleStringProperty(String.valueOf(h.employeeNo)));
+        addCol(p3Table, "Paygroup",     80,
+            h -> new SimpleStringProperty(h.altPaygroup));
+        addCol(p3Table, "Total Hours", 100,
+            h -> new SimpleStringProperty(money(h.totalHours())));
+        addCol(p3Table, "Gross",       110,
+            h -> new SimpleStringProperty(money(h.grossPay())));
+        addCol(p3Table, "Net",         110,
+            h -> new SimpleStringProperty(money(h.netPay())));
+
+        Button bBack     = new Button("◂ Back to P2");
+        Button bAdd      = new Button("Add");
+        Button bEdit     = new Button("Edit");
+        Button bDelete   = new Button("Delete");
+        Button bPayMtd   = new Button("Pay Method");
+        Button bPrint    = new Button("Print");
+        Button bSuper    = new Button("Super");
+        Button bPaecode  = new Button("Standing Lines (paecode)");
+        Button bRefresh  = new Button("Refresh");
+
+        bBack.setOnAction(e -> {
+            p3Rows.clear();
+            openP2(p2Payrun);
+        });
+        bAdd.setOnAction(e -> info(
+            "Add timesheet — S3 dialog not yet built.\n\n"
+            + "Use Standing Lines to maintain default paecode rows for an employee."));
+        bEdit.setOnAction(e -> info(
+            "Edit timesheet — S3B per-line dialog not yet built."));
+        bDelete.setOnAction(e -> deleteTimesheet(p3Table.getSelectionModel().getSelectedItem()));
+        bPayMtd.setOnAction(e -> info("Payment Method (P3A) — not yet built."));
+        bPrint.setOnAction(e -> info("Print payrun — not yet built."));
+        bSuper.setOnAction(e -> info("Create super for all — not yet built."));
+        bPaecode.setOnAction(e -> openPaecodeEditorForSelection());
+        bRefresh.setOnAction(e -> loadP3());
+
+        HBox toolbar = new HBox(8, bBack, sep(), bAdd, bEdit, bDelete, sep(),
+                                   bPayMtd, bPrint, bSuper, sep(),
+                                   bPaecode, sep(), bRefresh);
+        toolbar.setPadding(new Insets(10, 14, 10, 14));
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        toolbar.setStyle("-fx-background-color:#FFFFFF;");
+
+        Label crumb = new Label("Payrun " + p2Payrun.payrunNo + " · "
+            + fmt(p2Payrun.payrunDate) + " · Paygroup " + pg.paygroup
+            + (pg.paygroupDesc.isBlank() ? "" : " — " + pg.paygroupDesc));
+        crumb.setStyle("-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        HBox crumbBar = new HBox(crumb);
+        crumbBar.setPadding(new Insets(10, 14, 6, 14));
+
+        p3Status = new Label();
+        p3Status.setPadding(new Insets(6, 14, 8, 14));
+        p3Status.setStyle("-fx-font-size:11px;-fx-text-fill:#666;");
+
+        VBox content = new VBox(crumbBar, toolbar, p3Table, p3Status);
+        VBox.setVgrow(p3Table, Priority.ALWAYS);
+        root.setCenter(content);
+        loadP3();
+    }
+
+    private void loadP3() {
+        List<TimesheetHeader> list = timesheetHeaders.findForPayrun(
+            p2Payrun.companyNo, p2Payrun.payrunNo, p3Paygroup.paygroup);
+        p3Rows.setAll(list);
+        TimesheetHeaderService.Totals t = timesheetHeaders.rollupForPayrun(
+            p2Payrun.companyNo, p2Payrun.payrunNo, p3Paygroup.paygroup);
+        p3Status.setText(t.count() + " timesheet" + (t.count() == 1 ? "" : "s")
+            + " · gross $" + money(t.gross()) + " · net $" + money(t.net()));
+    }
+
+    private void deleteTimesheet(TimesheetHeader h) {
+        if (h == null) return;
+        Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+            "Delete the timesheet for " + h.displayName() + " (employee "
+                + h.employeeNo + ") on payrun " + h.payrunNo + "?\n\n"
+                + "All patimes lines for this header will also be removed.",
+            ButtonType.YES, ButtonType.NO);
+        a.setHeaderText(null);
+        a.initOwner(stage);
+        var res = a.showAndWait();
+        if (res.isPresent() && res.get() == ButtonType.YES) {
+            try {
+                timesheetHeaders.delete(h.companyNo, h.payrunNo, h.employeeNo);
+                loadP3();
+            } catch (Exception ex) {
+                error("Could not delete timesheet: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void openPaecodeEditorForSelection() {
+        TimesheetHeader sel = p3Table.getSelectionModel().getSelectedItem();
+        if (sel == null) {
+            // No timesheet selected — let the user enter an employee number.
+            askEmployeeNo().ifPresent(emp ->
+                openPaecodeEditor(emp, lookupEmployeeName(emp)));
+            return;
+        }
+        openPaecodeEditor(sel.employeeNo, sel.displayName());
+    }
+
+    private java.util.Optional<Integer> askEmployeeNo() {
+        TextInputDialog t = new TextInputDialog();
+        t.setTitle("Standing Pay Lines");
+        t.setHeaderText("Enter the employee number whose paecode rows you want to maintain.");
+        t.setContentText("Employee #:");
+        t.initOwner(stage);
+        return t.showAndWait().map(s -> {
+            try { return Integer.parseInt(s.trim()); }
+            catch (NumberFormatException e) { return null; }
+        }).filter(java.util.Objects::nonNull);
+    }
+
+    private String lookupEmployeeName(int employeeNo) {
+        // patimhd caches the name; reuse if a row exists for any payrun.
+        try {
+            return java.util.Optional.ofNullable(timesheetHeaders.findOne(
+                p2Payrun.companyNo, p2Payrun.payrunNo, employeeNo).orElse(null))
+                .map(TimesheetHeader::displayName)
+                .orElse("Employee " + employeeNo);
+        } catch (Exception e) {
+            return "Employee " + employeeNo;
+        }
     }
 
     private void editPaygroup(PayrunGroup source) {
@@ -1038,6 +1192,255 @@ public class TimesheetEntryController {
     }
     private static String statusCode(int idx) {
         return switch (idx) { case 1 -> "C"; case 2 -> "F"; default -> "O"; };
+    }
+
+    // ── paecode CRUD — standing pay lines for one employee ──────────────
+
+    /**
+     * Open a modal listbox of paecode rows for {@code employeeNo}. The user
+     * can Add / Edit / Delete standing lines; every change goes through
+     * {@link PaecodeService} which writes to {@code papcaud} as well.
+     */
+    private void openPaecodeEditor(int employeeNo, String employeeName) {
+        Stage dlg = new Stage();
+        dlg.initOwner(stage);
+        dlg.initModality(Modality.WINDOW_MODAL);
+        dlg.setTitle("Standing Pay Lines — Employee " + employeeNo);
+
+        ObservableList<Paecode> rows = FXCollections.observableArrayList();
+        TableView<Paecode> table = new TableView<>(rows);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setPlaceholder(new Label(
+            "No standing pay lines for this employee. Click Add to create the first one."));
+        addCol(table, "Line", 50,
+            r -> new SimpleStringProperty(String.valueOf(r.lineNo)));
+        addCol(table, "Pay Type", 70,
+            r -> new SimpleStringProperty(String.valueOf(r.payType)));
+        addCol(table, "Pay Code", 90,
+            r -> new SimpleStringProperty(r.payCode));
+        addCol(table, "Paygroup", 80,
+            r -> new SimpleStringProperty(r.paygroup));
+        addCol(table, "Dept", 70,
+            r -> new SimpleStringProperty(r.dept));
+        addCol(table, "Hours", 70,
+            r -> new SimpleStringProperty(money(r.hours())));
+        addCol(table, "Qty", 70,
+            r -> new SimpleStringProperty(money(r.qty)));
+        addCol(table, "Rate", 80,
+            r -> new SimpleStringProperty(money(r.ratePerc)));
+        addCol(table, "Ext Amt", 90,
+            r -> new SimpleStringProperty(money(r.extAmt)));
+        addCol(table, "Ref", 200,
+            r -> new SimpleStringProperty(r.ref));
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        Runnable reload = () ->
+            rows.setAll(paecodes.findByEmployee(appSession.getCompanyNo(), employeeNo));
+
+        Button bAdd    = new Button("Add");
+        Button bEdit   = new Button("Edit");
+        Button bDelete = new Button("Delete");
+        Button bClose  = new Button("Close");
+
+        bAdd.setOnAction(e -> {
+            Paecode seed = new Paecode();
+            seed.companyNo = appSession.getCompanyNo();
+            seed.employeeNo = employeeNo;
+            seed.lineNo = paecodes.nextLineNo(appSession.getCompanyNo(), employeeNo);
+            seed.startDate = LocalDate.now();
+            seed.endDate   = LocalDate.of(9999, 12, 31);
+            if (editPaecodeRow(seed, dlg, true)) reload.run();
+        });
+        bEdit.setOnAction(e -> {
+            Paecode sel = table.getSelectionModel().getSelectedItem();
+            if (sel != null && editPaecodeRow(copyOf(sel), dlg, false)) reload.run();
+        });
+        bDelete.setOnAction(e -> {
+            Paecode sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+                "Delete standing pay line " + sel.lineNo + " ("
+                    + (sel.payCode.isBlank() ? "type " + sel.payType : sel.payCode)
+                    + ") for employee " + employeeNo + "?",
+                ButtonType.YES, ButtonType.NO);
+            a.setHeaderText(null);
+            a.initOwner(dlg);
+            var res = a.showAndWait();
+            if (res.isPresent() && res.get() == ButtonType.YES) {
+                try {
+                    paecodes.delete(sel.companyNo, sel.employeeNo, sel.lineNo,
+                        appSession.getUserId());
+                    reload.run();
+                } catch (Exception ex) {
+                    error("Could not delete: " + ex.getMessage());
+                }
+            }
+        });
+        bClose.setOnAction(e -> dlg.close());
+
+        HBox toolbar = new HBox(8, bAdd, bEdit, bDelete);
+        toolbar.setPadding(new Insets(10, 14, 10, 14));
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+        HBox closeBar = new HBox(bClose);
+        closeBar.setPadding(new Insets(8, 14, 14, 14));
+        closeBar.setAlignment(Pos.CENTER_RIGHT);
+
+        Label crumb = new Label("Employee " + employeeNo
+            + (employeeName == null || employeeName.isBlank() ? "" : " — " + employeeName));
+        crumb.setStyle("-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        HBox crumbBar = new HBox(crumb);
+        crumbBar.setPadding(new Insets(12, 14, 6, 14));
+
+        VBox content = new VBox(crumbBar, toolbar, table, closeBar);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        dlg.setScene(new Scene(content, 1000, 480));
+        reload.run();
+        dlg.showAndWait();
+    }
+
+    /** Add/Edit dialog for a single paecode row. Returns true if saved. */
+    private boolean editPaecodeRow(Paecode p, Stage owner, boolean isAdd) {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle(isAdd ? "Add Standing Line"
+                            : "Edit Standing Line " + p.lineNo);
+        dlg.setHeaderText("Employee " + p.employeeNo
+            + " · line " + p.lineNo);
+        dlg.initOwner(owner);
+        dlg.initModality(Modality.WINDOW_MODAL);
+
+        TextField   tfPayType    = new TextField(String.valueOf(p.payType));
+        TextField   tfPayCode    = new TextField(p.payCode);
+        TextField   tfPaygroup   = new TextField(p.paygroup);
+        TextField   tfDept       = new TextField(p.dept);
+        TextField   tfAward      = new TextField(p.award);
+        TextField   tfJobClass   = new TextField(p.jobClass);
+        TextField   tfHours      = new TextField(money(p.hours()));
+        TextField   tfQty        = new TextField(money(p.qty));
+        TextField   tfRate       = new TextField(money(p.ratePerc));
+        TextField   tfExt        = new TextField(money(p.extAmt));
+        DatePicker  dpStart      = new DatePicker(p.startDate);
+        DatePicker  dpEnd        = new DatePicker(p.endDate);
+        TextField   tfRef        = new TextField(p.ref);
+
+        GridPane g = new GridPane();
+        g.setHgap(10); g.setVgap(8); g.setPadding(new Insets(14));
+        int r = 0;
+        g.add(new Label("Pay type:"),   0, r); g.add(tfPayType,  1, r);
+        g.add(new Label("Pay code:"),   2, r); g.add(tfPayCode,  3, r++);
+        g.add(new Label("Paygroup:"),   0, r); g.add(tfPaygroup, 1, r);
+        g.add(new Label("Dept:"),       2, r); g.add(tfDept,     3, r++);
+        g.add(new Label("Award:"),      0, r); g.add(tfAward,    1, r);
+        g.add(new Label("Job class:"),  2, r); g.add(tfJobClass, 3, r++);
+        g.add(new Label("Hours:"),      0, r); g.add(tfHours,    1, r);
+        g.add(new Label("Quantity:"),   2, r); g.add(tfQty,      3, r++);
+        g.add(new Label("Rate / %:"),   0, r); g.add(tfRate,     1, r);
+        g.add(new Label("Ext amount:"), 2, r); g.add(tfExt,      3, r++);
+        g.add(new Label("Start date:"), 0, r); g.add(dpStart,    1, r);
+        g.add(new Label("End date:"),   2, r); g.add(dpEnd,      3, r++);
+        g.add(new Label("Reference:"),  0, r); g.add(tfRef,      1, r, 3, 1);
+
+        dlg.getDialogPane().setContent(g);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        var res = dlg.showAndWait();
+        if (res.isEmpty() || res.get() != ButtonType.OK) return false;
+
+        try {
+            p.payType   = parseIntOrZero(tfPayType.getText());
+            p.payCode   = nz(tfPayCode.getText()).trim().toUpperCase();
+            p.paygroup  = nz(tfPaygroup.getText()).trim().toUpperCase();
+            p.dept      = nz(tfDept.getText()).trim().toUpperCase();
+            p.award     = nz(tfAward.getText()).trim().toUpperCase();
+            p.jobClass  = nz(tfJobClass.getText()).trim().toUpperCase();
+            p.min       = hoursToMin(tfHours.getText());
+            p.qty       = parseMoneyOrZero(tfQty.getText());
+            p.ratePerc  = parseMoneyOrZero(tfRate.getText());
+            p.extAmt    = parseMoneyOrZero(tfExt.getText());
+            p.startDate = dpStart.getValue();
+            p.endDate   = dpEnd.getValue();
+            p.ref       = nz(tfRef.getText());
+
+            if (isAdd) paecodes.insert(p, appSession.getUserId());
+            else       paecodes.update(p, appSession.getUserId());
+            return true;
+        } catch (Exception ex) {
+            error("Could not save standing line: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private static int parseIntOrZero(String s) {
+        try { return Integer.parseInt(s.trim()); }
+        catch (Exception e) { return 0; }
+    }
+
+    private static java.math.BigDecimal parseMoneyOrZero(String s) {
+        if (s == null) return java.math.BigDecimal.ZERO;
+        String t = s.trim().replace(",", "");
+        if (t.isEmpty()) return java.math.BigDecimal.ZERO;
+        try { return new java.math.BigDecimal(t); }
+        catch (Exception e) { return java.math.BigDecimal.ZERO; }
+    }
+
+    private static int hoursToMin(String s) {
+        java.math.BigDecimal h = parseMoneyOrZero(s);
+        return h.multiply(new java.math.BigDecimal("60"))
+            .setScale(0, java.math.RoundingMode.HALF_UP).intValue();
+    }
+
+    private static String money(java.math.BigDecimal v) {
+        if (v == null) return "0.00";
+        return v.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private static Paecode copyOf(Paecode s) {
+        Paecode p = new Paecode();
+        p.companyNo            = s.companyNo;
+        p.alt2PayCode          = s.alt2PayCode;
+        p.employeeNo           = s.employeeNo;
+        p.lineNo               = s.lineNo;
+        p.alt1EmployeeNo       = s.alt1EmployeeNo;
+        p.alt1PayCode          = s.alt1PayCode;
+        p.alt1LineNo           = s.alt1LineNo;
+        p.payFreq              = s.payFreq;
+        p.paysSinceLastPaid    = s.paysSinceLastPaid;
+        p.stdPayCodeFlag       = s.stdPayCodeFlag;
+        p.startDate            = s.startDate;
+        p.endDate              = s.endDate;
+        p.lastPaidDate         = s.lastPaidDate;
+        p.superMemberNo        = s.superMemberNo;
+        p.payType              = s.payType;
+        p.payCode              = s.payCode;
+        p.min                  = s.min;
+        p.qty                  = s.qty;
+        p.ratePerc             = s.ratePerc;
+        p.extAmt               = s.extAmt;
+        p.paygroup             = s.paygroup;
+        p.dept                 = s.dept;
+        p.award                = s.award;
+        p.jobClass             = s.jobClass;
+        p.costType             = s.costType;
+        p.glAcctNoMain         = s.glAcctNoMain;
+        p.glAcctNoSub          = s.glAcctNoSub;
+        p.ledgerType           = s.ledgerType;
+        p.ledgerCode           = s.ledgerCode;
+        p.analysisCode         = s.analysisCode;
+        p.absorpType           = s.absorpType;
+        p.absorpFactor         = s.absorpFactor;
+        p.absorpAmt            = s.absorpAmt;
+        p.ref                  = s.ref;
+        p.leaveStartDate       = s.leaveStartDate;
+        p.leaveReturnDate      = s.leaveReturnDate;
+        p.fbtGrossValue        = s.fbtGrossValue;
+        p.baLedgerId           = s.baLedgerId;
+        p.baPrimaryCodes       = s.baPrimaryCodes;
+        p.baDesc               = s.baDesc;
+        p.baBillText           = s.baBillText;
+        p.gstValue             = s.gstValue;
+        p.baGlOverrideFlag     = s.baGlOverrideFlag;
+        p.baEditBillDataFlag   = s.baEditBillDataFlag;
+        p.noteNo               = s.noteNo;
+        return p;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
