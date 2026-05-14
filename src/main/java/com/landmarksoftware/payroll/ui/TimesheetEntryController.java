@@ -631,6 +631,53 @@ public class TimesheetEntryController {
         p2RangeStart       = start;
         p2RangeEnd         = end;
         p2ValidateOnSelect = cbValidate.isSelected();
+
+        // Attach every master paygroup in the range to the payrun (insert a
+        // parungr row with default pay-thru dates) if not already attached.
+        // Validate=on prompts before each insert; Cancel skips that paygroup.
+        LocalDate defaultThru = p.endDate != null ? p.endDate : p.payrunDate;
+        int attached = 0;
+        int skipped  = 0;
+        for (PayGroup pg : master) {
+            String code = pg.paygroup;
+            if (code == null) continue;
+            if (code.compareToIgnoreCase(start) < 0)  continue;
+            if (code.compareToIgnoreCase(end)   > 0)  continue;
+            if (attachedCodes.contains(code))         continue;   // already there
+            if (cbValidate.isSelected()) {
+                Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Attach paygroup " + code
+                        + (pg.desc1 == null || pg.desc1.isBlank() ? "" : " (" + pg.desc1 + ")")
+                        + " to payrun " + p.payrunNo + "?",
+                    ButtonType.YES, ButtonType.NO);
+                a.setHeaderText("Validate paygroup before selection");
+                a.initOwner(stage);
+                var ans = a.showAndWait();
+                if (ans.isEmpty() || ans.get() != ButtonType.YES) { skipped++; continue; }
+            }
+            PayrunGroup row = new PayrunGroup();
+            row.companyNo       = p.companyNo;
+            row.payrunNo        = p.payrunNo;
+            row.paygroup        = code;
+            row.paygroupStatus  = "O";
+            row.payThruToWeek   = defaultThru;
+            row.payThruToFort   = defaultThru;
+            row.payThruToBimth  = defaultThru;
+            row.payThruTo4Wk    = defaultThru;
+            row.payThruToMth    = defaultThru;
+            try {
+                groups.insert(row, appSession.getUserId());
+                attached++;
+            } catch (Exception ex) {
+                error("Could not attach " + code + ": " + ex.getMessage());
+            }
+        }
+        if (attached > 0 || skipped > 0) {
+            // Surface the result so an empty P2 isn't read as "nothing happened".
+            String msg = attached + " paygroup" + (attached == 1 ? "" : "s") + " attached"
+                + (skipped > 0 ? " · " + skipped + " skipped" : "") + ".";
+            info(msg);
+        }
         openP2(p);
     }
 
