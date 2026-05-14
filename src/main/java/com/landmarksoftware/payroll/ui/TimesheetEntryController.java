@@ -695,22 +695,49 @@ public class TimesheetEntryController {
         p2ValidateOnSelect = cbValidate.isSelected();
 
         // Attach every master paygroup in the range to the payrun (insert a
-        // parungr row with default pay-thru dates) if not already attached.
-        // Validate=on prompts before each insert; Cancel skips that paygroup.
-        LocalDate defaultThru = p.endDate != null ? p.endDate : p.payrunDate;
+        // parungr row) if not already attached. Pay-thru dates are computed
+        // per COBOL SET-PAY-THRU-DATES (patm01.pl:1383):
+        //   for each frequency (mth/4wk/bimth/fort/week):
+        //     - if pagroup.payrun_active_X = "Y" → skip (active in another payrun)
+        //     - else if pagroup.paid_thru_to_X = 0 → leave blank (never paid)
+        //     - else → pagroup.paid_thru_to_X + period
+        // Periods: month +1mth, 4-weekly +28d, bi-mthly +15d, fortnight +14d,
+        // weekly +7d. Java's plusMonths handles end-of-month wrap (CHECK-
+        // CORRECT-DATE).
         int attached = 0;
         int skipped  = 0;
+        int blank    = 0;
         for (PayGroup pg : master) {
             String code = pg.paygroup;
             if (code == null) continue;
             if (code.compareToIgnoreCase(start) < 0)  continue;
             if (code.compareToIgnoreCase(end)   > 0)  continue;
             if (attachedCodes.contains(code))         continue;   // already there
+
+            LocalDate dWeek  = nextPayThruDays(pg.paidThruToWeek,  pg.payrunActiveWeek,  7);
+            LocalDate dFort  = nextPayThruDays(pg.paidThruToFort,  pg.payrunActiveFort,  14);
+            LocalDate dBimth = nextPayThruDays(pg.paidThruToBimth, pg.payrunActiveBimth, 15);
+            LocalDate d4Wk   = nextPayThruDays(pg.paidThruTo4Wk,   pg.payrunActive4Wk,   28);
+            LocalDate dMth   = nextPayThruMonths(pg.paidThruToMth, pg.payrunActiveMth);
+            boolean anyDate  = dWeek != null || dFort != null || dBimth != null
+                            || d4Wk != null || dMth != null;
+            if (!anyDate) {
+                // Matches COBOL: WS-PAYRUN-DATES-SET stays "N", paygroup is
+                // not attached. Surface this so an empty result isn't silent.
+                blank++;
+                continue;
+            }
             if (cbValidate.isSelected()) {
                 Alert a = new Alert(Alert.AlertType.CONFIRMATION,
                     "Attach paygroup " + code
                         + (pg.desc1 == null || pg.desc1.isBlank() ? "" : " (" + pg.desc1 + ")")
-                        + " to payrun " + p.payrunNo + "?",
+                        + " to payrun " + p.payrunNo + "?\n\n"
+                        + "Pay-thru dates derived from pagroup.paid_thru_to_X:\n"
+                        + (dWeek  != null ? "  Weekly:    " + dWeek  + "\n" : "")
+                        + (dFort  != null ? "  Fortnight: " + dFort  + "\n" : "")
+                        + (dBimth != null ? "  Bimthly:   " + dBimth + "\n" : "")
+                        + (d4Wk   != null ? "  4-weekly:  " + d4Wk   + "\n" : "")
+                        + (dMth   != null ? "  Monthly:   " + dMth   + "\n" : ""),
                     ButtonType.YES, ButtonType.NO);
                 a.setHeaderText("Validate paygroup before selection");
                 a.initOwner(stage);
@@ -722,11 +749,11 @@ public class TimesheetEntryController {
             row.payrunNo        = p.payrunNo;
             row.paygroup        = code;
             row.paygroupStatus  = "O";
-            row.payThruToWeek   = defaultThru;
-            row.payThruToFort   = defaultThru;
-            row.payThruToBimth  = defaultThru;
-            row.payThruTo4Wk    = defaultThru;
-            row.payThruToMth    = defaultThru;
+            row.payThruToWeek   = dWeek;
+            row.payThruToFort   = dFort;
+            row.payThruToBimth  = dBimth;
+            row.payThruTo4Wk    = d4Wk;
+            row.payThruToMth    = dMth;
             try {
                 groups.insert(row, appSession.getUserId());
                 attached++;
@@ -734,16 +761,63 @@ public class TimesheetEntryController {
                 error("Could not attach " + code + ": " + ex.getMessage());
             }
         }
-        if (attached > 0 || skipped > 0) {
-            // Surface the result so an empty P2 isn't read as "nothing happened".
-            String msg = attached + " paygroup" + (attached == 1 ? "" : "s") + " attached"
-                + (skipped > 0 ? " · " + skipped + " skipped" : "") + ".";
-            info(msg);
+        if (attached > 0 || skipped > 0 || blank > 0) {
+            StringBuilder msg = new StringBuilder();
+            msg.append(attached).append(" paygroup")
+                .append(attached == 1 ? "" : "s").append(" attached");
+            if (skipped > 0) msg.append(" · ").append(skipped).append(" skipped");
+            if (blank > 0) {
+                msg.append("\n").append(blank).append(" paygroup")
+                    .append(blank == 1 ? " was" : "s were")
+                    .append(" left out — paid_thru_to is zero or "
+                        + "already active in another payrun.");
+            }
+            info(msg.toString());
         }
         openP2(p);
     }
 
     private static String nz(String s) { return s == null ? "" : s; }
+
+    /**
+     * Compute the next pay-thru-to date for a day-period frequency (7 / 14
+     * / 15 / 28 days). Mirrors COBOL SET-PAY-THRU-DATES (patm01.pl:1383).
+     *
+     * @return null when the paygroup is already active in another payrun
+     *         for this frequency, or has never been paid for it.
+     */
+    private static LocalDate nextPayThruDays(int paidThruYmd, String alreadyActiveFlag,
+                                              int periodDays) {
+        if ("Y".equalsIgnoreCase(alreadyActiveFlag)) return null;
+        LocalDate base = ymmddToDate(paidThruYmd);
+        if (base == null) return null;
+        return base.plusDays(periodDays);
+    }
+
+    /**
+     * Monthly variant — add 1 month, with end-of-month protection so e.g.
+     * Jan 31 → Feb 28 / 29 (LocalDate.plusMonths handles this natively).
+     */
+    private static LocalDate nextPayThruMonths(int paidThruYmd, String alreadyActiveFlag) {
+        if ("Y".equalsIgnoreCase(alreadyActiveFlag)) return null;
+        LocalDate base = ymmddToDate(paidThruYmd);
+        if (base == null) return null;
+        return base.plusMonths(1);
+    }
+
+    /** Convert COBOL YYMMDD-packed integer to LocalDate; 0 / invalid → null. */
+    private static LocalDate ymmddToDate(int v) {
+        if (v <= 0) return null;
+        try {
+            int yy   = v / 10000;
+            int mm   = (v / 100) % 100;
+            int dd   = v % 100;
+            int yyyy = yy < 40 ? 2000 + yy : 1900 + yy;
+            return LocalDate.of(yyyy, mm, dd);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     // ── P2 — paygroup pick (the critical screen) ─────────────────────────
 
