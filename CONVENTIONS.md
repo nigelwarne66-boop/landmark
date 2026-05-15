@@ -123,7 +123,7 @@ appSession.isPayrollInstalled()  // !N
 | `MasterFileAuditService` | One method per audit table — `auditEmployee`, `auditFund`, `auditPayCodeRateChange`, `auditAwardChange`, `auditPaeCode`. Called from every write service |
 | `BatchAuditService` | `pa_audit` batch-level rows for Wave 2 mass-update programs |
 | **Wave 2 batch** | `SetSuperPercentageService` / `UpdateAwardRateChangesService` / `GlobalEmployeeAwardUpdateService` / `ChangeEmployeePayRatesService` / `DuplicateTimesheetsService` / `LeaveAccrualReversalService` / `TimesheetSplitsService` — all use `BatchPreviewDialog<T>` + `BatchProgressDialog` |
-| **Wave 3 services** | `PaygTaxCalculator`, `PayrunService` (parunhd), `PayrunGroupService` (parungr), `TimesheetHeaderService` (patimhd), `TimesheetLineService` (patimes), `PaecodeService` (paecode + papcaud), `PayrollCalcService` (PAPP01), `PayrollPostingService` (PAPP28), `PayHistService` (paehist), `AbaFileService` (PABK02), `LeaveAccrualService` (PAPA14) |
+| **Wave 3 services** | `PaygTaxCalculator`, `PayrunService` (parunhd), `PayrunGroupService` (parungr), `TimesheetHeaderService` (patimhd), `TimesheetLineService` (patimes), `PaecodeService` (paecode + papcaud), `PayrollCalcService` (PAPP01), `PayrollPostingService` (PAPP28), `PayHistService` (paehist), `AbaFileService` (PABK02), `CmBanksService` (cmbanks payroll-bank reader), `LeaveAccrualService` (PAPA14) |
 
 ---
 
@@ -239,7 +239,7 @@ The Landmark Query engine has **hard limits** on how much OCCURS data it returns
 ### CM (Cash Management)
 | Table | Purpose | Key columns |
 |-------|---------|-------------|
-| cmbanks | Bank accounts | bank_code VARCHAR(2), name1, gl_acct_main_no (links to glchart), inactive_flag |
+| cmbanks | Bank accounts | bank_code VARCHAR(2), name1, branch_no (BSB), bank_acct_no, gl_acct_main_no (→ glchart), inactive_flag. **EFT fields**: eft_flag, eft_bank_code (3-char abbreviation), eft_name (26-char), user_no (APCA user 6-digit), eft_pa_flag (Y = payroll), pay_serv_remitter_name. PABK02 reads the row where company_no+eft_pa_flag='Y'. |
 | cmtrans | Cashbook transactions | bank_code, doc_date, amt, cashbook_recpt_paymt R=receipt P=payment, trx_status O=outstanding R=reconciled |
 | cmbatch | Batch header | batch_no, yr_no, bank_code, batch_status |
 

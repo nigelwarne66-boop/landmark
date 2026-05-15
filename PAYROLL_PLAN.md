@@ -335,9 +335,13 @@ GL journal generation is deferred — once the user confirms the patimes→paehi
 
 UI: `AbaPaymentController` — list of posted payruns + Generate ABA button + Copy-path option.
 
-**Known placeholders** for real submission:
-- Header APCA user number stamped `000000` — needs the company's actual APCA registration (CPCOYCO or app config).
-- Trace BSB / account placeholders — needs the company's bank for trace.
+**Employer bank details** sourced from `cmbanks` where `eft_pa_flag = 'Y'`:
+- `cmbanks.user_no` (6-digit APCA user number) → ABA header col 57-62.
+- `cmbanks.eft_bank_code` (3-char abbreviation, e.g. ANZ / CBA / NAB) → header col 21-23.
+- `cmbanks.eft_name` (26-char) → user-name col 31-56.
+- `cmbanks.branch_no` (BSB) + `bank_acct_no` → trace BSB/account on every detail (col 81-96).
+- `cmbanks.pay_serv_remitter_name` (16-char) → remitter col 97-112 (falls back to eft_name).
+Refuses generation if no payroll bank is configured.
 
 ### PAPA14 — Leave Processing ✅ MVP
 

@@ -12,6 +12,7 @@
 package com.landmarksoftware.payroll.service;
 
 import com.landmarksoftware.model.AppSession;
+import com.landmarksoftware.payroll.model.CmBank;
 import com.landmarksoftware.payroll.model.EmployeePay;
 import com.landmarksoftware.payroll.model.PayHistEntry;
 import com.landmarksoftware.payroll.model.Payrun;
@@ -72,15 +73,18 @@ public class AbaFileService {
     private final EmployeePayService empPayments;
     private final EmployeeService    employees;
     private final PayrunService      payruns;
+    private final CmBanksService     cmBanks;
 
     public AbaFileService(PayHistService paehist,
                            EmployeePayService empPayments,
                            EmployeeService employees,
-                           PayrunService payruns) {
+                           PayrunService payruns,
+                           CmBanksService cmBanks) {
         this.paehist     = paehist;
         this.empPayments = empPayments;
         this.employees   = employees;
         this.payruns     = payruns;
+        this.cmBanks     = cmBanks;
     }
 
     public record Result(Path file, int detailCount, BigDecimal totalCredit,
@@ -100,6 +104,12 @@ public class AbaFileService {
                 "Payrun " + payrunNo + " is not posted (status = "
                     + pr.statusDisplay() + "). Run PAPP28 first.");
         }
+
+        // Employer bank — header + trace fields come from cmbanks.
+        CmBank bank = cmBanks.findPayrollBank(companyNo).orElseThrow(
+            () -> new IllegalStateException(
+                "No payroll bank configured in cmbanks (eft_pa_flag='Y'). "
+                + "Set up at least one bank for payroll EFT before generating ABA."));
 
         // Net pay per employee, ordered by employee_no for a stable file.
         Map<Integer, BigDecimal> netByEmployee = computeNetByEmployee(companyNo, payrunNo);
@@ -131,8 +141,8 @@ public class AbaFileService {
 
         // Build the file body.
         List<String> records = new ArrayList<>();
-        records.add(formatHeader(pr, session));
-        for (DetailLine d : details) records.add(formatDetail(d, session));
+        records.add(formatHeader(pr, bank));
+        for (DetailLine d : details) records.add(formatDetail(d, bank));
         records.add(formatTrailer(totalCredit, details.size()));
 
         // Write to disk.
@@ -250,15 +260,15 @@ public class AbaFileService {
 
     // ── ABA record formatting ────────────────────────────────────────────
 
-    private static String formatHeader(Payrun pr, AppSession session) {
+    private static String formatHeader(Payrun pr, CmBank bank) {
         StringBuilder sb = new StringBuilder(120);
         sb.append('0');
         pad(sb, "", 17);                                       // 2-18 reel info (blank)
         sb.append("01");                                       // 19-20 reel seq
-        pad(sb, "ANZ", 3);                                     // 21-23 bank abbreviation (placeholder)
+        pad(sb, bankAbbreviation(bank), 3);                    // 21-23 bank abbreviation
         pad(sb, "", 7);                                        // 24-30 blank
-        pad(sb, session.getCompanyName(), 26);                 // 31-56 user name
-        pad(sb, "000000", 6);                                  // 57-62 user APCA number — placeholder
+        pad(sb, userName(bank), 26);                           // 31-56 user name
+        pad(sb, bank.formattedUserNo(), 6);                    // 57-62 APCA user number
         pad(sb, "PAYROLL", 12);                                // 63-74 description
         sb.append(ABA_DATE.format(pr.paymtDate != null && pr.paymtDate.getYear() >= 1900
             ? pr.paymtDate : pr.payrunDate));                  // 75-80 ddmmyy
@@ -266,7 +276,7 @@ public class AbaFileService {
         return sb.toString();
     }
 
-    private static String formatDetail(DetailLine d, AppSession session) {
+    private static String formatDetail(DetailLine d, CmBank bank) {
         StringBuilder sb = new StringBuilder(120);
         sb.append('1');
         pad(sb, formatBsb(d.bsb), 7);                         // 2-8 BSB NNN-NNN
@@ -276,11 +286,34 @@ public class AbaFileService {
         padCents(sb, d.amount, 10);                            // 21-30 amount cents
         pad(sb, d.title, 32);                                  // 31-62 title
         pad(sb, "PAYROLL", 18);                                // 63-80 lodgement reference
-        pad(sb, "000-000", 7);                                 // 81-87 trace BSB (placeholder)
-        padRight(sb, "0", 9);                                  // 88-96 trace account (placeholder)
-        pad(sb, session.getCompanyName(), 16);                 // 97-112 remitter
+        pad(sb, formatBsb(bank.branchNo), 7);                  // 81-87 trace BSB (employer)
+        padRight(sb, digitsOnly(bank.bankAcctNo), 9);          // 88-96 trace account (employer)
+        pad(sb, remitterName(bank), 16);                       // 97-112 remitter
         padCents(sb, BigDecimal.ZERO, 8);                      // 113-120 withholding tax
         return sb.toString();
+    }
+
+    private static String bankAbbreviation(CmBank bank) {
+        return bank.eftBankCode == null || bank.eftBankCode.isBlank()
+            ? "ANZ" : bank.eftBankCode;
+    }
+
+    private static String userName(CmBank bank) {
+        return bank.eftName == null || bank.eftName.isBlank()
+            ? bank.name : bank.eftName;
+    }
+
+    private static String remitterName(CmBank bank) {
+        if (bank.paySrvRemitterName != null && !bank.paySrvRemitterName.isBlank()) {
+            return bank.paySrvRemitterName;
+        }
+        return bank.eftName == null || bank.eftName.isBlank()
+            ? bank.name : bank.eftName;
+    }
+
+    private static String digitsOnly(String s) {
+        if (s == null) return "";
+        return s.replaceAll("[^0-9]", "");
     }
 
     private static String formatTrailer(BigDecimal totalCredit, int count) {
