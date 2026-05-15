@@ -45,7 +45,7 @@ The COBOL canonical source for `.fd`/`.ws` is `C:\landmark\compile\` (with rare 
 
 ---
 
-## Current state (as of 2026-05-13)
+## Current state (as of 2026-05-16)
 
 ### Wave 0 — Foundation ✅
 - Module scaffolding, `AppSession` (mirrors GLPASS), PACD01 (Pay Code Maintenance).
@@ -66,7 +66,7 @@ Per-change audit trail wired alongside the existing per-row `audit_user_id/date/
 ### Wave 2 — Batch operations ✅ Complete (with two CRUD-style screens trimmed)
 Foundation + 5 full batch programs + 2 thin maintenance screens. See "Wave 2 detail" section below.
 
-### Wave 3 — Pay run processing ✅ Core complete (Wave 3 tail stubbed)
+### Wave 3 — Pay run processing ✅ End-to-end runnable
 - **`PaygTaxCalculator`** ✅ — single-lookup against `tax_brackets` (NAT_1004 / NAT_3539). Verified scale 2, $1500 STSL → $336. Weekly base + ATO conversion for F/M. As-of-date lookup. Wired into `PayrollCalcService`.
 - **Extract pipeline schemas** ✅ for `patimhd`, `patimes`, `parungr` in `C:\landmark_extract\sql\` + `pafiles.txt`. SQL applied 2026-05-14.
 - **PATM01** ✅ — S0 / P1 / P2 / P3 / S3 / S3B all wired:
@@ -242,9 +242,24 @@ Both are wired into both menus (PayrollMenuController + MainMenuController) and 
 
 ## Things deferred / open
 
+### From earlier waves
 - **PASU55 + PAPC01 per-row dialogs** — see Wave 2 detail above.
 - **PAPC01 by-paygroup variant** (pasphdg/paspgrg) — schema present, UI not yet built.
-- **Wave 3 — Pay run processing** — PATM01 (Timesheet Entry), PAPP01 (Pay Run Processing). Includes the `PaygTaxCalculator` deferred from Wave 1 + paecode CRUD which then activates the deferred papcaud writes.
-- **PaygTaxCalculator service** — bracket lookup against `tax_brackets`. Wave 3 / PATM01.
 - **PASU04 manual bracket editing** — currently read-only; if users need to hand-tweak coefficients (e.g. custom scale "H"), needs Add/Edit/Delete UI on the Brackets tab.
 - **Print everywhere** — PAEM01 has a Print button + `EmployeePdfService`. PAPG01 / PASU04 / PAAW01 don't (low priority).
+
+### From Wave 3
+- **PATM01 P3 toolbar stubs**: Pay Method (P3A patmpay editor) · Print (payslip) · Super (CREATE-SUPER-FOR-ALL).
+- **PAPP28 GL journal** — only paehist is written today; the GL journal entries (creditors → expense accounts) are deferred until the patimes→paehist mapping is confirmed correct.
+- **PAPA14 per-payrun accrual state** — re-running the same payrun double-accrues. Surfaced in UI confirm. Needs an `pa_accrual_log` table or similar.
+- **PAPA14 award-rate overrides** — currently uses flat 4/52 (AL) + 2/52 (SL) factors. paawjob.al_accrual_rate per job class is deferred.
+- **PAPA14 LSL accrual** — not handled, needs years-of-service tracking.
+- **PAPA30 leave payout** — not built.
+- **PABK02 APCA placeholders** — header APCA user number = `000000`, trace BSB / account placeholders. Needs CPCOYCO config or app properties.
+- **pafuaud writes** — still no Super Fund Maintenance CRUD; FundService remains read-only.
+- **pastaff per-row audit on update** — pre-existing gap (separate from the audit-trail work). `EmployeeService.update` writes paemaud but doesn't refresh pastaff's own `audit_user_id/date/time*` columns.
+
+### Wave 4+ blocked by external prerequisites
+- **PAST10 (STP Phase 2)** — needs ATO developer sandbox account (developer.ato.gov.au) + SBR2 credentials. See `PAYROLL_PLAN.md`.
+- **PAPS26 (Payment Summaries)** — annual; needs `paytd` column confirmation.
+- **PADE01 (Year End)** — wraps PASU11/14/15 carry-forwards + license gate.

@@ -1,5 +1,5 @@
 # Landmark Payroll — Development Plan
-*Created: 2026-05-09*
+*Created: 2026-05-09 · Updated: 2026-05-16*
 
 ---
 
@@ -8,10 +8,11 @@
 | Wave | Focus | Status |
 |------|-------|--------|
 | 0 — Foundation | Module scaffold, AppSession, PACD01 | ✅ Complete |
-| 1 — Setup CRUD | PAEM01 ✅, PAPG01 ✅, PASU04 ✅, PAAW01 ✅ | ✅ Complete |
-| 2 — Batch operations | PAEM11, PAPC01, PAEM60, PASU55, PASU11/14/15 | 🔲 Pending Wave 1 |
-| 3 — Pay processing | PATM01, PAPP01, PAPA14/30, PABK02, PAPP28 | 🔲 Pending Wave 1 + test data |
-| 4 — Compliance | PAST10 (STP), PAPS26, PADE01 | 🔲 Pending Wave 3 + ATO sandbox |
+| 1 — Setup CRUD | PAEM01 ✅, PAPG01 ✅, PASU04 ✅, PAAW01 ✅, PATX01 ✅ | ✅ Complete |
+| 1.5 — Audit back-fill | paemaud / pafuaud / pacdchg / paawchg via MasterFileAuditService | ✅ Complete |
+| 2 — Batch operations | PASU14/11/15 ✅, PAEM60 ✅, PAEM11 ✅, PASU55 🟡 thin, PAPC01 🟡 thin | ✅ Core complete |
+| 3 — Pay processing | PaygTaxCalculator ✅, PATM01 ✅ (S0/P1/P2/P3/S3/S3B/Options + paecode CRUD), PAPP01 ✅, PAPP28 ✅, PABK02 ✅, PAPA14 ✅ MVP | ✅ End-to-end |
+| 4 — Compliance | PAST10 (STP), PAPS26, PADE01 | 🔲 Pending ATO sandbox |
 | 5 — Reports | PATL series | 🔲 Ongoing |
 
 ---
@@ -219,84 +220,141 @@ All Wave 2 programs write to multiple tables in a single transaction. Each needs
 
 ---
 
-## Wave 3 — Pay Processing
+## Wave 3 — Pay Processing ✅
 
-*Prerequisite: Wave 1 + representative test data (at least 10 employees across 2 pay groups).*
+End-to-end payroll cycle is runnable: PATM01 (create payrun + timesheets) →
+PAPP01 (calculate tax + totals) → PAPP28 (post to paehist) → PABK02 (generate ABA)
+→ PAPA14 (accrue leave).
 
-### PATM01 — Timesheet Entry
-**Most complex program — plan 6 Claude Code sessions.**
+### PaygTaxCalculator — ATO PAYG / STSL withholding ✅
 
-**Tables read/written:** pastaff, parunhd, paehist, paecode, paawjob  
-**AppSession:** must call `appSession.setSelectedPayrunNo()` on payrun selection — all other screens in the pay cycle read from it
+Single-lookup formula against `tax_brackets`:
+- No STSL → NAT_1004 (PAYG only).
+- With STSL → NAT_3539 (PAYG + STSL combined).
+- `tax = max(0, ROUND_HALF_UP(a · x − b, 0))`. Verified scale 2, $1500 STSL → $336.
+- Weekly base + ATO conversion for fortnightly (×2 of weekly(F/2)) and monthly
+  (×13/3 of weekly(M·3/13)).
+- `TaxBracketService.findEffectiveFromOnOrBefore(asOf)` so back-dated runs pick
+  the publication that was in force at the time.
 
-**Screen flow:**
-```
-S1: Select payrun (parunhd list for current yr_no)
-    OR create new payrun header
-P1: Employee list for the payrun
-    [Enter Hours] → S2: timesheet entry grid
-S2: Hours grid — standard hours pre-filled from paecode
-    Override: actual hours worked, leave types
-    [Calculate] → preview gross
-    [Save] → write paehist rows
-```
+### PATM01 — Timesheet Entry ✅
 
-**Hours calculation rules (from COBOL):**
-- Base hours from `pastaff.std_rate_per_hr × hours_worked`
-- Overtime rates from `paawjob` bands
-- Leave loading: `al_loading_rate` from paawjob when AL is taken
-- Super: calculate on ordinary time earnings (OTE) — check `super_flag` on each pay code
+Screen flow matches COBOL `patm01p1` / `patm01p2` / `patm01p3` / `patm01s3`:
 
-**Key paehist PK — must match exactly:**  
-`(company_no, employee_no, payrun_date, pay_type, pay_code, payrun_no, line_no)`  
-`line_no` is sequential within the payrun for each employee — manage in `TimesheetService`.
+| Screen | Purpose |
+|--------|---------|
+| **S0** | Filter dialog — date range, include-fully-posted, include-cancelled, payrun-type. |
+| **P1** | Payrun list. Toolbar: Filter… · Options ▸ · Add · Cancel · Refresh. Double-click row → Options. |
+| **Options** | 5-button modal after Add or from P1. 1 Edit · 2 Default · 3 Select · 4 Create · 5 Import. Transitions deferred via `Platform.runLater` to avoid nested-modal lockup. |
+| **Default** | parunhd flag editor — cost type (**I/G/L** — Indirect / GL / Cost ledger), calc tax / super, skip-paygroup-on-add / edit, retainer / splits / RDO. |
+| **Select Paygroups** | Range picker — start/end paygroup combos sourced from pagroup master, rendered "code — description". Validate-before-selection checkbox. OK auto-attaches parungr rows; dates derived per COBOL SET-PAY-THRU-DATES (see below). |
+| **P2** | Paygroup pick. Back · Select ▸ Timesheets · Add · Edit · Delete · Create Payrun · Status · Range… · Refresh. Description joined from pagroup. Delete blocked when patimhd has rows. |
+| **P3** | Employee/timesheet list (patimhd). Surname · First Name · Employee No · Paygroup · Total Hours · Gross · Net. Add · Edit · Delete · Pay Method · Print · Super · Standing Lines · Refresh. |
+| **S3** | Per-employee timesheet header dialog — pay-thru dates, status (O/C/P), default / costed / calc-tax-using-pay-dates flags. On OK offers "Seed from paecode" → drills into S3B. |
+| **S3B** | Per-line patimes editor. |
+| **paecode CRUD** | Standing Lines button on P3 — modal listbox of paecode rows for the selected employee; writes papcaud audit. |
 
----
+#### Wave 3 PATM01 — COBOL semantics learned the hard way
 
-### PAPP01 — Pay Run Processing
+- **Create Payrun on P2** (patm01.pl:1027 CREATE-PAYRUN) is misleadingly named. It validates the payrun is open + has ≥1 parungr row, then transitions to PATM02 (which is the all-paygroups timesheet builder = our P3). Does NOT create a new parunhd. Our P1 Add does that.
+- **SET-PAY-THRU-DATES** (patm01.pl:1383) — when Select auto-attaches a paygroup to a payrun, the parungr's 5 pay-thru-to dates come from `pagroup.paid_thru_to_X + period`:
+  - `pagroup.payrun_active_X = 'Y'` → leave parungr column blank (already active in another payrun)
+  - `pagroup.paid_thru_to_X = 0` → leave blank (no payment history yet)
+  - else → `paid_thru_to_X + period` where period is 1 month / 28d / 15d / 14d / 7d for mth / 4wk / bimth / fort / week respectively.
+  - If all 5 frequencies are skipped, COBOL sets `WS-PAYRUN-DATES-SET = 'N'` and skips the paygroup entirely.
+- **COBOL packed-date format**: `pagroup.paid_thru_to_X` stored as `INT` = YYMMDD packed (e.g. `260531` = 2026-05-31). Year pivot: `yy < 40 → 20yy`, else `19yy`. Helper: `ymmddToDate(int)` in `TimesheetEntryController`.
+- **JavaFX nested-modal gotcha**: closing a Stage and immediately opening another `showAndWait()` in the same event handler leaves the new dialog's controls inert (ComboBoxes won't drop). Fix: schedule the follow-up with `Platform.runLater` so the outer Stage's close fully unwinds first.
+- **paecode CRUD** lives inside PATM01 per user direction (originally planned as a standalone screen). Each write goes through `MasterFileAuditService.auditPaeCode` → activates the deferred Wave 1.5 `papcaud` hook.
 
-Reads paehist, applies tax scales, calculates super, produces:
-- Net pay per employee (to paehist deduction rows)
-- Super guarantee amounts (to paehist super rows)  
-- Employer super (to pacosts)
-- GL posting summary (ready for PAPP28)
+### PAPP01 — Pay Run Processing ✅
 
-**Tax scale application:** ATO tax tables stored in — confirm table name:
-```sql
-SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
-WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%tax%' OR TABLE_NAME LIKE '%ato%';
-```
+`PayrollCalcService.recalcPayrun`:
+1. For every patimhd on the payrun, read patimes.
+2. Bucket each line by `pay_type` (24-code map below) into the matching patimhd total + minute total.
+3. Compute taxable income = sum of taxable components − before-tax deductions.
+4. Call `PaygTaxCalculator.calculate(..., emp.payFreq, asOf)` for PAYG withholding using the employee's tax scale + STSL flag.
+5. Add `pastaff.extra_tax_amt` to the total.
+6. Write totals + tax back to patimhd.
+7. On full success flip `parunhd.calcs_completed_flag = 'Y'`.
 
----
+UI: `PayRunProcessingController` lists open payruns with **Calculate Tax + Totals** · **Post ▸ paehist** · **Un-post** · Refresh buttons.
 
-### PABK02 — ABA Payment File
+#### Pay-type → patimhd-column map (PayrollCalcService.java)
 
-Generates an ABA (Australian Banking Association) formatted file for direct credit to employee bank accounts.
+Best-guess based on the 24-code pacodes set; refine as gaps surface. Pay-types
+not listed fall into `total_other_pay`.
 
-**ABA format — fixed width, not CSV:**
-```
-Record 0: File header    (120 chars)
-Record 1: Detail (1 per employee) (120 chars)
-Record 7: File trailer   (120 chars)
-```
+| Pay type | Bucket |
+|----------|--------|
+| 1 | Normal pay + normal minutes |
+| 2 | Overtime + otime minutes |
+| 3 | Annual leave + AL minutes |
+| 4 | AL loading (no minutes) |
+| 5 | Sick leave + sick minutes |
+| 6 | LSL + LSL minutes |
+| 7 | Other leave + other-leave minutes |
+| 8 | Other pay + other minutes |
+| 11 | Taxable allowance |
+| 12 | Non-taxable allowance |
+| 13–18 | Term A / B / C / D / E / W |
+| 19 | Before-tax deduction |
+| 20 | After-tax deduction |
+| 21 | Super (employee contribution) |
+| 22 | Tax (synthetic line written by PAPP28) |
+| 23 | Backpay |
 
-Output directory: `appSession.getPayrollFilesDir()` → fallback to `landmark.payroll.output-dir` in `application.properties`.
+### PAPP28 — Payroll Posting ✅
 
-Filename convention: `PAYROLL_YYYYMMDD_NNN.aba` where NNN is payrun_no.
+`PayrollPostingService.postPayrun`:
+- Refuses unless calc_completed=Y, payrun open, no paehist rows yet (no double-post).
+- For each patimhd → patimes: insert paehist row keyed on
+  `(company_no, employee_no, payrun_date, pay_type, pay_code, payrun_no, line_no)`.
+- Writes a **synthetic tax line per employee** at `pay_type=22 / pay_code="TAX"`
+  carrying `total_tax + total_hecs_tax` from patimhd. This is what PABK02 / STP /
+  reports consume.
+- Flips each patimhd `timesheet_status = 'P'`, parunhd `payrun_status = 'P'`.
+- All-or-nothing transaction; partial failures roll back.
 
-**Validation before generating:**
-- All employees have BSB + account number in paempay
-- BSB is 6 digits (format: NNN-NNN)
-- Net pay amounts are positive
-- Total credits = sum of all detail records
+`unpostPayrun` reverses: wipes paehist for the payrun, statuses back to O.
 
----
+GL journal generation is deferred — once the user confirms the patimes→paehist mapping is correct.
 
-### PAPA14 — Leave Processing
-### PAPA30 — Leave Payout  
-### PAPP28 — Payroll GL Posting
+### PABK02 — ABA Payment File ✅
 
-These three coordinate leave recording, leave payouts, and the final GL journal write from the completed pay run. Plan after PAPP01 is working.
+`AbaFileService`:
+- Net pay derivation per employee:
+  `sum(gross_amt) − sum(tax_amt) − sum(ext_amt)` for `pay_type ∈ {19, 20, 21}`.
+- paempay split rules — `A` (fixed $) then `P` (%), `B` (balance) mops up residual.
+  Unallocated remainder surfaces as a warning.
+- BSB validated as 6 digits and non-zero; invalid splits warn-and-skip.
+- APCA fixed-width 120-char records to `appSession.payrollFilesDir`:
+  - Record 0: header (one).
+  - Record 1: detail (one per credit row).
+  - Record 7: trailer (totals + count).
+- Filename: `PAYROLL_YYYYMMDD_NNN.aba` (NNN = payrun_no).
+
+UI: `AbaPaymentController` — list of posted payruns + Generate ABA button + Copy-path option.
+
+**Known placeholders** for real submission:
+- Header APCA user number stamped `000000` — needs the company's actual APCA registration (CPCOYCO or app config).
+- Trace BSB / account placeholders — needs the company's bank for trace.
+
+### PAPA14 — Leave Processing ✅ MVP
+
+`LeaveAccrualService.accruePayrun`:
+- For each employee on a posted payrun, hours worked = `total_normal_min + total_otime_min_actual` (PAPP01 sets these).
+- Accrue AL = hoursWorked × `4/52` (Fair Work default — 4 weeks AL per year).
+- Accrue SL = hoursWorked × `2/52` (~10 days at 38hr week).
+- Add to `pastaff.al_hrs_accrued` and `pastaff.accrued_sick_leave` (minute totals).
+
+**MVP caveats** — clearly surfaced in the UI confirm dialog:
+- Per-payrun accrual state not yet tracked → running twice double-accrues.
+- Award-rate overrides (paawjob.al_accrual_rate per job class) deferred.
+- LSL accrual not handled (needs years-of-service tracking).
+- PAPA30 leave payout not built.
+
+### PATM01 buttons still stubbed
+P3 toolbar **Pay Method** (P3A patmpay editor), **Print** (payslip print), **Super** (CREATE-SUPER-FOR-ALL) all show "coming soon" info dialogs.
 
 ---
 

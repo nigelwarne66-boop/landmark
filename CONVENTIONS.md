@@ -1,5 +1,5 @@
 # Landmark — Developer Conventions
-*Updated: 2026-05-09*
+*Updated: 2026-05-16*
 
 ---
 
@@ -108,10 +108,22 @@ appSession.isPayrollInstalled()  // !N
 | `DepreciationCalculator` | Pure calculation — no JDBC |
 
 ### Payroll
-| Service | Responsibility | JDBC calls |
-|---------|---------------|------------|
-| `PayCodeService` | pacodes CRUD (PACD01) | 11 |
-| *(PAEM01 next)* | pastaff CRUD | — |
+| Service | Responsibility |
+|---------|---------------|
+| `PayCodeService` | pacodes CRUD (PACD01) — writes pacdchg audit on rate / amount changes |
+| `EmployeeService` | pastaff CRUD (PAEM01) — writes paemaud JSON before/after on insert/update/terminate |
+| `EmployeePayService` | paempay (bank splits, S2) |
+| `PayGroupService` | pagroup CRUD (PAPG01) |
+| `DepartmentService` | padepts (drill from PAPG01) |
+| `AwardService` / `AwardJobClassService` / `AwardWcompService` | paawhed / paawjob / paawwcp (PAAW01) — writes paawchg |
+| `TaxScaleService` | pataxfl (PASU04 scale-level config) |
+| `TaxBracketService` | tax_brackets — Java-managed, loaded annually from ATO Excel via `TaxBracketLoader`. `findApplicableBracket` + `findEffectiveFromOnOrBefore` |
+| `FundService` | pafunds read-only (no maintenance screen yet) |
+| `MvrService` | Member Verification Request (super fund) |
+| `MasterFileAuditService` | One method per audit table — `auditEmployee`, `auditFund`, `auditPayCodeRateChange`, `auditAwardChange`, `auditPaeCode`. Called from every write service |
+| `BatchAuditService` | `pa_audit` batch-level rows for Wave 2 mass-update programs |
+| **Wave 2 batch** | `SetSuperPercentageService` / `UpdateAwardRateChangesService` / `GlobalEmployeeAwardUpdateService` / `ChangeEmployeePayRatesService` / `DuplicateTimesheetsService` / `LeaveAccrualReversalService` / `TimesheetSplitsService` — all use `BatchPreviewDialog<T>` + `BatchProgressDialog` |
+| **Wave 3 services** | `PaygTaxCalculator`, `PayrunService` (parunhd), `PayrunGroupService` (parungr), `TimesheetHeaderService` (patimhd), `TimesheetLineService` (patimes), `PaecodeService` (paecode + papcaud), `PayrollCalcService` (PAPP01), `PayrollPostingService` (PAPP28), `PayHistService` (paehist), `AbaFileService` (PABK02), `LeaveAccrualService` (PAPA14) |
 
 ---
 
@@ -199,6 +211,9 @@ The Landmark Query engine has **hard limits** on how much OCCURS data it returns
 
 **Critical payroll gotchas:**
 - All "hours" fields in PA tables are stored in **minutes** (pastaff.al_hrs_accrued, paehist.hrs, paawjob.std_hrs). Divide by 60 for display.
+- **`pagroup.paid_thru_to_X` is YYMMDD-packed INT, NOT a DATE**. e.g. `260531` = 2026-05-31. Year pivot: `yy < 40 → 20yy`, else `19yy`. Same convention as COBOL day-numbers elsewhere. Helper: `ymmddToDate(int)` in `TimesheetEntryController`.
+- **parungr pay-thru dates** must derive from `pagroup.paid_thru_to_X + period` (per COBOL `SET-PAY-THRU-DATES`, patm01.pl:1383) — NEVER hard-default to the payrun's end date. Per frequency: leave blank when `payrun_active_X='Y'` (already in another payrun) OR `paid_thru_to_X=0` (no history); else `paid_thru_to_X + N` where N = 1mth / 28d / 15d / 14d / 7d for mth / 4wk / bimth / fort / week.
+- **COBOL CREATE-PAYRUN** on the P2 toolbar (patm01.pl:1027) is misleadingly named. It does NOT insert a new parunhd — it validates the current payrun + transitions to the timesheet builder (PATM02 ≈ our P3). The "create a new parunhd" action is on P1 Add.
 - **`pasumry` is permanently dropped from the extract pipeline** — do NOT load it, query it, build screens against it, or wire it into the Java app. The Landmark Query engine misreads its `S9(8)V99 COMP-3` level-9 fields inside the OCCURS 13 group at level 7, fabricating ~$500M-scale garbage values that don't exist in the source `.dat` file (audit fields extract fine; periodic amounts/mins don't). Confirmed 2026-05-11 by hex-dumping `pasumry060.dat` and comparing against the `patl07` PDF report — the file content is mostly zero bytes for periodic data, yet SQL showed `544,947,455.22`. Removed from `landmark_extract/list/module/pafiles.txt`. **For period totals**, recompute on demand from `paehist` with `GROUP BY pay_type, payrun_date` — that's the source of truth for what the PDF reports show.
 - Award FK naming: `paawhed`/`paawjob`/`paawwcp` use `award_code`/`job_class_code`; `pastaff`/`paehist`/`paecode` use `award`/`job_class`. Join carefully.
 - `parunhd.yr_no` (not year_no) FK → `gldates.yr_no`
@@ -318,4 +333,67 @@ MainMenuController.openFoo()          new Stage + fooScreen.buildScene(s) + s.sh
 - Hours from PA tables ÷ 60 before display
 
 ---
-*Last updated: 2026-05-09 — payroll scaffold (PACD01), service extractions, BIRT removal, auth refactor*
+
+## Audit framework
+
+Two flavours, both wired through `MasterFileAuditService`:
+
+**Heavyweight (JSON before/after snapshots)** — `paemaud`, `pafuaud`. One row per
+change, captured in the same `@Transactional` as the data write. Snapshots run
+through Jackson with TFN masking (CLAUDE.md rule — `***-***-NNN`).
+
+**Per-row tracker** — `pacdchg` (pay-code rate change), `paawchg` (award change),
+`papcaud` (per-employee pay code change). Lightweight UPSERT or single-row insert
+with primary-key + before/after values.
+
+**Activated 2026-05-16**: `papcaud` writes via `PaecodeService` (Add/Edit/Delete
+all flow through `MasterFileAuditService.auditPaeCode` with `A` / `M` / `B`-before
+/ `D`-snapshot maint types — COBOL convention).
+
+**Still deferred**: `pafuaud` writes (no pafunds CRUD yet), and `pastaff`'s own
+per-row `audit_user_id/date/time*` columns on update (pre-existing gap).
+
+Wave 2 batch programs also write **`pa_audit`** (batch metadata: program code,
+description, rows_affected, status R/C/F/P) alongside per-row writes.
+
+---
+
+## Persistence — user preferences
+
+`FavouritesStore` (`~/.fixedassets/favourites.properties`) and `LastSessionStore`
+(`~/.fixedassets/session.properties`) — same directory, plain properties files.
+
+`LastSessionStore` persists `lastCompanyNo` + `lastYearNo` from the MENU23 picker
+so logins resume on the last-used company/year (falls back to first-company +
+latest-year if the company is gone).
+
+---
+
+## Wave 3 pay-cycle reference
+
+End-to-end runnable as of 2026-05-16:
+
+```
+PATM01  Create payrun + attach paygroups (parungr) + add timesheets (patimhd / patimes)
+   │       Options → Select drives auto-attach with SET-PAY-THRU-DATES dates.
+   │       paecode CRUD lives inside PATM01 — Standing Lines button on P3.
+   ▼
+PAPP01  Calculate Tax + Totals — PayrollCalcService.recalcPayrun
+   │       Buckets patimes by pay_type into patimhd totals, runs PaygTaxCalculator
+   │       for PAYG withholding (NAT_1004 / NAT_3539 by STSL flag), flips
+   │       calcs_completed_flag=Y.
+   ▼
+PAPP28  Post — PayrollPostingService.postPayrun
+   │       Inserts paehist (one row per patimes line) + synthetic tax line at
+   │       pay_type=22. Flips parunhd.status=P, patimhd.status=P. Un-post reverses.
+   ▼
+PABK02  ABA File — AbaFileService.generate
+   │       Net pay from paehist, paempay split rules (A→P→B), APCA fixed-width
+   │       120-char file to appSession.payrollFilesDir.
+   ▼
+PAPA14  Leave accrual — LeaveAccrualService.accruePayrun
+           AL += hoursWorked × 4/52, SL += hoursWorked × 2/52 (MVP factors).
+```
+
+---
+*Last updated: 2026-05-16 — Wave 3 end-to-end pay cycle, papcaud audit hook activated, LastSessionStore persistence*
