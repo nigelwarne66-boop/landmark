@@ -262,7 +262,7 @@ Screen flow matches COBOL `patm01p1` / `patm01p2` / `patm01p3` / `patm01s3`:
   - `pagroup.paid_thru_to_X = 0` → leave blank (no payment history yet)
   - else → `paid_thru_to_X + period` where period is 1 month / 28d / 15d / 14d / 7d for mth / 4wk / bimth / fort / week respectively.
   - If all 5 frequencies are skipped, COBOL sets `WS-PAYRUN-DATES-SET = 'N'` and skips the paygroup entirely.
-- **COBOL packed-date format**: `pagroup.paid_thru_to_X` stored as `INT` = YYMMDD packed (e.g. `260531` = 2026-05-31). Year pivot: `yy < 40 → 20yy`, else `19yy`. Helper: `ymmddToDate(int)` in `TimesheetEntryController`.
+- **Landmark Julian day-numbers**: `pagroup.paid_thru_to_X` stored as `INT` = days since **1899-12-31** (e.g. `44773` = 2022-07-31). Confirmed against live pagroup.csv 2026-05-16. Helper: `landmarkDayToDate(int)` in `TimesheetEntryController`. Distinct from the YYMMDD-packed convention used by some other COBOL date fields (see `MainMenuController.dayNoToDate`) — both exist in the data, check which applies before assuming.
 - **JavaFX nested-modal gotcha**: closing a Stage and immediately opening another `showAndWait()` in the same event handler leaves the new dialog's controls inert (ComboBoxes won't drop). Fix: schedule the follow-up with `Platform.runLater` so the outer Stage's close fully unwinds first.
 - **paecode CRUD** lives inside PATM01 per user direction (originally planned as a standalone screen). Each write goes through `MasterFileAuditService.auditPaeCode` → activates the deferred Wave 1.5 `papcaud` hook.
 

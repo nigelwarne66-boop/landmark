@@ -799,16 +799,15 @@ public class TimesheetEntryController {
      * Produce a one-line reason for why a frequency was left blank during
      * Select auto-attach. Used in the "left out" diagnostic message.
      */
-    private static String reason(int paidThruYmd, String activeFlag) {
+    private static String reason(int paidThruDay, String activeFlag) {
         if ("Y".equalsIgnoreCase(activeFlag)) {
             return "active in another payrun (payrun_active=Y)";
         }
-        if (paidThruYmd <= 0) {
+        if (paidThruDay <= 0) {
             return "no history (paid_thru_to=0)";
         }
-        // Shouldn't reach here if this frequency was "left out", but be safe.
-        LocalDate d = ymmddToDate(paidThruYmd);
-        return d == null ? "invalid paid_thru_to=" + paidThruYmd
+        LocalDate d = landmarkDayToDate(paidThruDay);
+        return d == null ? "invalid paid_thru_to=" + paidThruDay
                          : "paid_thru_to=" + d + " (would attach — bug?)";
     }
 
@@ -821,10 +820,10 @@ public class TimesheetEntryController {
      * @return null when the paygroup is already active in another payrun
      *         for this frequency, or has never been paid for it.
      */
-    private static LocalDate nextPayThruDays(int paidThruYmd, String alreadyActiveFlag,
+    private static LocalDate nextPayThruDays(int paidThruDay, String alreadyActiveFlag,
                                               int periodDays) {
         if ("Y".equalsIgnoreCase(alreadyActiveFlag)) return null;
-        LocalDate base = ymmddToDate(paidThruYmd);
+        LocalDate base = landmarkDayToDate(paidThruDay);
         if (base == null) return null;
         return base.plusDays(periodDays);
     }
@@ -833,22 +832,24 @@ public class TimesheetEntryController {
      * Monthly variant — add 1 month, with end-of-month protection so e.g.
      * Jan 31 → Feb 28 / 29 (LocalDate.plusMonths handles this natively).
      */
-    private static LocalDate nextPayThruMonths(int paidThruYmd, String alreadyActiveFlag) {
+    private static LocalDate nextPayThruMonths(int paidThruDay, String alreadyActiveFlag) {
         if ("Y".equalsIgnoreCase(alreadyActiveFlag)) return null;
-        LocalDate base = ymmddToDate(paidThruYmd);
+        LocalDate base = landmarkDayToDate(paidThruDay);
         if (base == null) return null;
         return base.plusMonths(1);
     }
 
-    /** Convert COBOL YYMMDD-packed integer to LocalDate; 0 / invalid → null. */
-    private static LocalDate ymmddToDate(int v) {
-        if (v <= 0) return null;
+    /**
+     * Convert a Landmark Julian day-number to LocalDate. The Landmark epoch
+     * is 1899-12-31 = day 0; serial 44773 = 2022-07-31. 0 / negative → null.
+     * NB: this is a different convention from MainMenuController.dayNoToDate
+     * (which decodes a YYMMDD-packed integer). The two epochs coexist in
+     * the data; pagroup.paid_thru_to_X is Julian, not packed.
+     */
+    private static LocalDate landmarkDayToDate(int dayNo) {
+        if (dayNo <= 0) return null;
         try {
-            int yy   = v / 10000;
-            int mm   = (v / 100) % 100;
-            int dd   = v % 100;
-            int yyyy = yy < 40 ? 2000 + yy : 1900 + yy;
-            return LocalDate.of(yyyy, mm, dd);
+            return LocalDate.of(1899, 12, 31).plusDays(dayNo);
         } catch (Exception e) {
             return null;
         }
