@@ -17,6 +17,7 @@ JavaFX desktop app with embedded Tomcat on port 8090.
 - `company_no` in every WHERE clause — from `appSession.getCompanyNo()`.
 - Controllers contain only JavaFX. Services contain only JDBC.
 - **TFN is never printed/logged in full** — `Employee.maskTfn(String)` (static, shared by UI Show/Hide toggle and the PDF print service) returns `***-***-NNN`.
+- **New tables follow the work-file rule.** If the table name contains `wk` (e.g. `paemwk1`, `pasuwk3`, `patmwkk`) it's a work file — create it directly in Java via `CREATE TABLE IF NOT EXISTS` in a `@PostConstruct` on the owning service. **Every other new table** must have the four extract-pipeline files at `C:\landmark_extract\sql\` **before** any Java depends on it: `create/<table>_create.sql`, `insert/<table>_insert.sql`, `insert/<table>_select.sql`, `insert/<table>_values.sql` — plus the name appended to `list/module/pafiles.txt`. Reason: that pipeline is how COBOL `.dat` data flows from ACU into MySQL; a production table without those four files can't be populated from the source. Existing exceptions (`tax_brackets`, `pa_audit`) pre-date the rule and have no ACU origin — not a template for new tables.
 
 ## Working style
 

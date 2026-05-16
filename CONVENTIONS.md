@@ -161,6 +161,41 @@ The Landmark Query engine has **hard limits** on how much OCCURS data it returns
 
 ---
 
+## When you need a new table — the work-file rule
+
+Two paths, decided by the table's name:
+
+### Work files — table name contains `wk` (`paemwk1`, `pasuwk3`, `patmwkk`, etc.)
+
+Transient / per-process state with no ACU origin. **Create directly in Java:**
+- Add a `@PostConstruct ensureTable()` on the owning service with `jdbc.execute("CREATE TABLE IF NOT EXISTS ...")`. Same pattern as `BatchAuditService.ensureTable()` and `TaxBracketService.ensureTable()`.
+- No extract-pipeline files needed.
+- No `pafiles.txt` entry.
+
+### Every other new table — production / persisted master or transaction data
+
+**Four extract-pipeline files at `C:\landmark_extract\sql\` must exist before any Java depends on the table** — so the COBOL `.dat` data can be loaded into MySQL via the extract engine:
+
+| File | Contents |
+|------|----------|
+| `create/<table>_create.sql` | `CREATE TABLE ...` — MySQL schema. PK on first columns, then alt-keys, then data fields, then audit (`audit_user_id`, `audit_date`, `audit_time_hr/min/sec/hun`). Index alt-keys with `CREATE INDEX`. |
+| `insert/<table>_insert.sql` | `-- companyNoRequired=Y\nINSERT INTO <table> ( ... )` — column list in the order the extract will bind. |
+| `insert/<table>_select.sql` | `select <field>-... from <table>` — COBOL field names (lowercase, hyphenated). Must match the FD shape; see the OCCURS conventions above when nested groups are present. |
+| `insert/<table>_values.sql` | `VALUES (?,?,?,...)` — placeholder count matches the column count in `_insert.sql`. |
+
+Then append the table name (one per line) to `list/module/pafiles.txt`.
+
+The user applies the SQL manually after the files are created. Reference: Wave 1.5 audit back-fill (`paemaud`, `pafuaud`, `paawchg`, `pacdchg`) and Wave 2 work-file additions (`pasphde`, `pasphdg`, `paspgre`, `paspgrg`) both followed this pattern; the SQL was applied manually on the dates noted in CLAUDE.md.
+
+### Existing exceptions (grandfathered — not a pattern for new tables)
+
+- `tax_brackets` — loaded from ATO Excel via `TaxBracketLoader` (PATX01). No COBOL source, so no extract pipeline.
+- `pa_audit` — Java-side batch metadata for Wave 2 mass-update programs. No COBOL equivalent.
+
+Both use `CREATE TABLE IF NOT EXISTS` in `@PostConstruct`. Don't add new tables this way without "wk" in the name.
+
+---
+
 ## DB Tables — Confirmed Column Names
 
 **Rule: never guess column names from COBOL source. Check this section first.**
