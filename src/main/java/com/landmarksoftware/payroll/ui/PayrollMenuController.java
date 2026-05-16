@@ -62,7 +62,6 @@ public class PayrollMenuController {
     private final TimesheetEntryController         patm01;
     private final PayRunProcessingController       papp01;
     private final AbaPaymentController             pabk02;
-    private final LeaveProcessingController        papa14;
     private final AppSession                       appSession;
 
     public PayrollMenuController(PayCodeMaintenanceController pacd01,
@@ -81,7 +80,6 @@ public class PayrollMenuController {
                                   TimesheetEntryController patm01,
                                   PayRunProcessingController papp01,
                                   AbaPaymentController pabk02,
-                                  LeaveProcessingController papa14,
                                   AppSession appSession) {
         this.pacd01       = pacd01;
         this.paem01       = paem01;
@@ -99,7 +97,6 @@ public class PayrollMenuController {
         this.patm01       = patm01;
         this.papp01       = papp01;
         this.pabk02       = pabk02;
-        this.papa14       = papa14;
         this.appSession   = appSession;
     }
 
@@ -182,9 +179,16 @@ public class PayrollMenuController {
                 new PayrollMenuEntry("PABK02", "ABA Payment File",
                     "Generate bank payment (ABA) file",
                     true, () -> openAbaPayment(parentStage)),
-                new PayrollMenuEntry("PAPA14", "Leave Processing",
-                    "Accrue AL + SL onto pastaff",
-                    true, () -> openLeaveProcessing(parentStage)),
+                new PayrollMenuEntry("PAPA14", "Payment Posting (CM/GL)",
+                    "Post payment batches to Cash Management + General Ledger",
+                    true, () -> stubInfo(parentStage, "PAPA14 — Payment Posting (CM/GL)",
+                        "Verified against COBOL papa14.pl: this program posts payment\n"
+                        + "batches for a payrun, updating paid history, Cash Management\n"
+                        + "(if installed), and General Ledger for cashbook payments. It\n"
+                        + "is the entry to the PAPA15+ chain.\n\n"
+                        + "Leave accrual (which my port mis-named PAPA14 originally) has\n"
+                        + "been moved to the correct home: PAPP01 → 'Process Leave (PAPP03)'\n"
+                        + "button. Open Pay Run Processing to use it.")),
                 new PayrollMenuEntry("PAPP28", "Payroll Posting",
                     "Post pay run to General Ledger",
                     true, () -> stubInfo(parentStage, "PAPP28 — Payroll Posting",
@@ -383,15 +387,6 @@ public class PayrollMenuController {
         s.show();
     }
 
-    private void openLeaveProcessing(Stage parentStage) {
-        Stage s = new Stage();
-        s.initOwner(parentStage);
-        s.setTitle("Leave Processing — PAPA14");
-        s.setScene(papa14.buildScene(s));
-        s.setMinWidth(1000);
-        s.setMinHeight(560);
-        s.show();
-    }
 
     private void stubInfo(Stage parentStage, String title, String body) {
         Alert a = new Alert(Alert.AlertType.INFORMATION, body, ButtonType.OK);

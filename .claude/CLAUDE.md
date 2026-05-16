@@ -84,7 +84,10 @@ Foundation + 5 full batch programs + 2 thin maintenance screens. See "Wave 2 det
   - `PayRunProcessingController` lists open payruns with a "Calculate Tax + Totals" button. Wired into both menus.
 - **PAPP28 — Payroll Posting** ✅ — `PayrollPostingService.postPayrun` moves every patimes line into paehist, writes a synthetic tax line per employee at pay_type=22 carrying PAPP01's total_tax, flips patimhd statuses to P and parunhd to P. All-or-nothing transaction. `unpostPayrun` reverses (deletes paehist + flips statuses back to O). Wired into PayRunProcessingController as **Post ▸ paehist** + **Un-post** buttons next to Calculate.
 - **PABK02 — ABA Payment File** ✅ — `AbaFileService` derives net pay from paehist (`sum(gross_amt) − sum(tax_amt) − sum(ext_amt)` for pay_type 19/20/21), applies paempay split rules (A→P→B), writes APCA fixed-width 120-char records (header / detail / trailer) to `appSession.payrollFilesDir` as `PAYROLL_YYYYMMDD_NNN.aba`. Employer bank details — APCA user number, EFT bank abbreviation, trace BSB / account, remitter name — sourced from `cmbanks` where `eft_pa_flag = 'Y'` via `CmBanksService.findPayrollBank`. Refuses generation if no payroll bank is configured. BSB validated 6-digit non-zero; invalid splits warn-and-skip. UI in `AbaPaymentController`.
-- **PAPA14 — Leave Processing** ✅ MVP — `LeaveAccrualService` accrues AL + SL onto pastaff based on `total_normal_min + total_otime_min_actual`. MVP flat factors: AL = 4/52, SL = 2/52 per minute worked. Per-payrun idempotency not yet tracked — surfaces a warning in the confirm dialog. UI in `LeaveProcessingController`.
+- **Leave processing — corrected 2026-05-16** — original port mis-labelled the leave service as PAPA14. Verified against COBOL: PAPA14 is the CM/GL payment-posting interface (entry to PAPA15+ chain). Actual leave behaviour split across:
+  - **PAPP03 — `PayrollLeaveService.accruePayrun`** — accrues AL / SL / AL-loading onto `pastaff` per employee. Uses `paawjob.al_hrs / sick_hrs_1 / all_hrs` per job class; falls back to flat 4/52 (AL) and 2/52 (SL) when no award rate. Branches on `pastaff.accrue_al_by_hrs_flag` and `employee_type`: F (full-time) + non-hourly → full period entitlement; P (part-time) or F+by-hours → pro-rata (entitlement × hoursWorkedMin / 2280). Casuals skip AL/SL. Termination payruns skip accrual. **Does NOT write paleave** — only updates pastaff (matches COBOL). Wired as "Process Leave (PAPP03)" button on the PAPP01 screen.
+  - **PAPP28 — `PayrollPostingService` leave hooks** — when posting patimes lines with pay_type ∈ {4 LSL, 5 AL, 6 AL-load, 7 Sick}, writes/updates a paleave row with `accrued_taken_ind='T'` and decrements the matching pastaff balance column (`lsl_hrs_aft_78` / `al_hrs_accrued` / `accrued_al_loading` / `accrued_sick_leave`). Un-post reverses both.
+  - **`paleave` ledger** — Per COBOL, paleave rows are *exceptional* events: 'A' (accrued) only from PAEM01 manual edits or PASU18 opening-balance migration; 'T' (taken) only from PAPP28 posting. Regular per-period accrual never touches paleave.
 - **Award-rate AL/SL overrides** (paawjob.al_accrual_rate per job class), **LSL** accrual (years-of-service tracking), **PAPA30** leave payout, **GL journal posting**, and **PAPP01 Pay Method / Print / Super** P3 buttons are deferred — clearly labelled stubs.
 
 ### Pay-type → patimhd column mapping (PayrollCalcService)
@@ -251,9 +254,11 @@ Both are wired into both menus (PayrollMenuController + MainMenuController) and 
 ### From Wave 3
 - **PATM01 P3 toolbar stubs**: Pay Method (P3A patmpay editor) · Print (payslip) · Super (CREATE-SUPER-FOR-ALL).
 - **PAPP28 GL journal** — only paehist is written today; the GL journal entries (creditors → expense accounts) are deferred until the patimes→paehist mapping is confirmed correct.
-- **PAPA14 per-payrun accrual state** — re-running the same payrun double-accrues. Surfaced in UI confirm. Needs an `pa_accrual_log` table or similar.
-- **PAPA14 award-rate overrides** — currently uses flat 4/52 (AL) + 2/52 (SL) factors. paawjob.al_accrual_rate per job class is deferred.
-- **PAPA14 LSL accrual** — not handled, needs years-of-service tracking.
+- **PAPP03 idempotency** — `PayrollLeaveService.accruePayrun` doesn't track per-payrun processed state; re-running double-accrues. Needs `parunhd.leave_processed_flag` or `pa_accrual_log`.
+- **PAPP03 anniversary math** (COBOL `CALC-AL-SL-ANNIVERSARY`) — `al_hrs_curr_yr` resets on anniversary; currently always increments. Same for AL loading + sick year-totals.
+- **PAPP03 lump vs incremental** — `paawjob.al_inc_lump_ind = 'L'` should only accrue on anniversary; currently always treats as incremental.
+- **PAPP03 LSL** — not handled, needs years-of-service tracking + pre-78/aft-78/since-Aug-93 split.
+- **PAPA14 (real, CM/GL payment posting)** — not built. Menu stub explains the mislabel; entry to the PAPA15+ chain.
 - **PAPA30 leave payout** — not built.
 - **PABK02 multi-bank support** — currently picks the first cmbanks row with `eft_pa_flag='Y'`. If a company runs payroll across multiple bank accounts, the controller will need a bank picker.
 - **pafuaud writes** — still no Super Fund Maintenance CRUD; FundService remains read-only.

@@ -25,7 +25,6 @@ import com.landmarksoftware.payroll.ui.ChangeEmployeePayRatesController;
 import com.landmarksoftware.payroll.ui.DuplicateTimesheetsController;
 import com.landmarksoftware.payroll.ui.LeaveAccrualReversalController;
 import com.landmarksoftware.payroll.ui.AbaPaymentController;
-import com.landmarksoftware.payroll.ui.LeaveProcessingController;
 import com.landmarksoftware.payroll.ui.PayRunProcessingController;
 import com.landmarksoftware.payroll.ui.TimesheetEntryController;
 import com.landmarksoftware.payroll.ui.TimesheetSplitsController;
@@ -98,7 +97,6 @@ public class MainMenuController {
     private final TimesheetEntryController           timesheetEntryScreen;
     private final PayRunProcessingController         payRunProcessingScreen;
     private final AbaPaymentController               abaPaymentScreen;
-    private final LeaveProcessingController          leaveProcessingScreen;
     private final JdbcTemplate                       jdbc;
     private final SessionService                     sessionService;
     private final CompanyRepository                  companyRepo;
@@ -147,7 +145,6 @@ public class MainMenuController {
                                TimesheetEntryController timesheetEntryScreen,
                                PayRunProcessingController payRunProcessingScreen,
                                AbaPaymentController abaPaymentScreen,
-                               LeaveProcessingController leaveProcessingScreen,
                                JdbcTemplate jdbc,
                                SessionService sessionService,
                                CompanyRepository companyRepo,
@@ -178,7 +175,6 @@ public class MainMenuController {
         this.timesheetEntryScreen  = timesheetEntryScreen;
         this.payRunProcessingScreen = payRunProcessingScreen;
         this.abaPaymentScreen      = abaPaymentScreen;
-        this.leaveProcessingScreen = leaveProcessingScreen;
         this.jdbc                  = jdbc;
         this.sessionService        = sessionService;
         this.companyRepo           = companyRepo;
@@ -1085,9 +1081,9 @@ public class MainMenuController {
         allEntries.add(new MenuEntry("PY", "PABK02", "ABA Payment File",
             "Generate bank payment (ABA) file",
             true, this::openAbaPayment));
-        allEntries.add(new MenuEntry("PY", "PAPA14", "Leave Processing",
-            "Accrue AL + SL onto pastaff",
-            true, this::openLeaveProcessing));
+        allEntries.add(new MenuEntry("PY", "PAPA14", "Payment Posting (CM/GL)",
+            "Post payment batches to Cash Management + General Ledger",
+            true, this::stubPaPa14));
         allEntries.add(new MenuEntry("PY", "PAPP28", "Payroll Posting",
             "Post pay run to General Ledger",
             true, this::stubPaPp28));
@@ -1280,14 +1276,23 @@ public class MainMenuController {
         s.setMinWidth(1000); s.setMinHeight(560); s.show();
     }
 
-    private void openLeaveProcessing() {
-        Stage s = new Stage(); s.setTitle("Leave Processing — PAPA14");
-        s.setScene(leaveProcessingScreen.buildScene(s));
-        s.setMinWidth(1000); s.setMinHeight(560); s.show();
-    }
-
     /** PAPP28 — Payroll Posting lives on the PAPP01 toolbar (Post button). */
     private void stubPaPp28() { openPayRunProcessing(); }
+
+    /**
+     * PAPA14 — Payment Posting (CM/GL). Verified against COBOL papa14.pl —
+     * posts payment batches, NOT leave processing. Stubbed pending the
+     * PAPA15+ chain port. Leave accrual moved to PAPP01 → Process Leave.
+     */
+    private void stubPaPa14() {
+        stubInfo("PAPA14 — Payment Posting (CM/GL)",
+            "COBOL papa14.pl posts payment batches for the payrun, updating\n"
+            + "paid history, Cash Management (if installed) and General Ledger\n"
+            + "for cashbook payments. Entry to the PAPA15+ chain.\n\n"
+            + "Leave accrual (incorrectly named PAPA14 in my earlier port) has\n"
+            + "moved to its correct home: Pay Run Processing (PAPP01) → 'Process\n"
+            + "Leave (PAPP03)' button.");
+    }
 
     private void stubInfo(String title, String body) {
         javafx.scene.control.Alert a = new javafx.scene.control.Alert(

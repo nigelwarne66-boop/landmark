@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.payroll.service;
 
+import com.landmarksoftware.payroll.model.Paleave;
 import com.landmarksoftware.payroll.model.PayHistEntry;
 import com.landmarksoftware.payroll.model.Payrun;
 import com.landmarksoftware.payroll.model.TimesheetHeader;
@@ -58,17 +59,20 @@ public class PayrollPostingService {
     private final TimesheetHeaderService timesheetHeaders;
     private final TimesheetLineService   timesheetLines;
     private final PayHistService         paehist;
+    private final PaleaveService         paleave;
 
     public PayrollPostingService(JdbcTemplate jdbc,
                                   PayrunService payruns,
                                   TimesheetHeaderService timesheetHeaders,
                                   TimesheetLineService timesheetLines,
-                                  PayHistService paehist) {
+                                  PayHistService paehist,
+                                  PaleaveService paleave) {
         this.jdbc             = jdbc;
         this.payruns          = payruns;
         this.timesheetHeaders = timesheetHeaders;
         this.timesheetLines   = timesheetLines;
         this.paehist          = paehist;
+        this.paleave          = paleave;
     }
 
     public record Result(int employees, int linesPosted, String firstError) {}
@@ -108,6 +112,13 @@ public class PayrollPostingService {
                 for (TimesheetLine l : lines) {
                     paehist.insert(toPaeHist(pr, h, l, lineNoOut++), userId);
                     linesPosted++;
+                    // PAPP28 — for leave-type lines (LSL/AL/AL-load/sick),
+                    // record a 'T' (taken) row on paleave and decrement the
+                    // corresponding pastaff balance. Mirrors COBOL pay_type
+                    // codes 04=LSL, 05=AL, 06=AL-load, 07=sick.
+                    if (isLeaveTakenType(l.payType)) {
+                        recordLeaveTaken(pr, h, l, userId);
+                    }
                 }
                 // Synthetic tax line — PAPP01's computed total_tax lands in paehist.
                 if (h.totalTax != null && h.totalTax.signum() > 0) {
@@ -146,11 +157,30 @@ public class PayrollPostingService {
     }
 
     /**
-     * Reverse a post — wipes paehist rows and flips parunhd back to O. Used
-     * when an error is found post-posting. Patimhd statuses revert to O.
+     * Reverse a post — wipes paehist rows, reverses pastaff balances for
+     * any 'T' paleave rows tied to this payrun, then flips parunhd back to O.
+     * Mirrors the COBOL PAPP28 reversal block.
      */
     @Transactional
     public int unpostPayrun(int companyNo, int payrunNo, String userId) {
+        // Reverse pastaff balance updates for every 'T' paleave row this
+        // payrun added, then drop the rows themselves.
+        List<Paleave> taken = jdbc.query(
+            "SELECT * FROM paleave WHERE company_no=? AND payrun_no=? AND accrued_taken_ind='T'",
+            (rs, i) -> {
+                Paleave p = new Paleave();
+                p.companyNo       = rs.getInt("company_no");
+                p.employeeNo      = rs.getInt("employee_no");
+                p.payType         = rs.getInt("pay_type");
+                p.min             = rs.getInt("min");
+                return p;
+            },
+            companyNo, payrunNo);
+        for (Paleave t : taken) {
+            adjustPastaffForLeaveTaken(t.companyNo, t.employeeNo, t.payType, t.min, +1);
+        }
+        paleave.deleteByPayrun(companyNo, payrunNo, "T");
+
         int removed = paehist.deleteByPayrun(companyNo, payrunNo);
         jdbc.update(
             "UPDATE patimhd SET timesheet_status='O' " +
@@ -166,6 +196,84 @@ public class PayrollPostingService {
             companyNo, payrunNo);
         return removed;
     }
+
+    // ── Leave-taken recording (PAPP28 'T' rows + pastaff decrement) ─────
+
+    /**
+     * COBOL pay_type codes that mean "leave taken on this timesheet". When
+     * one of these lines is posted, PAPP28 writes a paleave 'T' row and
+     * decrements the matching pastaff balance.
+     */
+    private static boolean isLeaveTakenType(int payType) {
+        return payType == 4    // LSL
+            || payType == 5    // AL
+            || payType == 6    // AL loading
+            || payType == 7;   // Sick
+    }
+
+    private void recordLeaveTaken(Payrun pr, TimesheetHeader h, TimesheetLine l, String userId) {
+        // Look for an existing 'T' row for this leave-start-date and add to it,
+        // matching the COBOL REWRITE-PALEAVE pattern; otherwise INSERT.
+        LocalDate startDate = l.leaveStartDate != null && l.leaveStartDate.getYear() > 1900
+            ? l.leaveStartDate
+            : (l.timesheetDate != null ? l.timesheetDate : pr.payrunDate);
+        var existing = paleave.findOne(h.companyNo, h.employeeNo, l.payCode,
+            l.payType, startDate, "T");
+        if (existing.isPresent()) {
+            Paleave p = existing.get();
+            p.min  += l.min;
+            p.amt  = nz(p.amt).add(nz(l.extAmt));
+            p.payrunNo   = pr.payrunNo;
+            p.payrunDate = pr.payrunDate;
+            paleave.update(p, userId);
+        } else {
+            Paleave p = new Paleave();
+            p.companyNo        = h.companyNo;
+            p.employeeNo       = h.employeeNo;
+            p.payCode          = l.payCode;
+            p.payType          = l.payType;
+            p.leaveStartDate   = startDate;
+            p.accruedTakenInd  = "T";
+            p.leaveEndDate     = l.leaveReturnDate != null && l.leaveReturnDate.getYear() > 1900
+                ? l.leaveReturnDate : startDate;
+            p.min              = l.min;
+            p.rate             = l.ratePerc;
+            p.amt              = l.extAmt;
+            p.ref              = l.ref;
+            p.payrunNo         = pr.payrunNo;
+            p.payrunDate       = pr.payrunDate;
+            paleave.insert(p, userId);
+        }
+        // Decrement the matching pastaff balance — matches COBOL behaviour.
+        adjustPastaffForLeaveTaken(h.companyNo, h.employeeNo, l.payType, l.min, -1);
+    }
+
+    /**
+     * Add (sign=+1) or subtract (sign=-1) {@code min} from the pastaff
+     * balance for {@code payType}. Used by post (sign=-1 to take) and
+     * un-post (sign=+1 to restore).
+     */
+    private void adjustPastaffForLeaveTaken(int companyNo, int employeeNo,
+                                              int payType, int min, int sign) {
+        if (min == 0) return;
+        int delta = min * sign;
+        String column = switch (payType) {
+            case 4 -> "lsl_hrs_aft_78";       // LSL
+            case 5 -> "al_hrs_accrued";        // AL
+            case 6 -> "accrued_al_loading";    // AL loading
+            case 7 -> "accrued_sick_leave";    // Sick
+            default -> null;
+        };
+        if (column == null) return;
+        // SQL identifier interpolation is safe — `column` comes from the
+        // switch above, never from user input.
+        jdbc.update(
+            "UPDATE pastaff SET " + column + " = " + column + " + ? " +
+            "WHERE company_no=? AND employee_no=?",
+            delta, companyNo, employeeNo);
+    }
+
+    private static BigDecimal nz(BigDecimal b) { return b == null ? BigDecimal.ZERO : b; }
 
     // ── Mapping ──────────────────────────────────────────────────────────
 

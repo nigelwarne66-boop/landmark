@@ -136,6 +136,19 @@ public class AwardJobClassService {
 
     // ─── Reads ──────────────────────────────────────────────────────────
 
+    public java.util.Optional<AwardJobClass> findOne(int companyNo,
+                                                       String awardCode,
+                                                       String jobClassCode) {
+        try {
+            AwardJobClass j = jdbc.queryForObject(
+                "SELECT * FROM paawjob WHERE company_no=? AND award_code=? AND job_class_code=?",
+                ROW, companyNo, awardCode, jobClassCode);
+            return java.util.Optional.ofNullable(j);
+        } catch (Exception e) {
+            return java.util.Optional.empty();
+        }
+    }
+
     public List<AwardJobClass> findByAward(int companyNo, String awardCode) {
         return jdbc.query(
             "SELECT * FROM paawjob WHERE company_no=? AND award_code=? " +

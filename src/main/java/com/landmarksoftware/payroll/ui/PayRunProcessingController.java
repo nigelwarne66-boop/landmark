@@ -14,6 +14,7 @@ package com.landmarksoftware.payroll.ui;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.payroll.model.Payrun;
 import com.landmarksoftware.payroll.service.PayrollCalcService;
+import com.landmarksoftware.payroll.service.PayrollLeaveService;
 import com.landmarksoftware.payroll.service.PayrollPostingService;
 import com.landmarksoftware.payroll.service.PayrunService;
 import javafx.beans.property.SimpleStringProperty;
@@ -49,6 +50,7 @@ public class PayRunProcessingController {
     private final PayrunService           payruns;
     private final PayrollCalcService      payrollCalc;
     private final PayrollPostingService   posting;
+    private final PayrollLeaveService     leave;
     private final AppSession              appSession;
 
     private final ObservableList<Payrun> rows = FXCollections.observableArrayList();
@@ -59,10 +61,12 @@ public class PayRunProcessingController {
     public PayRunProcessingController(PayrunService payruns,
                                        PayrollCalcService payrollCalc,
                                        PayrollPostingService posting,
+                                       PayrollLeaveService leave,
                                        AppSession appSession) {
         this.payruns     = payruns;
         this.payrollCalc = payrollCalc;
         this.posting     = posting;
+        this.leave       = leave;
         this.appSession  = appSession;
     }
 
@@ -111,15 +115,17 @@ public class PayRunProcessingController {
         VBox.setVgrow(table, Priority.ALWAYS);
 
         Button bCalc    = new Button("Calculate Tax + Totals");
+        Button bLeave   = new Button("Process Leave (PAPP03)");
         Button bPost    = new Button("Post ▸ paehist");
         Button bUnpost  = new Button("Un-post");
         Button bRefresh = new Button("Refresh");
         bCalc.setOnAction(e -> calculate(table.getSelectionModel().getSelectedItem()));
+        bLeave.setOnAction(e -> processLeave(table.getSelectionModel().getSelectedItem()));
         bPost.setOnAction(e -> post(table.getSelectionModel().getSelectedItem()));
         bUnpost.setOnAction(e -> unpost(table.getSelectionModel().getSelectedItem()));
         bRefresh.setOnAction(e -> loadList());
 
-        HBox toolbar = new HBox(8, bCalc, bPost, bUnpost, bRefresh);
+        HBox toolbar = new HBox(8, bCalc, bLeave, bPost, bUnpost, bRefresh);
         toolbar.setPadding(new Insets(10, 14, 10, 14));
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setStyle("-fx-background-color:#FFFFFF;");
@@ -144,6 +150,64 @@ public class PayRunProcessingController {
         long calced = list.stream().filter(p -> "Y".equalsIgnoreCase(p.calcsCompletedFlag)).count();
         status.setText(list.size() + " open payrun" + (list.size() == 1 ? "" : "s")
             + " · " + calced + " calc'd");
+    }
+
+    /**
+     * PAPP03 — accrue AL / SL / AL-loading onto pastaff for the payrun.
+     * Uses paawjob award rates where available; falls back to flat factors.
+     * Casuals and termination payruns are skipped (matches COBOL).
+     */
+    private void processLeave(Payrun p) {
+        if (p == null) { info("Select a payrun first."); return; }
+        if ("D".equalsIgnoreCase(p.payrunStatus)) {
+            error("Payrun " + p.payrunNo + " is cancelled — cannot accrue leave.");
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+            "Accrue leave (AL / SL / AL-loading) onto pastaff for every "
+                + "employee on payrun " + p.payrunNo + "?\n\n"
+                + "Uses paawjob.al_hrs / sick_hrs_1 / all_hrs as the per-period\n"
+                + "entitlement; pro-rated by hours worked when accrue_al_by_hrs_flag\n"
+                + "= Y or the employee is part-time. Casuals and termination payruns\n"
+                + "are skipped.\n\n"
+                + "WARNING: This MVP does NOT track per-payrun accrual state. Running\n"
+                + "twice on the same payrun will double-accrue.",
+            ButtonType.YES, ButtonType.NO);
+        confirm.setHeaderText("PAPP03 — Leave Accrual");
+        confirm.initOwner(stage);
+        var ans = confirm.showAndWait();
+        if (ans.isEmpty() || ans.get() != ButtonType.YES) return;
+
+        try {
+            PayrollLeaveService.Result r = leave.accruePayrun(
+                p.companyNo, p.payrunNo, appSession.getUserId());
+            java.math.BigDecimal alHrs = new java.math.BigDecimal(r.alMinAccrued())
+                .divide(new java.math.BigDecimal("60"), 2,
+                    java.math.RoundingMode.HALF_UP);
+            java.math.BigDecimal slHrs = new java.math.BigDecimal(r.slMinAccrued())
+                .divide(new java.math.BigDecimal("60"), 2,
+                    java.math.RoundingMode.HALF_UP);
+            StringBuilder sb = new StringBuilder()
+                .append("Leave accrual complete for payrun ")
+                .append(p.payrunNo).append(".\n\n")
+                .append(r.processed()).append(" employee")
+                .append(r.processed() == 1 ? "" : "s").append(" processed.\n")
+                .append("AL: ").append(alHrs).append(" hours · SL: ").append(slHrs)
+                .append(" hours.\n");
+            if (r.skippedCasual() > 0) {
+                sb.append("\n").append(r.skippedCasual()).append(" casual")
+                  .append(r.skippedCasual() == 1 ? "" : "s")
+                  .append(" skipped (AL/SL not accrued for casuals).");
+            }
+            if (r.skippedNoAward() > 0) {
+                sb.append("\n").append(r.skippedNoAward())
+                  .append(" employee").append(r.skippedNoAward() == 1 ? "" : "s")
+                  .append(" with no award / job-class — fell back to flat factors.");
+            }
+            info(sb.toString());
+        } catch (Exception ex) {
+            error("Leave accrual failed: " + ex.getMessage());
+        }
     }
 
     private void post(Payrun p) {
