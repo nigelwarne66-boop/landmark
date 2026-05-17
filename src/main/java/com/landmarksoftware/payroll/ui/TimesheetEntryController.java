@@ -723,22 +723,50 @@ public class TimesheetEntryController {
             boolean anyDate  = dWeek != null || dFort != null || dBimth != null
                             || d4Wk != null || dMth != null;
             if (!anyDate) {
-                // Matches COBOL: WS-PAYRUN-DATES-SET stays "N", paygroup is
-                // not attached. Build a per-frequency diagnostic so the user
-                // can tell whether it's stale active flags or zero paid-thrus.
-                leftOutCount++;
-                if (leftOutCount <= 5) {
-                    leftOut.append("\n  • ").append(code)
-                        .append(pg.desc1 == null || pg.desc1.isBlank() ? "" : " (" + pg.desc1 + ")")
-                        .append("\n        Wk   : ").append(reason(pg.paidThruToWeek,  pg.payrunActiveWeek))
-                        .append("\n        Fort : ").append(reason(pg.paidThruToFort,  pg.payrunActiveFort))
-                        .append("\n        Bim  : ").append(reason(pg.paidThruToBimth, pg.payrunActiveBimth))
-                        .append("\n        4Wk  : ").append(reason(pg.paidThruTo4Wk,   pg.payrunActive4Wk))
-                        .append("\n        Mth  : ").append(reason(pg.paidThruToMth,   pg.payrunActiveMth));
+                // No history. Two paths, matching COBOL:
+                //   validate=N → skip (WS-PAYRUN-DATES-SET stays "N").
+                //   validate=Y → fall into S2 manual-entry (COBOL SELECT-THE-
+                //                PAYGROUP). Our Java equivalent: prompt to
+                //                attach with payrun.end_date defaults across
+                //                all 5 frequencies. The user can refine via
+                //                P2 → Edit afterwards. This is the bootstrap
+                //                path for a brand-new company / paygroup.
+                LocalDate defaultThru = p.endDate != null
+                    ? p.endDate
+                    : (p.payrunDate != null ? p.payrunDate : LocalDate.now());
+                if (!cbValidate.isSelected()) {
+                    leftOutCount++;
+                    if (leftOutCount <= 5) {
+                        leftOut.append("\n  • ").append(code)
+                            .append(pg.desc1 == null || pg.desc1.isBlank() ? "" : " (" + pg.desc1 + ")")
+                            .append("\n        Wk   : ").append(reason(pg.paidThruToWeek,  pg.payrunActiveWeek))
+                            .append("\n        Fort : ").append(reason(pg.paidThruToFort,  pg.payrunActiveFort))
+                            .append("\n        Bim  : ").append(reason(pg.paidThruToBimth, pg.payrunActiveBimth))
+                            .append("\n        4Wk  : ").append(reason(pg.paidThruTo4Wk,   pg.payrunActive4Wk))
+                            .append("\n        Mth  : ").append(reason(pg.paidThruToMth,   pg.payrunActiveMth));
+                    }
+                    continue;
                 }
-                continue;
-            }
-            if (cbValidate.isSelected()) {
+                // validate=Y, no history → offer bootstrap attach.
+                Alert a = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Paygroup " + code
+                        + (pg.desc1 == null || pg.desc1.isBlank() ? "" : " (" + pg.desc1 + ")")
+                        + " has no payment history (paid_thru_to_X = 0 for all\n"
+                        + "frequencies). Attach with payrun end-date defaults\n"
+                        + "(all 5 frequencies = " + defaultThru + ")?\n\n"
+                        + "You can refine specific frequencies via P2 → Edit\n"
+                        + "after attach. Choose No to skip this paygroup.",
+                    ButtonType.YES, ButtonType.NO);
+                a.setHeaderText("Bootstrap paygroup with default dates");
+                a.initOwner(stage);
+                var ans = a.showAndWait();
+                if (ans.isEmpty() || ans.get() != ButtonType.YES) { skipped++; continue; }
+                dWeek  = defaultThru;
+                dFort  = defaultThru;
+                dBimth = defaultThru;
+                d4Wk   = defaultThru;
+                dMth   = defaultThru;
+            } else if (cbValidate.isSelected()) {
                 Alert a = new Alert(Alert.AlertType.CONFIRMATION,
                     "Attach paygroup " + code
                         + (pg.desc1 == null || pg.desc1.isBlank() ? "" : " (" + pg.desc1 + ")")
