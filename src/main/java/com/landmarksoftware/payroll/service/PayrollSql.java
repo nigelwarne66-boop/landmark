@@ -321,7 +321,22 @@ public final class PayrollSql {
         "tax_file_no=?, tax_scale_no=?, extra_tax_amt=?, " +
         // Superannuation (S1C)
         "super_code=?, super_member_no=?, super_comm_date=?, qualify_days=?, " +
-        "force_pay_flag=?, use_ext_super_flag=?, sex=?, date_of_birth=? " +
+        "force_pay_flag=?, use_ext_super_flag=?, sex=?, date_of_birth=?, " +
+        // Employment editable (S1B) — read-only state columns (paid_thru_to_date,
+        // last_payrun_no, current_payrun_no, timesheets_to_date, retainer/commission
+        // running totals) are intentionally left out. They're owned by the pay-run
+        // chain (PAPP01 / PAPP28) and PAEM01 must not overwrite them.
+        "auth_level=?, std_rate_code=?, cdep_elligible_ind=?, cdep_current_flag=?, " +
+        // Tax detail (S1A) — actual paid rate, rebates, zone, family tax, kids, PS hdr
+        "actual_paid_rate=?, dependant_rebate_amt=?, family_tax_annual_amt=?, " +
+        "zone_allow=?, no_of_children=?, payment_summary_type=?, " +
+        "payment_summary_abn=?, payment_summary_b_type=?, last_grp_cert_date=?, " +
+        // Tax variation from ATO
+        "tax_var_start_date=?, tax_var_end_date=?, tax_var_rate_perc=?, " +
+        // STP Phase 2 (S1F)
+        "stp_tax_treatment=?, stp_employee_category=?, stp_category_option=?, " +
+        "stp_employment_basis=?, stp_income_type=?, stp_country_code=?, " +
+        "stp_cessation_type=? " +
         "WHERE company_no=? AND employee_no=?";
 
     /**

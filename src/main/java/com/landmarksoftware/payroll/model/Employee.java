@@ -108,6 +108,50 @@ public class Employee {
     public String    sex                = "";     // pastaff.sex — M/F (ATO STP fund member ident)
     public LocalDate dateOfBirth;                  // pastaff.date_of_birth
 
+    // ── Employment status & payrun history (PAEM01 S1B) ────────────────
+    // Most of these are read-only — set by the pay-run processing chain.
+    public LocalDate  paidThruToDate;                              // pastaff.paid_thru_to_date — last date paid
+    public LocalDate  timesheetsToDate;                            // pastaff.timesheets_to_date — last costed timesheet date
+    public int        lastPayrunNo            = 0;                 // pastaff.last_payrun_no
+    public int        currentPayrunNo         = 0;                 // pastaff.current_payrun_no — "Currently active in payrun"
+    public int        authLevel               = 0;                 // pastaff.auth_level — editable; who can edit this employee
+    public String     stdRateCode             = "";                // pastaff.std_rate_code — Cost Ledger billing code
+    public String     cdepEligibleInd         = "N";               // pastaff.cdep_elligible_ind
+    public String     cdepCurrentFlag         = "N";               // pastaff.cdep_current_flag — "Currently on CDEP?"
+    public BigDecimal retainerToDate          = BigDecimal.ZERO;   // pastaff.retainer_to_date
+    public BigDecimal commissionToDate        = BigDecimal.ZERO;   // pastaff.commission_to_date
+    public BigDecimal retDeductedToDate       = BigDecimal.ZERO;   // pastaff.ret_deducted_to_date
+
+    /** Retainer outstanding = paid - deducted - commission (display only). */
+    public BigDecimal retainerOutstanding() {
+        return retainerToDate.subtract(retDeductedToDate).subtract(commissionToDate);
+    }
+
+    // ── Tax detail — PAEM01 S1A (rebates, zone, family tax) ─────────────
+    public BigDecimal actualPaidRate          = BigDecimal.ZERO;   // pastaff.actual_paid_rate
+    public int        zoneAllow               = 0;                 // pastaff.zone_allow — zone allowance amount
+    public int        dependantRebateAmt      = 0;                 // pastaff.dependant_rebate_amt
+    public BigDecimal familyTaxAnnualAmt      = BigDecimal.ZERO;   // pastaff.family_tax_annual_amt
+    public int        noOfChildren            = 0;                 // pastaff.no_of_children
+    public LocalDate  lastGrpCertDate;                             // pastaff.last_grp_cert_date — last group certificate (legacy)
+    public String     paymentSummaryType      = "";                // pastaff.payment_summary_type — single char (S/B/N etc.)
+    public String     paymentSummaryAbn       = "";                // pastaff.payment_summary_abn — 11-char ABN
+    public String     paymentSummaryBType     = "";                // pastaff.payment_summary_b_type — Business / personal
+
+    // ── Tax variation received from ATO (rate override window) ─────────
+    public LocalDate  taxVarStartDate;                             // pastaff.tax_var_start_date
+    public LocalDate  taxVarEndDate;                               // pastaff.tax_var_end_date
+    public BigDecimal taxVarRatePerc          = BigDecimal.ZERO;   // pastaff.tax_var_rate_perc
+
+    // ── STP Phase 2 — PAEM01 S1F ────────────────────────────────────────
+    public String     stpTaxTreatment         = "";                // pastaff.stp_tax_treatment — 6-char code
+    public String     stpEmployeeCategory     = "";                // pastaff.stp_employee_category
+    public String     stpCategoryOption       = "";                // pastaff.stp_category_option
+    public String     stpEmploymentBasis      = "";                // pastaff.stp_employment_basis
+    public String     stpIncomeType           = "";                // pastaff.stp_income_type — 3-char
+    public String     stpCountryCode          = "";                // pastaff.stp_country_code — 2-char (for IAA / WHM income types)
+    public String     stpCessationType        = "";                // pastaff.stp_cessation_type — on termination
+
     // ── Display helpers ───────────────────────────────────────────────────
 
     public String fullName() {

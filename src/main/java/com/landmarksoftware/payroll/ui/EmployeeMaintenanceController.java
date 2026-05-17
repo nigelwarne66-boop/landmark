@@ -491,6 +491,28 @@ public class EmployeeMaintenanceController {
         TextField fAward = tf(e.award,    10);
         TextField fJob   = tf(e.jobClass, 10);
 
+        // S1B editable: auth_level, std_rate_code (Cost Ledger billing), CDEP flags.
+        TextField fAuthLevel  = tf(e.authLevel == 0 ? "" : String.valueOf(e.authLevel), 4);
+        TextField fStdRateCode = tf(e.stdRateCode, 25);
+        CheckBox  cbCdepElig  = new CheckBox("Eligible for CDEP");
+        cbCdepElig.setSelected("Y".equalsIgnoreCase(e.cdepEligibleInd));
+        CheckBox  cbCdepCurr  = new CheckBox("Currently on CDEP");
+        cbCdepCurr.setSelected("Y".equalsIgnoreCase(e.cdepCurrentFlag));
+
+        // S1B read-only state — set by PAPP01 / PAPP28, never written by PAEM01.
+        Label lblPaidThru    = new Label(
+            Employee.isValidDate(e.paidThruToDate) ? dateStr(e.paidThruToDate) : "—");
+        Label lblCostedThru  = new Label(
+            Employee.isValidDate(e.timesheetsToDate) ? dateStr(e.timesheetsToDate) : "—");
+        Label lblLastPrun    = new Label(
+            e.lastPayrunNo == 0 ? "—" : String.valueOf(e.lastPayrunNo));
+        Label lblCurrPrun    = new Label(
+            e.currentPayrunNo == 0 ? "—" : String.valueOf(e.currentPayrunNo));
+        Label lblRetainPaid  = new Label(money(e.retainerToDate));
+        Label lblCommEarn    = new Label(money(e.commissionToDate));
+        Label lblRetDeducted = new Label(money(e.retDeductedToDate));
+        Label lblRetOutstand = new Label(money(e.retainerOutstanding()));
+
         GridPane gEmp = new GridPane();
         gEmp.setHgap(10); gEmp.setVgap(10); gEmp.setPadding(new Insets(16));
         r = 0;
@@ -503,6 +525,22 @@ public class EmployeeMaintenanceController {
         addFormRow(gEmp, r++, "Pay Frequency:",   cbFreq);
         addFormRow(gEmp, r++, "Award:",           lookupField(fAward,    LookupDialog.LookupType.AWARD));
         addFormRow(gEmp, r++, "Job Class:",       lookupField(fJob,      LookupDialog.LookupType.JOB_CLASS));
+        addFormRow(gEmp, r++, "Authority Level:", fAuthLevel);
+        addFormRow(gEmp, r++, "Cost Ledger Code:", fStdRateCode);
+        addFormRow(gEmp, r++, "CDEP Eligible:",   cbCdepElig);
+        addFormRow(gEmp, r++, "CDEP Currently:",  cbCdepCurr);
+        // Read-only payrun status group — owned by PAPP01 / PAPP28.
+        Label payrunHdr = new Label("Payrun status (read-only)");
+        payrunHdr.setStyle("-fx-font-weight:bold;-fx-text-fill:#888780;-fx-padding:8 0 0 0;");
+        gEmp.add(payrunHdr, 0, r++, 2, 1);
+        addFormRow(gEmp, r++, "Date paid through to:",    lblPaidThru);
+        addFormRow(gEmp, r++, "Costed timesheets thru:",  lblCostedThru);
+        addFormRow(gEmp, r++, "Last payrun no:",          lblLastPrun);
+        addFormRow(gEmp, r++, "Currently active payrun:", lblCurrPrun);
+        addFormRow(gEmp, r++, "Retainer paid to date:",   lblRetainPaid);
+        addFormRow(gEmp, r++, "Commission to date:",      lblCommEarn);
+        addFormRow(gEmp, r++, "Retainer deducted:",       lblRetDeducted);
+        addFormRow(gEmp, r++, "Retainer outstanding:",    lblRetOutstand);
 
         // ── Pay & Tax tab ─────────────────────────────────────────────────
         TextField fSalary  = tf(decStr(e.annualSalary), 12);
@@ -541,16 +579,75 @@ public class EmployeeMaintenanceController {
         Label tfnHint = hint("Masked by default. Click Show to view or edit.");
         Label hrsHint = hint("Standard weekly hours (e.g. 38.0)");
 
+        // S1A — rebates / zone / family tax / kids / payment summary header.
+        TextField fActualRate = tf(decStr(e.actualPaidRate), 12);
+        TextField fDepRebate  = tf(e.dependantRebateAmt == 0 ? "" : String.valueOf(e.dependantRebateAmt), 12);
+        TextField fFamTax     = tf(decStr(e.familyTaxAnnualAmt), 12);
+        TextField fZone       = tf(e.zoneAllow == 0 ? "" : String.valueOf(e.zoneAllow), 12);
+        TextField fChildren   = tf(e.noOfChildren == 0 ? "" : String.valueOf(e.noOfChildren), 4);
+        TextField fPsType     = tf(e.paymentSummaryType, 1);
+        TextField fPsAbn      = tf(e.paymentSummaryAbn, 11);
+        TextField fPsBType    = tf(e.paymentSummaryBType, 1);
+        DatePicker dpGrpCert  = new DatePicker(
+            Employee.isValidDate(e.lastGrpCertDate) ? e.lastGrpCertDate : null);
+
+        // Tax variation from ATO — date window + rate %.
+        DatePicker dpTaxVarStart = new DatePicker(
+            Employee.isValidDate(e.taxVarStartDate) ? e.taxVarStartDate : null);
+        DatePicker dpTaxVarEnd   = new DatePicker(
+            Employee.isValidDate(e.taxVarEndDate) ? e.taxVarEndDate : null);
+        TextField  fTaxVarRate   = tf(decStr(e.taxVarRatePerc), 6);
+
+        // S1F — STP Phase 2 block.
+        TextField fStpTaxTreat   = tf(e.stpTaxTreatment, 6);
+        TextField fStpEmpCat     = tf(e.stpEmployeeCategory, 1);
+        TextField fStpCatOpt     = tf(e.stpCategoryOption, 1);
+        TextField fStpEmpBasis   = tf(e.stpEmploymentBasis, 1);
+        TextField fStpIncomeType = tf(e.stpIncomeType, 3);
+        TextField fStpCountry    = tf(e.stpCountryCode, 2);
+        TextField fStpCessation  = tf(e.stpCessationType, 1);
+
         GridPane gPay = new GridPane();
         gPay.setHgap(10); gPay.setVgap(10); gPay.setPadding(new Insets(16));
         r = 0;
         addFormRow(gPay, r++, "Annual Salary:",       fSalary);
         addFormRowWithHint(gPay, r++, "Std Hours/Week:", fStdHrs, hrsHint);
         addFormRow(gPay, r++, "Std Rate /hr:",        fRate);
+        addFormRow(gPay, r++, "Actual Paid Rate:",    fActualRate);
         addFormRow(gPay, r++, "Tax Scale No:",
             lookupField(fScale, LookupDialog.LookupType.TAX_SCALE));
         addFormRowWithHint(gPay, r++, "Tax File No:", tfnBox, tfnHint);
         addFormRow(gPay, r++, "Extra Tax $:",         fExtra);
+        Label rebatesHdr = new Label("Rebates & adjustments");
+        rebatesHdr.setStyle("-fx-font-weight:bold;-fx-text-fill:#888780;-fx-padding:8 0 0 0;");
+        gPay.add(rebatesHdr, 0, r++, 2, 1);
+        addFormRow(gPay, r++, "Dependant Rebate $:",  fDepRebate);
+        addFormRow(gPay, r++, "Family Tax Annual $:", fFamTax);
+        addFormRow(gPay, r++, "Zone Allowance $:",    fZone);
+        addFormRow(gPay, r++, "No of Children:",      fChildren);
+        Label psHdr = new Label("Payment Summary (legacy)");
+        psHdr.setStyle("-fx-font-weight:bold;-fx-text-fill:#888780;-fx-padding:8 0 0 0;");
+        gPay.add(psHdr, 0, r++, 2, 1);
+        addFormRow(gPay, r++, "PS Type:",              fPsType);
+        addFormRow(gPay, r++, "PS ABN:",               fPsAbn);
+        addFormRow(gPay, r++, "PS Business/Personal:", fPsBType);
+        addFormRow(gPay, r++, "Last Group Cert Date:", dpGrpCert);
+        Label taxVarHdr = new Label("ATO Tax Variation");
+        taxVarHdr.setStyle("-fx-font-weight:bold;-fx-text-fill:#888780;-fx-padding:8 0 0 0;");
+        gPay.add(taxVarHdr, 0, r++, 2, 1);
+        addFormRow(gPay, r++, "Variation Start:",      dpTaxVarStart);
+        addFormRow(gPay, r++, "Variation End:",        dpTaxVarEnd);
+        addFormRow(gPay, r++, "Variation Rate %:",     fTaxVarRate);
+        Label stpHdr = new Label("STP Phase 2");
+        stpHdr.setStyle("-fx-font-weight:bold;-fx-text-fill:#888780;-fx-padding:8 0 0 0;");
+        gPay.add(stpHdr, 0, r++, 2, 1);
+        addFormRow(gPay, r++, "Tax Treatment Code:",   fStpTaxTreat);
+        addFormRow(gPay, r++, "Employee Category:",    fStpEmpCat);
+        addFormRow(gPay, r++, "Category Option:",      fStpCatOpt);
+        addFormRow(gPay, r++, "Employment Basis:",     fStpEmpBasis);
+        addFormRow(gPay, r++, "Income Type:",          fStpIncomeType);
+        addFormRow(gPay, r++, "Country Code:",         fStpCountry);
+        addFormRow(gPay, r++, "Cessation Type:",       fStpCessation);
 
         // ── Superannuation tab (PAEM01 S1C) ─────────────────────────────
         TextField fSuperCode    = tf(e.superCode,     10);
@@ -727,6 +824,61 @@ public class EmployeeMaintenanceController {
             out.lastSuperPayrun    = e.lastSuperPayrun;
             out.currentSuperPayrun = e.currentSuperPayrun;
             out.lastSuperDate      = e.lastSuperDate;
+            // ── Employment editable (S1B) ──────────────────────────────
+            try { out.authLevel = fAuthLevel.getText().trim().isEmpty()
+                                  ? 0 : Integer.parseInt(fAuthLevel.getText().trim()); }
+            catch (NumberFormatException nfe) {
+                markError(fAuthLevel, "Authority level must be a whole number.");
+                tabs.getSelectionModel().select(1); return;
+            }
+            out.stdRateCode        = fStdRateCode.getText().trim();
+            out.cdepEligibleInd    = cbCdepElig.isSelected() ? "Y" : "N";
+            out.cdepCurrentFlag    = cbCdepCurr.isSelected() ? "Y" : "N";
+            // S1B read-only state — carry forward verbatim so UPDATE doesn't blank them.
+            out.paidThruToDate     = e.paidThruToDate;
+            out.timesheetsToDate   = e.timesheetsToDate;
+            out.lastPayrunNo       = e.lastPayrunNo;
+            out.currentPayrunNo    = e.currentPayrunNo;
+            out.retainerToDate     = e.retainerToDate;
+            out.commissionToDate   = e.commissionToDate;
+            out.retDeductedToDate  = e.retDeductedToDate;
+            // ── Tax detail (S1A) — rebates / zone / family tax / kids ──
+            out.actualPaidRate     = parseMoneyOrZero(fActualRate.getText());
+            try { out.dependantRebateAmt = fDepRebate.getText().trim().isEmpty()
+                                          ? 0 : Integer.parseInt(fDepRebate.getText().trim()); }
+            catch (NumberFormatException nfe) {
+                markError(fDepRebate, "Dependant rebate must be a whole dollar amount.");
+                tabs.getSelectionModel().select(2); return;
+            }
+            out.familyTaxAnnualAmt = parseMoneyOrZero(fFamTax.getText());
+            try { out.zoneAllow = fZone.getText().trim().isEmpty()
+                                  ? 0 : Integer.parseInt(fZone.getText().trim()); }
+            catch (NumberFormatException nfe) {
+                markError(fZone, "Zone allowance must be a whole dollar amount.");
+                tabs.getSelectionModel().select(2); return;
+            }
+            try { out.noOfChildren = fChildren.getText().trim().isEmpty()
+                                     ? 0 : Integer.parseInt(fChildren.getText().trim()); }
+            catch (NumberFormatException nfe) {
+                markError(fChildren, "No of children must be a whole number.");
+                tabs.getSelectionModel().select(2); return;
+            }
+            out.paymentSummaryType = fPsType.getText().trim().toUpperCase();
+            out.paymentSummaryAbn  = fPsAbn.getText().trim().replaceAll("\\D", "");
+            out.paymentSummaryBType= fPsBType.getText().trim().toUpperCase();
+            out.lastGrpCertDate    = dpGrpCert.getValue();
+            // ── ATO tax variation ─────────────────────────────────────
+            out.taxVarStartDate    = dpTaxVarStart.getValue();
+            out.taxVarEndDate      = dpTaxVarEnd.getValue();
+            out.taxVarRatePerc     = parseMoneyOrZero(fTaxVarRate.getText());
+            // ── STP Phase 2 (S1F) ─────────────────────────────────────
+            out.stpTaxTreatment    = fStpTaxTreat.getText().trim().toUpperCase();
+            out.stpEmployeeCategory= fStpEmpCat.getText().trim().toUpperCase();
+            out.stpCategoryOption  = fStpCatOpt.getText().trim().toUpperCase();
+            out.stpEmploymentBasis = fStpEmpBasis.getText().trim().toUpperCase();
+            out.stpIncomeType      = fStpIncomeType.getText().trim().toUpperCase();
+            out.stpCountryCode     = fStpCountry.getText().trim().toUpperCase();
+            out.stpCessationType   = fStpCessation.getText().trim().toUpperCase();
 
             int coNo = appSession.getCompanyNo();
             String userId = appSession.getUserId();
@@ -1094,6 +1246,27 @@ public class EmployeeMaintenanceController {
         Label l = new Label(text);
         l.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:#1A6EF5;");
         return l;
+    }
+
+    /**
+     * Loose parser for optional money fields — returns ZERO on blank or
+     * un-parseable input rather than blocking save. Trailing whitespace +
+     * thousand-separator commas tolerated. Use {@link #parseDec} when
+     * the field is required and bad input should surface as a validation
+     * error.
+     */
+    private static BigDecimal parseMoneyOrZero(String s) {
+        if (s == null) return BigDecimal.ZERO;
+        String t = s.trim().replace(",", "");
+        if (t.isEmpty()) return BigDecimal.ZERO;
+        try { return new BigDecimal(t); }
+        catch (NumberFormatException ex) { return BigDecimal.ZERO; }
+    }
+
+    /** Two-decimal money formatter for read-only labels. */
+    private static String money(BigDecimal v) {
+        return v == null ? "0.00"
+            : v.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
     }
 
     private BigDecimal parseDec(TextField fld, String label) {

@@ -240,6 +240,22 @@ public class EmployeeService {
             sqlDate(e.superCommDate), e.qualifyDays,
             yn(e.forcePayFlag), yn(e.useExtSuperFlag),
             trimUp(e.sex, 1), sqlDate(e.dateOfBirth),
+            // Employment editable (S1B)
+            e.authLevel, trim(e.stdRateCode, 25),
+            yn(e.cdepEligibleInd), yn(e.cdepCurrentFlag),
+            // Tax detail (S1A)
+            nz(e.actualPaidRate), e.dependantRebateAmt, nz(e.familyTaxAnnualAmt),
+            e.zoneAllow, e.noOfChildren, trim(e.paymentSummaryType, 1),
+            digits(e.paymentSummaryAbn, 11), trim(e.paymentSummaryBType, 1),
+            sqlDate(e.lastGrpCertDate),
+            // Tax variation from ATO
+            sqlDate(e.taxVarStartDate), sqlDate(e.taxVarEndDate),
+            nz(e.taxVarRatePerc),
+            // STP Phase 2 (S1F)
+            trim(e.stpTaxTreatment, 6), trim(e.stpEmployeeCategory, 1),
+            trim(e.stpCategoryOption, 1), trim(e.stpEmploymentBasis, 1),
+            trim(e.stpIncomeType, 3), trim(e.stpCountryCode, 2),
+            trim(e.stpCessationType, 1),
             companyNo, e.employeeNo);
         audit.auditEmployee(companyNo, e.employeeNo,
             MasterFileAuditService.MAINT_MODIFY, before, e, userId);
@@ -310,6 +326,40 @@ public class EmployeeService {
         e.lastSuperDate      = dateDef(rs, "last_super_date");
         e.sex                = strDefault(rs, "sex", "");
         e.dateOfBirth        = dateDef(rs, "date_of_birth");
+        // Employment status & payrun history (S1B) — mostly read-only state
+        e.paidThruToDate     = dateDef(rs, "paid_thru_to_date");
+        e.timesheetsToDate   = dateDef(rs, "timesheets_to_date");
+        e.lastPayrunNo       = safeInt(rs, "last_payrun_no");
+        e.currentPayrunNo    = safeInt(rs, "current_payrun_no");
+        e.authLevel          = safeInt(rs, "auth_level");
+        e.stdRateCode        = strDefault(rs, "std_rate_code", "");
+        e.cdepEligibleInd    = strDefault(rs, "cdep_elligible_ind", "N");
+        e.cdepCurrentFlag    = strDefault(rs, "cdep_current_flag", "N");
+        e.retainerToDate     = dec(rs, "retainer_to_date");
+        e.commissionToDate   = dec(rs, "commission_to_date");
+        e.retDeductedToDate  = dec(rs, "ret_deducted_to_date");
+        // Tax detail (S1A)
+        e.actualPaidRate     = dec(rs, "actual_paid_rate");
+        e.zoneAllow          = safeInt(rs, "zone_allow");
+        e.dependantRebateAmt = safeInt(rs, "dependant_rebate_amt");
+        e.familyTaxAnnualAmt = dec(rs, "family_tax_annual_amt");
+        e.noOfChildren       = safeInt(rs, "no_of_children");
+        e.lastGrpCertDate    = dateDef(rs, "last_grp_cert_date");
+        e.paymentSummaryType = strDefault(rs, "payment_summary_type", "");
+        e.paymentSummaryAbn  = strDefault(rs, "payment_summary_abn", "");
+        e.paymentSummaryBType= strDefault(rs, "payment_summary_b_type", "");
+        // Tax variation from ATO
+        e.taxVarStartDate    = dateDef(rs, "tax_var_start_date");
+        e.taxVarEndDate      = dateDef(rs, "tax_var_end_date");
+        e.taxVarRatePerc     = dec(rs, "tax_var_rate_perc");
+        // STP Phase 2 (S1F)
+        e.stpTaxTreatment    = strDefault(rs, "stp_tax_treatment", "");
+        e.stpEmployeeCategory= strDefault(rs, "stp_employee_category", "");
+        e.stpCategoryOption  = strDefault(rs, "stp_category_option", "");
+        e.stpEmploymentBasis = strDefault(rs, "stp_employment_basis", "");
+        e.stpIncomeType      = strDefault(rs, "stp_income_type", "");
+        e.stpCountryCode     = strDefault(rs, "stp_country_code", "");
+        e.stpCessationType   = strDefault(rs, "stp_cessation_type", "");
         return e;
     }
 
