@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.ReportsHubController"
+    styleClass="reports-root">
+
+    <!-- ── Top bar ─────────────────────────────────────────────── -->
+    <top>
+        <HBox styleClass="hub-topbar" alignment="CENTER_LEFT" spacing="10">
+            <HBox.margin><Insets/></HBox.margin>
+
+            <Label styleClass="hub-brand" text="Landmark"/>
+
+            <Label styleClass="hub-sep" text="|"/>
+
+            <Label fx:id="companyLabel" styleClass="hub-company"/>
+            <Label styleClass="hub-dot" text="·"/>
+            <Label fx:id="yearLabel"    styleClass="hub-year"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Label fx:id="userLabel"    styleClass="hub-user"/>
+            <Hyperlink text="Switch company"
+                       styleClass="hub-link"
+                       onAction="#onSwitchCompany"/>
+            <Hyperlink text="Sign out"
+                       styleClass="hub-link"
+                       onAction="#onSignOut"/>
+
+            <HBox.margin>
+                <Insets left="16" right="16" top="0" bottom="0"/>
+            </HBox.margin>
+        </HBox>
+    </top>
+
+    <!-- ── Two-panel body ──────────────────────────────────────── -->
+    <center>
+        <HBox>
+
+            <!-- Left sidebar: module list -->
+            <VBox styleClass="hub-sidebar" prefWidth="220" minWidth="180">
+
+                <VBox styleClass="hub-search-wrap">
+                    <TextField fx:id="searchField"
+                               promptText="Search reports…"
+                               styleClass="hub-search"/>
+                    <VBox.margin><Insets top="12" right="12" bottom="8" left="12"/></VBox.margin>
+                </VBox>
+
+                <Separator/>
+
+                <VBox fx:id="moduleList"
+                      styleClass="hub-module-list"
+                      VBox.vgrow="ALWAYS"
+                      spacing="2">
+                    <VBox.margin><Insets top="8" bottom="8"/></VBox.margin>
+                </VBox>
+
+            </VBox>
+
+            <Separator orientation="VERTICAL"/>
+
+            <!-- Right content: report rows -->
+            <VBox HBox.hgrow="ALWAYS" styleClass="hub-content">
+
+                <!-- Module title + count -->
+                <HBox styleClass="hub-content-header" alignment="BASELINE_LEFT" spacing="12">
+                    <Label fx:id="moduleTitle" styleClass="hub-content-title"/>
+                    <Label fx:id="reportCount" styleClass="hub-content-sub"/>
+                    <HBox.margin><Insets top="20" right="28" bottom="16" left="28"/></HBox.margin>
+                </HBox>
+
+                <!-- Report rows in a scroll pane -->
+                <ScrollPane fitToWidth="true"
+                            styleClass="hub-scroll"
+                            VBox.vgrow="ALWAYS">
+                    <VBox fx:id="reportList"
+                          styleClass="hub-report-list"
+                          spacing="6">
+                        <padding>
+                            <Insets top="0" right="28" bottom="20" left="28"/>
+                        </padding>
+                    </VBox>
+                </ScrollPane>
+
+            </VBox>
+
+        </HBox>
+    </center>
+
+</BorderPane>

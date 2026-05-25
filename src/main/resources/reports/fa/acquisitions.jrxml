@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="acquisitions"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <parameter name="COMPANY_NO"    class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME"  class="java.lang.String"/>
+  <parameter name="YEAR_DESC"     class="java.lang.String"/>
+  <parameter name="YR_START_DATE" class="java.sql.Date"/>
+  <parameter name="YR_END_DATE"   class="java.sql.Date"/>
+
+  <queryString>
+    <![CDATA[
+      SELECT a.asset_no, a.desc_1, a.acqn_date, a.acqn_type,
+             COALESCE(g.desc1, a.grp_code) AS grp_desc,
+             COALESCE(l.desc1, a.loc_code) AS loc_desc,
+             a.actual_cost, a.tax_depn_cost, a.book_depn_cost,
+             a.supp_name, a.supp_inv_no, a.asset_status
+      FROM FAASSET a
+      LEFT JOIN FACODGR g ON g.company_no=a.company_no AND g.grp_code=a.grp_code
+      LEFT JOIN FACODLO l ON l.company_no=a.company_no AND l.loc_code=a.loc_code
+      WHERE a.company_no = $P{COMPANY_NO}
+        AND a.acqn_date BETWEEN $P{YR_START_DATE} AND $P{YR_END_DATE}
+        AND a.asset_status IN ('', 'U')
+      ORDER BY a.acqn_date, a.asset_no
+    ]]>
+  </queryString>
+
+  <field name="asset_no"      class="java.lang.String"/>
+  <field name="desc_1"        class="java.lang.String"/>
+  <field name="acqn_date"     class="java.sql.Date"/>
+  <field name="acqn_type"     class="java.lang.String"/>
+  <field name="grp_desc"      class="java.lang.String"/>
+  <field name="loc_desc"      class="java.lang.String"/>
+  <field name="actual_cost"   class="java.math.BigDecimal"/>
+  <field name="tax_depn_cost" class="java.math.BigDecimal"/>
+  <field name="book_depn_cost" class="java.math.BigDecimal"/>
+  <field name="supp_name"     class="java.lang.String"/>
+  <field name="supp_inv_no"   class="java.lang.String"/>
+  <field name="asset_status"  class="java.lang.String"/>
+
+  <variable name="TOTAL_COST" class="java.math.BigDecimal" calculation="Sum">
+    <variableExpression><![CDATA[$F{actual_cost}]]></variableExpression>
+  </variable>
+
+  <title>
+    <band height="50">
+      <staticText><reportElement x="0" y="0" width="782" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Acquisitions & Retirements]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="600" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{YEAR_DESC}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="660" y="22" width="122" height="14"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="80"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Asset No]]></text></staticText>
+      <staticText><reportElement x="88"  y="4" width="160" height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="252" y="4" width="65"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Acqn Date]]></text></staticText>
+      <staticText><reportElement x="321" y="4" width="30"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="355" y="4" width="100" height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Group]]></text></staticText>
+      <staticText><reportElement x="459" y="4" width="80"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Location]]></text></staticText>
+      <staticText><reportElement x="543" y="4" width="95"  height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Cost]]></text></staticText>
+      <staticText><reportElement x="642" y="4" width="40"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Status]]></text></staticText>
+      <staticText><reportElement x="686" y="4" width="96"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Supplier / Invoice]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="15">
+      <textField><reportElement x="4"   y="1" width="80"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{asset_no}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="88" y="1" width="160" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{desc_1}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="252" y="1" width="65" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acqn_date}]]></textFieldExpression></textField>
+      <textField><reportElement x="321" y="1" width="30"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acqn_type}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="355" y="1" width="100" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{grp_desc}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="459" y="1" width="80" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{loc_desc}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="543" y="1" width="95" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{actual_cost}]]></textFieldExpression></textField>
+      <textField><reportElement x="642" y="1" width="40"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA["U".equals($F{asset_status}) ? "Unpstd" : "Active"]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="686" y="1" width="96" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[($F{supp_name} != null ? $F{supp_name}.trim() : "") + ($F{supp_inv_no} != null && !$F{supp_inv_no}.isBlank() ? " / " + $F{supp_inv_no}.trim() : "")]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="28">
+      <line><reportElement x="543" y="2" width="95" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1.5"/></graphicElement></line>
+      <staticText><reportElement x="4" y="8" width="539" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[TOTAL ACQUISITIONS]]></text></staticText>
+      <textField pattern="#,##0.00"><reportElement x="547" y="8" width="91" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TOTAL_COST}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

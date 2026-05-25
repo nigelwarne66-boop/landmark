@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="depreciation"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="YEAR_DESC"    class="java.lang.String"/>
+
+  <queryString>
+    <![CDATA[
+      SELECT
+        a.asset_no, a.desc_1,
+        COALESCE(g.desc1, a.grp_code) AS grp_desc,
+        a.actual_cost,
+        a.tax_depn_method, a.tax_depn_rate_1,
+        a.accum_tax_depn, a.tax_depn_cost,
+        a.book_depn_method, a.book_depn_rate_1,
+        a.accum_book_depn, a.book_depn_cost,
+        a.actual_cost - a.accum_book_depn AS net_book_value,
+        a.start_depn_date, a.write_down_date
+      FROM FAASSET a
+      LEFT JOIN FACODGR g ON g.company_no = a.company_no AND g.grp_code = a.grp_code
+      WHERE a.company_no = $P{COMPANY_NO}
+        AND a.asset_status = ''
+        AND (a.book_depn_method != '' OR a.tax_depn_method != '')
+      ORDER BY a.grp_code, a.asset_no
+    ]]>
+  </queryString>
+
+  <field name="asset_no"         class="java.lang.String"/>
+  <field name="desc_1"           class="java.lang.String"/>
+  <field name="grp_desc"         class="java.lang.String"/>
+  <field name="actual_cost"      class="java.math.BigDecimal"/>
+  <field name="tax_depn_method"  class="java.lang.String"/>
+  <field name="tax_depn_rate_1"  class="java.math.BigDecimal"/>
+  <field name="accum_tax_depn"   class="java.math.BigDecimal"/>
+  <field name="tax_depn_cost"    class="java.math.BigDecimal"/>
+  <field name="book_depn_method" class="java.lang.String"/>
+  <field name="book_depn_rate_1" class="java.math.BigDecimal"/>
+  <field name="accum_book_depn"  class="java.math.BigDecimal"/>
+  <field name="book_depn_cost"   class="java.math.BigDecimal"/>
+  <field name="net_book_value"   class="java.math.BigDecimal"/>
+  <field name="start_depn_date"  class="java.sql.Date"/>
+  <field name="write_down_date"  class="java.sql.Date"/>
+
+  <variable name="GRP_COST"     class="java.math.BigDecimal" resetType="Group" resetGroup="GrpGroup" calculation="Sum"><variableExpression><![CDATA[$F{actual_cost}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GRP_ACCUM"    class="java.math.BigDecimal" resetType="Group" resetGroup="GrpGroup" calculation="Sum"><variableExpression><![CDATA[$F{accum_book_depn}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GRP_NBV"      class="java.math.BigDecimal" resetType="Group" resetGroup="GrpGroup" calculation="Sum"><variableExpression><![CDATA[$F{net_book_value}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="TOTAL_COST"   class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{actual_cost}]]></variableExpression></variable>
+  <variable name="TOTAL_ACCUM"  class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{accum_book_depn}]]></variableExpression></variable>
+  <variable name="TOTAL_NBV"    class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{net_book_value}]]></variableExpression></variable>
+
+  <group name="GrpGroup">
+    <groupExpression><![CDATA[$F{grp_desc}]]></groupExpression>
+    <groupHeader>
+      <band height="22">
+        <rectangle><reportElement x="0" y="2" width="782" height="18" backcolor="#dcfce7"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField><reportElement x="4" y="4" width="400" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{grp_desc}]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="20">
+        <line><reportElement x="420" y="2" width="362" height="1"/><graphicElement><pen lineWidth="0.5" lineColor="#888"/></graphicElement></line>
+        <staticText><reportElement x="4" y="5" width="416" height="12"/><textElement textAlignment="Right"><font size="8" isItalic="true"/></textElement><text><![CDATA[Group total:]]></text></staticText>
+        <textField pattern="#,##0.00"><reportElement x="424" y="5" width="100" height="12"/><textElement textAlignment="Right"><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_COST}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00"><reportElement x="568" y="5" width="100" height="12"/><textElement textAlignment="Right"><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_ACCUM}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00"><reportElement x="672" y="5" width="106" height="12"/><textElement textAlignment="Right"><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_NBV}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="50">
+      <staticText><reportElement x="0" y="0" width="782" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Depreciation Schedule]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{YEAR_DESC} + "  (Active assets with depreciation method)"]]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="660" y="22" width="122" height="14"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="34">
+      <rectangle><reportElement x="0" y="0" width="782" height="34" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="2" width="80"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Asset No]]></text></staticText>
+      <staticText><reportElement x="88"  y="2" width="180" height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="272" y="2" width="60"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Tax Meth]]></text></staticText>
+      <staticText><reportElement x="336" y="2" width="40"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Rate%]]></text></staticText>
+      <staticText><reportElement x="380" y="2" width="40"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Bk Meth]]></text></staticText>
+      <staticText><reportElement x="424" y="2" width="100" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Cost]]></text></staticText>
+      <staticText><reportElement x="524" y="2" width="40"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Bk Rate]]></text></staticText>
+      <staticText><reportElement x="568" y="2" width="100" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Accum Depn]]></text></staticText>
+      <staticText><reportElement x="672" y="2" width="106" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Net Book Value]]></text></staticText>
+      <!-- Row 2 -->
+      <staticText><reportElement x="272" y="16" width="60"  height="12" forecolor="#aac0e0"/><textElement><font size="7"/></textElement><text><![CDATA[Start Date]]></text></staticText>
+      <staticText><reportElement x="336" y="16" width="80"  height="12" forecolor="#aac0e0"/><textElement><font size="7"/></textElement><text><![CDATA[Write-down Date]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="26">
+      <textField><reportElement x="4"   y="1" width="80"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{asset_no}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="88" y="1" width="180" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{desc_1}]]></textFieldExpression></textField>
+      <textField><reportElement x="272" y="1" width="60"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{tax_depn_method}]]></textFieldExpression></textField>
+      <textField pattern="#0.00"><reportElement x="336" y="1" width="40" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{tax_depn_rate_1}]]></textFieldExpression></textField>
+      <textField><reportElement x="380" y="1" width="40"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{book_depn_method}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="424" y="1" width="100" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{actual_cost}]]></textFieldExpression></textField>
+      <textField pattern="#0.00"><reportElement x="524" y="1" width="40"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{book_depn_rate_1}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="568" y="1" width="100" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{accum_book_depn}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="672" y="1" width="106" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{net_book_value}]]></textFieldExpression></textField>
+      <!-- Row 2: dates -->
+      <textField pattern="dd/MM/yyyy"><reportElement x="272" y="14" width="60" height="10"/><textElement><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{start_depn_date}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="336" y="14" width="80" height="10"/><textElement><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{write_down_date}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="28">
+      <line><reportElement x="420" y="2" width="362" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1.5"/></graphicElement></line>
+      <staticText><reportElement x="4" y="8" width="420" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[TOTALS]]></text></staticText>
+      <textField pattern="#,##0.00"><reportElement x="424" y="8" width="100" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TOTAL_COST}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="568" y="8" width="100" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TOTAL_ACCUM}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="672" y="8" width="106" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TOTAL_NBV}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

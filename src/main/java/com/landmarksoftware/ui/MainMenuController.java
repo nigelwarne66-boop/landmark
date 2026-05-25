@@ -217,8 +217,11 @@ public class MainMenuController {
      * Restore the previous session's company + year if a previous MENU23
      * pick was persisted via {@link LastSessionStore}; otherwise default to
      * the first available company + most recent year.
+     *
+     * <p>Public so the Reporting-only entry point ({@link com.landmarksoftware.desktop.ReportingApplication})
+     * can populate AppSession without building the full main-menu scene.
      */
-    private void loadDefaultSession() {
+    public void loadDefaultSession() {
         var companies = java.util.Collections.<com.landmarksoftware.model.CompanyRow>emptyList();
         try { companies = companyRepo.findAll(); }
         catch (Exception ignored) { /* fall through to placeholder */ }
@@ -1306,7 +1309,12 @@ public class MainMenuController {
     // MENU23 — Company & Year Selection Dialog
     // ═══════════════════════════════════════════════════════════════
 
-    private void showCompanyYearDialog(Window owner) {
+    /**
+     * MENU23 — Company & Year Selection.  Public so the reporting build
+     * ({@code ReportsHubController.onSwitchCompany}) can reuse this dialog
+     * without instantiating its own copy.
+     */
+    public void showCompanyYearDialog(Window owner) {
         Stage dlg = new Stage();
         dlg.initOwner(owner);
         dlg.initModality(Modality.WINDOW_MODAL);
@@ -1466,9 +1474,10 @@ public class MainMenuController {
                 lastSessionStore.save(sessionCompanyNo, sessionYearNo);
             }
 
-            // Update sidebar live
-            lblFooterCompany.setText(sessionCompanyName);
-            lblFooterYear.setText(sessionYearDesc);
+            // Update sidebar live — null-guarded for the reporting build,
+            // which never instantiates the main-menu sidebar.
+            if (lblFooterCompany != null) lblFooterCompany.setText(sessionCompanyName);
+            if (lblFooterYear != null)    lblFooterYear.setText(sessionYearDesc);
 
             // Push to shared AppSession — all screens/services will now use this
             pushToAppSession();

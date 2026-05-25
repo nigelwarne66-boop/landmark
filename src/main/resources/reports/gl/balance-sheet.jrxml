@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="balance-sheet"
+              pageWidth="595" pageHeight="842"
+              columnWidth="535" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
+  <parameter name="YEAR_NO"      class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="YEAR_DESC"    class="java.lang.String"/>
+  <parameter name="AS_AT_PERIOD" class="java.lang.Integer">
+    <defaultValueExpression><![CDATA[12]]></defaultValueExpression>
+  </parameter>
+
+  <!-- Balance sheet: cumulative balances up to AS_AT_PERIOD -->
+  <queryString>
+    <![CDATA[
+      SELECT
+        a.acct_main_no, a.desc1, a.acct_type,
+        CASE
+          WHEN a.pl_bs_ind='B' AND a.dr_cr_ind='D'         THEN '1-Assets'
+          WHEN a.pl_bs_ind='B' AND a.dr_cr_ind='C'         THEN '2-Liabilities'
+          WHEN a.pl_bs_ind='B' AND a.acct_type LIKE 'EQ%' THEN '3-Equity'
+          ELSE '4-Other'
+        END AS section,
+        COALESCE(SUM(t.dr_amt) - SUM(t.cr_amt), 0) AS balance
+      FROM glchart a
+      LEFT JOIN gltrx t ON t.company_no = a.company_no
+                          AND t.acct_main_no = a.acct_main_no
+                          AND t.sub_acct_no = a.acct_sub_no
+                          AND t.year_no = $P{YEAR_NO}
+                          AND t.period_no <= $P{AS_AT_PERIOD}
+      WHERE a.company_no = $P{COMPANY_NO}
+        AND a.acct_type IN ('A','L','Q','E','EQ')
+      GROUP BY a.acct_main_no, a.desc1, a.acct_type, section
+      HAVING balance <> 0
+      ORDER BY section, a.acct_main_no
+    ]]>
+  </queryString>
+
+  <field name="acct_no"   class="java.lang.String"/>
+  <field name="acct_desc" class="java.lang.String"/>
+  <field name="acct_type" class="java.lang.String"/>
+  <field name="section"   class="java.lang.String"/>
+  <field name="balance"   class="java.math.BigDecimal"/>
+
+  <variable name="SECTION_TOTAL" class="java.math.BigDecimal" resetType="Group" resetGroup="SectionGroup" calculation="Sum">
+    <variableExpression><![CDATA[$F{balance}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+
+  <group name="SectionGroup">
+    <groupExpression><![CDATA[$F{section}]]></groupExpression>
+    <groupHeader>
+      <band height="24">
+        <rectangle>
+          <reportElement x="0" y="4" width="535" height="18" backcolor="#e8edf5"/>
+          <graphicElement><pen lineWidth="0"/></graphicElement>
+        </rectangle>
+        <textField>
+          <reportElement x="4" y="6" width="300" height="14"/>
+          <textElement><font size="10" isBold="true"/></textElement>
+          <textFieldExpression><![CDATA[$F{section}.substring(2).toUpperCase()]]></textFieldExpression>
+        </textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="22">
+        <line><reportElement x="380" y="2" width="155" height="1"/><graphicElement><pen lineWidth="0.75" lineColor="#1e2d45"/></graphicElement></line>
+        <textField>
+          <reportElement x="4" y="5" width="376" height="14"/>
+          <textElement><font size="9" isBold="true"/></textElement>
+          <textFieldExpression><![CDATA["Total " + $F{section}.substring(2)]]></textFieldExpression>
+        </textField>
+        <textField pattern="#,##0.00">
+          <reportElement x="380" y="5" width="155" height="14"/>
+          <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
+          <textFieldExpression><![CDATA[$V{SECTION_TOTAL}]]></textFieldExpression>
+        </textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="56">
+      <staticText><reportElement x="0" y="0" width="535" height="20"/><textElement><font size="14" isBold="true"/></textElement><text><![CDATA[Balance Sheet]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="400" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{YEAR_DESC}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="36" width="400" height="14"/><textElement><font size="9" isItalic="true"/></textElement><textFieldExpression><![CDATA["As at end of Period " + $P{AS_AT_PERIOD}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="420" y="22" width="115" height="14"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="535" height="20" backcolor="#1e2d45" forecolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="70"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account]]></text></staticText>
+      <staticText><reportElement x="78"  y="4" width="298" height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="380" y="4" width="155" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Balance]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="16">
+      <textField><reportElement x="4"   y="2" width="70"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acct_no}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="78" y="2" width="298" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acct_desc}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="380" y="2" width="155" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{balance}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+</jasperReport>

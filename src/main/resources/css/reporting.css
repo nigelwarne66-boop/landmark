@@ -1,0 +1,137 @@
+/* ================================================================
+   reporting.css  —  Reports Hub  (no format buttons on cards)
+   Load after fixedassets.css
+   ================================================================ */
+
+.reports-root { -fx-background-color: #f5f5f4; }
+
+/* ── Top bar ────────────────────────────────────────────────────── */
+.hub-topbar {
+    -fx-background-color: white;
+    -fx-border-color: #e5e5e3;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10 16 10 16;
+    -fx-pref-height: 52px; -fx-min-height: 52px;
+}
+.hub-brand   { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #1a1a18; }
+.hub-sep     { -fx-text-fill: #d0d0ce; -fx-padding: 0 4 0 4; }
+.hub-company { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1a1a18; }
+.hub-dot     { -fx-text-fill: #9a9a97; }
+.hub-year    { -fx-font-size: 13px; -fx-text-fill: #6b6b68; }
+.hub-user    { -fx-font-size: 13px; -fx-text-fill: #6b6b68; -fx-padding: 0 8 0 0; }
+.hub-link    { -fx-font-size: 12px; -fx-text-fill: #9a9a97; -fx-underline: false; -fx-cursor: hand; -fx-padding: 0 4 0 4; }
+.hub-link:hover { -fx-text-fill: #185FA5; }
+
+/* ── Sidebar ────────────────────────────────────────────────────── */
+.hub-sidebar     { -fx-background-color: white; -fx-pref-width: 220px; }
+.hub-search-wrap { -fx-padding: 12 12 8 12; }
+.hub-search {
+    -fx-background-color: #f5f5f4;
+    -fx-border-color: #d0d0ce;
+    -fx-border-radius: 6px; -fx-background-radius: 6px;
+    -fx-padding: 7 10 7 10; -fx-font-size: 13px;
+}
+.hub-search:focused { -fx-border-color: #185FA5; -fx-background-color: white; }
+.hub-module-list { -fx-padding: 8 0 8 0; }
+
+/* Module rows */
+.module-item { -fx-padding: 8 12 8 12; -fx-cursor: hand; -fx-background-color: transparent; }
+.module-item:hover           { -fx-background-color: #f5f5f4; }
+.module-item-active          { -fx-background-color: #E6F1FB; -fx-border-color: #185FA5; -fx-border-width: 0 0 0 3; }
+.module-item-active-fav      { -fx-background-color: #FAEEDA; -fx-border-color: #854F0B; -fx-border-width: 0 0 0 3; }
+.module-item-label           { -fx-font-size: 13px; -fx-text-fill: #6b6b68; }
+.module-item-active     .module-item-label { -fx-text-fill: #185FA5; -fx-font-weight: bold; }
+.module-item-active-fav .module-item-label { -fx-text-fill: #854F0B; -fx-font-weight: bold; }
+
+/* Sidebar icon badges */
+.module-icon-badge {
+    -fx-min-width: 26px; -fx-min-height: 26px;
+    -fx-pref-width: 26px; -fx-pref-height: 26px;
+    -fx-background-radius: 6px;
+}
+.module-badge-icon { -fx-icon-size: 14px; }
+
+/* Count pills */
+.module-badge-count { -fx-font-size: 11px; -fx-padding: 1 7 1 7; -fx-background-color: #f0f0ee; -fx-text-fill: #9a9a97; -fx-background-radius: 99px; }
+.module-badge-fav   { -fx-font-size: 11px; -fx-padding: 1 7 1 7; -fx-background-color: #FAC775; -fx-text-fill: #633806; -fx-background-radius: 99px; }
+.module-item-active .module-badge-count { -fx-background-color: #B5D4F4; -fx-text-fill: #042C53; }
+
+/* ── Module colour tokens ────────────────────────────────────────── */
+.icon-fa  { -fx-background-color: #E6F1FB; }
+.icon-fa  .module-badge-icon, .icon-fa  .report-badge-icon { -fx-icon-color: #185FA5; }
+.icon-gl  { -fx-background-color: #E1F5EE; }
+.icon-gl  .module-badge-icon, .icon-gl  .report-badge-icon { -fx-icon-color: #0F6E56; }
+.icon-py  { -fx-background-color: #EEEDFE; }
+.icon-py  .module-badge-icon, .icon-py  .report-badge-icon { -fx-icon-color: #534AB7; }
+.icon-ar  { -fx-background-color: #FAECE7; }
+.icon-ar  .module-badge-icon, .icon-ar  .report-badge-icon { -fx-icon-color: #993C1D; }
+.icon-ap  { -fx-background-color: #FAEEDA; }
+.icon-ap  .module-badge-icon, .icon-ap  .report-badge-icon { -fx-icon-color: #854F0B; }
+.icon-cm  { -fx-background-color: #EAF3DE; }
+.icon-cm  .module-badge-icon, .icon-cm  .report-badge-icon { -fx-icon-color: #3B6D11; }
+.icon-fav { -fx-background-color: #FAEEDA; }
+.icon-fav .module-badge-icon { -fx-icon-color: #BA7517; }
+
+/* ── Right content panel ─────────────────────────────────────────── */
+.hub-content        { -fx-background-color: #f5f5f4; }
+.hub-content-header { -fx-padding: 20 28 14 28; }
+.hub-content-title  { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1a1a18; }
+.hub-content-sub    { -fx-font-size: 13px; -fx-text-fill: #9a9a97; }
+.hub-scroll              { -fx-background-color: transparent; -fx-background: transparent; }
+.hub-scroll .viewport    { -fx-background-color: transparent; }
+.hub-report-list         { -fx-background-color: transparent; }
+.hub-empty { -fx-font-size: 13px; -fx-text-fill: #9a9a97; -fx-padding: 40 0 0 0; -fx-alignment: center; }
+
+/* ── Report cards — clickable, no format buttons ─────────────────── */
+.report-card {
+    -fx-background-color: white;
+    -fx-border-color: #e5e5e3;
+    -fx-border-radius: 10px; -fx-background-radius: 10px;
+    -fx-padding: 14 16 14 14;
+}
+.report-card-clickable {
+    -fx-cursor: hand;
+}
+.report-card-clickable:hover {
+    -fx-border-color: #c8c8c6;
+    -fx-background-color: #fafafa;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 6, 0, 0, 2);
+}
+
+/* Report icon badge */
+.report-icon-badge {
+    -fx-min-width: 40px; -fx-min-height: 40px;
+    -fx-pref-width: 40px; -fx-pref-height: 40px;
+    -fx-background-radius: 10px;
+}
+.report-badge-icon { -fx-icon-size: 19px; }
+
+.report-name { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1a1a18; }
+.report-hint { -fx-font-size: 12px; -fx-text-fill: #9a9a97; }
+
+/* ── Favourite star ──────────────────────────────────────────────── */
+.fav-star        { -fx-font-size: 18px; -fx-text-fill: #d8d8d6; -fx-cursor: hand; -fx-padding: 0 4 0 8; }
+.fav-star:hover  { -fx-text-fill: #BA7517; }
+.fav-star-active { -fx-text-fill: #BA7517; }
+
+/* ── Selection screen (per-report params dialog) ─────────────────── */
+.sel-root   { -fx-background-color: #f5f5f4; }
+.sel-header { -fx-background-color: white; -fx-border-color: #e5e5e3; -fx-border-width: 0 0 1 0; }
+.sel-title  { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1a1a18; }
+.sel-sub    { -fx-font-size: 12px; -fx-text-fill: #9a9a97; }
+.sel-body   { -fx-background-color: #f5f5f4; -fx-padding: 16 24 16 24; }
+.sel-row    { -fx-padding: 4 0 4 0; }
+.sel-label  { -fx-font-size: 13px; -fx-text-fill: #6b6b68; }
+.sel-footer { -fx-background-color: white; -fx-border-color: #e5e5e3; -fx-border-width: 1 0 0 0; }
+
+.sel-btn-cancel { -fx-font-size: 13px; -fx-padding: 7 16 7 16; -fx-background-color: transparent;
+                  -fx-border-color: #d0d0ce; -fx-border-radius: 6px; -fx-background-radius: 6px;
+                  -fx-text-fill: #6b6b68; -fx-cursor: hand; }
+.sel-btn-excel  { -fx-font-size: 13px; -fx-padding: 7 16 7 16; -fx-background-color: #EAF3DE;
+                  -fx-border-color: #97C459; -fx-border-radius: 6px; -fx-background-radius: 6px;
+                  -fx-text-fill: #3B6D11; -fx-font-weight: bold; -fx-cursor: hand; }
+.sel-btn-pdf    { -fx-font-size: 13px; -fx-padding: 7 16 7 16; -fx-background-color: #185FA5;
+                  -fx-border-color: #185FA5; -fx-border-radius: 6px; -fx-background-radius: 6px;
+                  -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; }
+.sel-btn-pdf:hover   { -fx-background-color: #0C447C; }
+.sel-btn-excel:hover { -fx-background-color: #C0DD97; }

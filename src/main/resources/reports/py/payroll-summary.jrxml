@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="payroll-summary"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
+  <parameter name="YEAR_NO"      class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="YEAR_DESC"    class="java.lang.String"/>
+
+  <queryString>
+    <![CDATA[
+      SELECT r.payrun_no, r.payrun_date, r.paymt_date, r.no_of_employees_paid,
+             COALESCE(SUM(CASE WHEN h.pay_type IN (1,2) AND h.income_taxable_flag='Y' THEN h.ext_amt ELSE 0 END),0) AS gross_pay,
+             COALESCE(SUM(CASE WHEN h.pay_type=4 THEN h.ext_amt ELSE 0 END),0) AS tax_withheld,
+             COALESCE(SUM(CASE WHEN h.pay_type=5 THEN h.ext_amt ELSE 0 END),0) AS super_amt,
+             COALESCE(SUM(CASE WHEN h.pay_type IN (1,2) AND h.income_taxable_flag='Y' THEN h.ext_amt
+                               WHEN h.pay_type=3 THEN h.ext_amt ELSE 0 END),0) AS net_pay
+      FROM parunhd r
+      LEFT JOIN paehist h ON h.company_no=r.company_no AND h.payrun_no=r.payrun_no
+      JOIN gldates d ON d.company_no=r.company_no AND d.yr_no=r.yr_no
+      WHERE r.company_no = $P{COMPANY_NO}
+        AND d.year_no    = $P{YEAR_NO}
+        AND r.payrun_status = 'P'
+      GROUP BY r.payrun_no, r.payrun_date, r.paymt_date, r.no_of_employees_paid
+      ORDER BY r.payrun_date
+    ]]>
+  </queryString>
+
+  <field name="payrun_no"          class="java.lang.Integer"/>
+  <field name="payrun_date"        class="java.sql.Date"/>
+  <field name="paymt_date"         class="java.sql.Date"/>
+  <field name="no_of_employees_paid" class="java.lang.Integer"/>
+  <field name="gross_pay"          class="java.math.BigDecimal"/>
+  <field name="tax_withheld"       class="java.math.BigDecimal"/>
+  <field name="super_amt"          class="java.math.BigDecimal"/>
+  <field name="net_pay"            class="java.math.BigDecimal"/>
+
+  <variable name="TTL_GROSS" class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{gross_pay}]]></variableExpression></variable>
+  <variable name="TTL_TAX"   class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{tax_withheld}]]></variableExpression></variable>
+  <variable name="TTL_SUPER" class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{super_amt}]]></variableExpression></variable>
+  <variable name="TTL_NET"   class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{net_pay}]]></variableExpression></variable>
+
+  <title>
+    <band height="50">
+      <staticText><reportElement x="0" y="0" width="782" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Payroll Summary]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{YEAR_DESC}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="660" y="22" width="122" height="14"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="50"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Run No]]></text></staticText>
+      <staticText><reportElement x="58"  y="4" width="80"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Date]]></text></staticText>
+      <staticText><reportElement x="142" y="4" width="80"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Pmt Date]]></text></staticText>
+      <staticText><reportElement x="226" y="4" width="60"  height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Employees]]></text></staticText>
+      <staticText><reportElement x="290" y="4" width="120" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Gross Pay]]></text></staticText>
+      <staticText><reportElement x="414" y="4" width="110" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Tax Withheld]]></text></staticText>
+      <staticText><reportElement x="528" y="4" width="110" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Superannuation]]></text></staticText>
+      <staticText><reportElement x="642" y="4" width="136" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Net Pay]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="16">
+      <textField><reportElement x="4"   y="2" width="50"  height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$F{payrun_no}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="58"  y="2" width="80" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$F{payrun_date}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="142" y="2" width="80" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$F{paymt_date}]]></textFieldExpression></textField>
+      <textField><reportElement x="226" y="2" width="60"  height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{no_of_employees_paid}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="290" y="2" width="120" height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{gross_pay}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="414" y="2" width="110" height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{tax_withheld}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="528" y="2" width="110" height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{super_amt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="642" y="2" width="136" height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{net_pay}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="28">
+      <line><reportElement x="290" y="2" width="492" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1.5"/></graphicElement></line>
+      <staticText><reportElement x="4" y="8" width="286" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[YEAR TOTALS]]></text></staticText>
+      <textField pattern="#,##0.00"><reportElement x="294" y="8" width="116" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TTL_GROSS}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="418" y="8" width="106" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TTL_TAX}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="532" y="8" width="106" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TTL_SUPER}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="642" y="8" width="136" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TTL_NET}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

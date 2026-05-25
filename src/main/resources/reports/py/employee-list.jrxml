@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="employee-list"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+
+  <queryString>
+    <![CDATA[
+      SELECT e.employee_no, e.surname, e.first_name, e.dept,
+             e.employee_status, e.pay_freq, e.std_rate_per_hr, e.annual_salary,
+             e.date_started, e.email_address,
+             COALESCE(NULLIF(e.dept,''), 'Unassigned') AS dept_display
+      FROM pastaff e
+      WHERE e.company_no = $P{COMPANY_NO} AND e.employee_status = 'A'
+      ORDER BY e.dept, e.surname, e.first_name
+    ]]>
+  </queryString>
+
+  <field name="employee_no"    class="java.lang.Integer"/>
+  <field name="surname"        class="java.lang.String"/>
+  <field name="first_name"     class="java.lang.String"/>
+  <field name="dept_display"   class="java.lang.String"/>
+  <field name="pay_freq"       class="java.lang.String"/>
+  <field name="std_rate_per_hr" class="java.math.BigDecimal"/>
+  <field name="annual_salary"  class="java.math.BigDecimal"/>
+  <field name="date_started"   class="java.sql.Date"/>
+  <field name="email_address"  class="java.lang.String"/>
+
+  <variable name="DEPT_COUNT"  class="java.lang.Integer" resetType="Group" resetGroup="DeptGroup" calculation="Count"><variableExpression><![CDATA[$F{employee_no}]]></variableExpression><initialValueExpression><![CDATA[0]]></initialValueExpression></variable>
+  <variable name="TOTAL_COUNT" class="java.lang.Integer" calculation="Count"><variableExpression><![CDATA[$F{employee_no}]]></variableExpression></variable>
+
+  <group name="DeptGroup">
+    <groupExpression><![CDATA[$F{dept_display}]]></groupExpression>
+    <groupHeader>
+      <band height="22">
+        <rectangle><reportElement x="0" y="2" width="782" height="18" backcolor="#faf5ff"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField><reportElement x="4" y="4" width="400" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Department: " + $F{dept_display}]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="16">
+        <textField><reportElement x="4" y="2" width="400" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$V{DEPT_COUNT} + " employee(s)"]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="50">
+      <staticText><reportElement x="0" y="0" width="782" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Employee List — Active Employees]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="660" y="22" width="122" height="14"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="60"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Emp No]]></text></staticText>
+      <staticText><reportElement x="68"  y="4" width="200" height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Name]]></text></staticText>
+      <staticText><reportElement x="272" y="4" width="60"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Freq]]></text></staticText>
+      <staticText><reportElement x="336" y="4" width="100" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Hourly Rate]]></text></staticText>
+      <staticText><reportElement x="440" y="4" width="100" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Annual Salary]]></text></staticText>
+      <staticText><reportElement x="544" y="4" width="80"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Start Date]]></text></staticText>
+      <staticText><reportElement x="628" y="4" width="150" height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Email]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="15">
+      <textField><reportElement x="4"   y="1" width="60"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{employee_no}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="68" y="1" width="200" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{surname} + ", " + $F{first_name}]]></textFieldExpression></textField>
+      <textField><reportElement x="272" y="1" width="60"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{pay_freq}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0000"><reportElement x="336" y="1" width="100" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{std_rate_per_hr}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="440" y="1" width="100" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{annual_salary}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="544" y="1" width="80" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{date_started}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="628" y="1" width="150" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{email_address}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="22">
+      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
+      <textField><reportElement x="4" y="6" width="400" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Total active employees: " + $V{TOTAL_COUNT}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

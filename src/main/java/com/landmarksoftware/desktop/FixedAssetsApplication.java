@@ -15,6 +15,8 @@ import com.landmarksoftware.ui.LoginController;
 import com.landmarksoftware.ui.MainMenuController;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.springframework.boot.SpringApplication;
@@ -33,7 +35,7 @@ import org.springframework.context.ConfigurableApplicationContext;
  */
 public class FixedAssetsApplication extends Application {
 
-    private ConfigurableApplicationContext springContext;
+    protected ConfigurableApplicationContext springContext;
 
     @Override
     public void init() {
@@ -55,7 +57,17 @@ public class FixedAssetsApplication extends Application {
             return;
         }
 
-        // Login succeeded — open main menu (MENU01)
+        // Post-login navigation — branches on AppMode.current.
+        // FULL      → MainMenuController (the existing full menu)
+        // REPORTING → ReportsHub (set by ReportingApplication.main())
+        if (AppMode.current == AppMode.Mode.REPORTING) {
+            showReportsHub(primaryStage);
+        } else {
+            showMainMenu(primaryStage);
+        }
+    }
+
+    private void showMainMenu(Stage primaryStage) {
         MainMenuController menu = springContext.getBean(MainMenuController.class);
         primaryStage.setScene(menu.buildScene());
         primaryStage.setTitle("Landmark");
@@ -63,6 +75,45 @@ public class FixedAssetsApplication extends Application {
         primaryStage.setMinHeight(580);
         primaryStage.setOnCloseRequest(e -> Platform.exit());
         primaryStage.show();
+    }
+
+    /**
+     * Reporting-only post-login flow. Populates AppSession with the same
+     * company/year defaults MainMenuController would have set, then loads
+     * the Reports Hub FXML.
+     */
+    private void showReportsHub(Stage primaryStage) {
+        try {
+            // Populate AppSession.companyNo/companyName/yearDesc using the
+            // existing logic in MainMenuController (default-or-last-pick),
+            // without building the full menu scene.
+            MainMenuController menu = springContext.getBean(MainMenuController.class);
+            menu.loadDefaultSession();
+
+            FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/fxml/reports-hub.fxml"));
+            loader.setControllerFactory(springContext::getBean);
+            Parent root = loader.load();
+
+            Scene scene = new Scene(root, 1000, 680);
+            scene.getStylesheets().add(
+                getClass().getResource("/css/fixedassets.css").toExternalForm());
+            scene.getStylesheets().add(
+                getClass().getResource("/css/reporting.css").toExternalForm());
+
+            primaryStage.setTitle("Landmark Reports");
+            primaryStage.setScene(scene);
+            primaryStage.setMinWidth(900);
+            primaryStage.setMinHeight(600);
+            primaryStage.setOnCloseRequest(e -> Platform.exit());
+            primaryStage.show();
+        } catch (Exception ex) {
+            // Explicit print so the trace lands in the launch log — JavaFX's
+            // launcher otherwise only prints "Exception in Application start method".
+            System.err.println("=== Reports Hub load failed ===");
+            ex.printStackTrace();
+            throw new RuntimeException("Failed to load Reports Hub", ex);
+        }
     }
 
     @Override

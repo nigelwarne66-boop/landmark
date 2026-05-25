@@ -53,6 +53,19 @@
       <version>${javafx.version}</version>
     </dependency>
 
+    <!-- Ikonli — icon font support for JavaFX. Used by ReportsHubController
+         (module + report icon badges) via FontIcon + Tabler icon names. -->
+    <dependency>
+      <groupId>org.kordamp.ikonli</groupId>
+      <artifactId>ikonli-javafx</artifactId>
+      <version>12.3.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.kordamp.ikonli</groupId>
+      <artifactId>ikonli-feather-pack</artifactId>
+      <version>12.3.1</version>
+    </dependency>
+
     <!-- PDF export (FA reports) — uses 2.x API (PDType1Font.HELVETICA as static field) -->
     <dependency>
       <groupId>org.apache.pdfbox</groupId>
@@ -70,6 +83,25 @@
       <groupId>org.apache.poi</groupId>
       <artifactId>poi-ooxml</artifactId>
       <version>${poi.version}</version>
+    </dependency>
+
+    <!-- JasperReports — server-side report engine driving the Reports Hub.
+         .jrxml files in src/main/resources/reports/, compiled on first use. -->
+    <dependency>
+      <groupId>net.sf.jasperreports</groupId>
+      <artifactId>jasperreports</artifactId>
+      <version>6.21.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.jasperreports</groupId>
+      <artifactId>jasperreports-fonts</artifactId>
+      <version>6.21.0</version>
     </dependency>
 
     <!-- MySQL JDBC driver -->
@@ -166,5 +198,25 @@
 
     </plugins>
   </build>
+
+  <profiles>
+    <!-- Reporting-only build:  mvn javafx:run -Preporting
+         Boots the same Spring context + login, then branches on AppMode
+         to load /fxml/reports-hub.fxml instead of MainMenuController. -->
+    <profile>
+      <id>reporting</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-maven-plugin</artifactId>
+            <configuration>
+              <mainClass>com.landmarksoftware.desktop.ReportingApplication</mainClass>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
