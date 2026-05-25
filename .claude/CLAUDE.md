@@ -19,6 +19,29 @@ JavaFX desktop app with embedded Tomcat on port 8090.
 - **TFN is never printed/logged in full** — `Employee.maskTfn(String)` (static, shared by UI Show/Hide toggle and the PDF print service) returns `***-***-NNN`.
 - **New tables follow the work-file rule.** If the table name contains `wk` (e.g. `paemwk1`, `pasuwk3`, `patmwkk`) it's a work file — create it directly in Java via `CREATE TABLE IF NOT EXISTS` in a `@PostConstruct` on the owning service. **Every other new table** must have the four extract-pipeline files at `C:\landmark_extract\sql\` **before** any Java depends on it: `create/<table>_create.sql`, `insert/<table>_insert.sql`, `insert/<table>_select.sql`, `insert/<table>_values.sql` — plus the name appended to `list/module/pafiles.txt`. Reason: that pipeline is how COBOL `.dat` data flows from ACU into MySQL; a production table without those four files can't be populated from the source. Existing exceptions (`tax_brackets`, `pa_audit`) pre-date the rule and have no ACU origin — not a template for new tables.
 
+## Recent learnings (always check these before assuming COBOL behaviour)
+
+Captured iteratively during Wave 3 — small COBOL details that bit us once and shouldn't bite again.
+
+- **Two COBOL date conventions coexist in the data — verify per field, never assume:**
+  - **Landmark Julian** — `INT` count of days since **1899-12-31**. `pagroup.paid_thru_to_X`, `pagroup.payrun_date_X` and similar.   Helper: `landmarkDayToDate(int)` in `TimesheetEntryController`. Verified via live `pagroup.csv` 2026-05-16: 44773 → 2022-07-31.
+  - **YYMMDD-packed** — 6-digit `INT` like `260531` = 2026-05-31. Year pivot `yy < 40 → 20yy`, else `19yy`. Used by some other COBOL date fields. Helper: `MainMenuController.dayNoToDate`.
+  - **Native DATE** — most extract-pipeline tables (`parunhd`, `paehist`, `patimhd`, `paleave`) just use MySQL `DATE`. Sentinel for "no date" is `1899-12-31`.
+- **COBOL program names lie sometimes — read the proc, not the menu:**
+  - **PAPA14** is *not* leave processing despite its old menu label. Per `papa14.pl`, it's the **CM/GL payment-batch posting** interface (entry to PAPA15+).
+  - **CREATE-PAYRUN** on PATM01 P2 does *not* create a new parunhd. Per `patm01.pl:1027`, it validates the current payrun + transitions to PATM02 (the all-paygroups timesheet builder = our P3).
+- **Leave model — `paleave` is exceptional events only, NOT a per-pay-period log:**
+  - `accrued_taken_ind='A'` rows only from **PAEM01** (manual edits) + **PASU18** (opening-balance migration).
+  - `accrued_taken_ind='T'` rows only from **PAPP28** posting (one per leave-taken patimes line).
+  - Regular per-period accrual (**PAPP03** `ACCRUE-LEAVE`) updates `pastaff` running balances directly — does *not* write paleave.
+  - On un-post, PAPP28 reverses both: deletes 'T' rows + adds the minutes back to pastaff.
+- **Paygroup auto-attach algorithm** (`SET-PAY-THRU-DATES`, `patm01.pl:1383`) — per frequency, compute next pay-thru only when:
+  1. `pagroup.payrun_active_X != 'Y'` (not already in another payrun), AND
+  2. `pagroup.paid_thru_to_X > 0` (has history). Then `next = paid_thru_to_X + period` (1mth / 28d / 15d / 14d / 7d).
+- **Bootstrap path for a brand-new company / paygroup with no history:** validate=Y in the Select Paygroups dialog now prompts to attach with `payrun.end_date` defaults for all 5 frequencies. validate=N still skips (COBOL-accurate).
+- **PAEM01 read-only state columns** — `paid_thru_to_date`, `timesheets_to_date`, `last_payrun_no`, `current_payrun_no`, retainer/commission running totals on pastaff are **owned by PAPP01 / PAPP28**. PAEM01 must NOT include them in UPDATE — round-trip them in memory only. (The 2026-05-22 backfill respects this.)
+- **ABA employer-side fields come from `cmbanks`**, not session.companyName. Pick the row where `eft_pa_flag='Y'` and not inactive. `user_no` (6-digit APCA), `eft_bank_code` (3-char abbreviation), `eft_name` (26-char), `branch_no`+`bank_acct_no` (trace), `pay_serv_remitter_name` (16-char). See `CmBanksService.findPayrollBank`.
+
 ## Working style
 
 - Never ask for confirmation mid-task. Complete the full scope, then report results.
@@ -46,7 +69,7 @@ The COBOL canonical source for `.fd`/`.ws` is `C:\landmark\compile\` (with rare 
 
 ---
 
-## Current state (as of 2026-05-16)
+## Current state (as of 2026-05-25)
 
 ### Wave 0 — Foundation ✅
 - Module scaffolding, `AppSession` (mirrors GLPASS), PACD01 (Pay Code Maintenance).

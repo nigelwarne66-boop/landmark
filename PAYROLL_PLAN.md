@@ -1,5 +1,5 @@
 # Landmark Payroll — Development Plan
-*Created: 2026-05-09 · Updated: 2026-05-16*
+*Created: 2026-05-09 · Updated: 2026-05-25*
 
 ---
 
@@ -11,7 +11,7 @@
 | 1 — Setup CRUD | PAEM01 ✅, PAPG01 ✅, PASU04 ✅, PAAW01 ✅, PATX01 ✅ | ✅ Complete |
 | 1.5 — Audit back-fill | paemaud / pafuaud / pacdchg / paawchg via MasterFileAuditService | ✅ Complete |
 | 2 — Batch operations | PASU14/11/15 ✅, PAEM60 ✅, PAEM11 ✅, PASU55 🟡 thin, PAPC01 🟡 thin | ✅ Core complete |
-| 3 — Pay processing | PaygTaxCalculator ✅, PATM01 ✅ (S0/P1/P2/P3/S3/S3B/Options + paecode CRUD), PAPP01 ✅, PAPP28 ✅, PABK02 ✅, PAPA14 ✅ MVP | ✅ End-to-end |
+| 3 — Pay processing | PaygTaxCalculator ✅, PATM01 ✅ (S0/P1/P2/P3/S3/S3B/Options + paecode CRUD), PAPP01 ✅, PAPP02/PAPP03 leave ✅, PAPP28 ✅ (+ paleave 'T' writes), PABK02 ✅ (cmbanks-sourced), PAPA14 (CM/GL posting — real meaning) 🟡 stub | ✅ End-to-end |
 | 4 — Compliance | PAST10 (STP), PAPS26, PADE01 | 🔲 Pending ATO sandbox |
 | 5 — Reports | PATL series | 🔲 Ongoing |
 

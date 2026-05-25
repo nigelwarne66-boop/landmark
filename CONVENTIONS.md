@@ -1,5 +1,5 @@
 # Landmark — Developer Conventions
-*Updated: 2026-05-16*
+*Updated: 2026-05-25*
 
 ---
 
@@ -431,4 +431,60 @@ PAPA14  Leave accrual — LeaveAccrualService.accruePayrun
 ```
 
 ---
-*Last updated: 2026-05-16 — Wave 3 end-to-end pay cycle, papcaud audit hook activated, LastSessionStore persistence*
+*Last updated: 2026-05-25 — COBOL-grounded fixes: Julian date format, PAPA14 vs PAPP02/03 leave split, no-history bootstrap path, PAEM01 S1B/S1A/S1F backfill, cmbanks-sourced ABA, work-file naming rule.*
+
+---
+
+## Lessons from Wave 3 porting — read these before the next wave
+
+Half-day's worth of debugging compressed into bullets. Each one was verified against COBOL source and confirmed against live data; each one is *easy to assume wrong* the first time you encounter the symptom.
+
+### Date formats — two conventions coexist
+- **Landmark Julian** — `INT` days since **1899-12-31**. Confirmed via `pagroup.csv` (44773 → 2022-07-31). Used by `pagroup.paid_thru_to_X`, `pagroup.payrun_date_X`, COBOL `DAY-NO` / `CONVERT-DAY-TO-DATE`. Helper: `TimesheetEntryController.landmarkDayToDate(int)`.
+- **YYMMDD-packed** — 6-digit `INT` like `260531` = 2026-05-31, year pivot at 40. Helper: `MainMenuController.dayNoToDate(int)`.
+- **Native MySQL DATE** — every extract-pipeline table created during Wave 3 (parunhd, paehist, patimhd, patimes, parungr, paleave). Sentinel `1899-12-31` for "no date".
+- **Rule** — never assume a format from the column type. Verify against actual data with the dbhub MCP before parsing.
+
+### COBOL program names can lie
+- **PAPA14** is *not* leave processing — verified `papa14.pl`. It's CM/GL payment-batch posting (entry to PAPA15+). My port mis-labelled it and the gap shows in CLAUDE.md "Things deferred".
+- **CREATE-PAYRUN** on PATM01 P2 does NOT create a new parunhd — `patm01.pl:1027` validates the open payrun + transitions to PATM02 (timesheet builder = our P3).
+- **Rule** — read the proc body (`grep -n PROC-NAME *.pl`) before porting. Screen labels and proc names can disagree with what the code does.
+
+### Leave model
+- `paleave` is **exceptional events only** — opening balances (PASU18), manual edits (PAEM01), and leave-taken (PAPP28 'T' rows). Regular per-pay-period accrual touches `pastaff` running balances directly via PAPP03 and does NOT write paleave.
+- On un-post, PAPP28 reverses both: deletes 'T' rows AND adds minutes back to pastaff. Captured in `PayrollPostingService.unpostPayrun`.
+
+### Paygroup auto-attach (PATM01 Select)
+- `SET-PAY-THRU-DATES` (`patm01.pl:1383`) per frequency:
+  - skip when `pagroup.payrun_active_X='Y'`
+  - skip when `pagroup.paid_thru_to_X = 0`
+  - else `next_thru = paid_thru_to_X + period` (1mth / 28d / 15d / 14d / 7d)
+- **Bootstrap path for new companies** — when ALL 5 paid-thru columns are zero AND validate=Y, prompt to attach with `payrun.end_date` defaults across all five. validate=N still skips (COBOL-accurate behaviour, matches `SELECT-NEXT-PAYGROUP` → skip when `WS-PAYRUN-DATES-SET="N"`).
+
+### `pastaff` read-only state owned by PAPP* — PAEM01 must not overwrite
+Columns on pastaff that PAEM01's UPDATE statement must **not** include (set by the payrun chain):
+- `paid_thru_to_date`, `timesheets_to_date`
+- `last_payrun_no`, `current_payrun_no`
+- `retainer_to_date`, `commission_to_date`, `ret_deducted_to_date`
+- `last_super_payrun`, `current_super_payrun`, `last_super_date`
+- `al_hrs_accrued`, `accrued_sick_leave`, `lsl_hrs_*`, `al_loading`, `accrued_al_loading`, etc. (leave balances — owned by PAPP03)
+
+Round-trip them in memory on the save path; **never list them in the UPDATE statement**. See `EmployeeService.update()` + `PayrollSql.UPDATE_EMPLOYEE`.
+
+### ABA employer details come from `cmbanks`
+Pick the row where `eft_pa_flag='Y'` and not inactive. Fields used:
+- `user_no` → APCA user number (header col 57-62, 6 digits)
+- `eft_bank_code` → 3-char abbreviation (col 21-23)
+- `eft_name` → 26-char user name (col 31-56)
+- `branch_no` + `bank_acct_no` → trace BSB/account (col 81-96)
+- `pay_serv_remitter_name` → remitter (col 97-112)
+
+Refuse to generate if no payroll bank is configured.
+
+### Read existing data before defining conversions
+Asking the user `SELECT *` from a confused table beats five rounds of guessing at format. Standard reach-for-this sequence:
+1. `mcp__dbhub-mysql__execute_sql` with a targeted SELECT.
+2. Compare to the COBOL FD via `Read C:\landmark\compile\<table>.fd`.
+3. Compare to the extract-pipeline schema at `C:\landmark_extract\sql\create\<table>_create.sql`.
+
+All three should agree. When they don't, the FD wins for COBOL semantics, the live data wins for actual format encountered.
