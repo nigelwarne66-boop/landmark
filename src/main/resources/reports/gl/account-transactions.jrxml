@@ -85,13 +85,13 @@
   <columnHeader>
     <band height="20">
       <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <staticText><reportElement x="4"   y="4" width="55"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
-      <staticText><reportElement x="63"  y="4" width="40"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Batch]]></text></staticText>
-      <staticText><reportElement x="107" y="4" width="30"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Per]]></text></staticText>
-      <staticText><reportElement x="141" y="4" width="280" height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
-      <staticText><reportElement x="425" y="4" width="100" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Debit]]></text></staticText>
-      <staticText><reportElement x="529" y="4" width="100" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Credit]]></text></staticText>
-      <staticText><reportElement x="633" y="4" width="145" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Running Balance]]></text></staticText>
+      <staticText><reportElement x="4"   y="4" width="55"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="63"  y="4" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Batch]]></text></staticText>
+      <staticText><reportElement x="107" y="4" width="30"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Per]]></text></staticText>
+      <staticText><reportElement x="141" y="4" width="280" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="425" y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Debit]]></text></staticText>
+      <staticText><reportElement x="529" y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Credit]]></text></staticText>
+      <staticText><reportElement x="633" y="4" width="145" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Running Balance]]></text></staticText>
     </band>
   </columnHeader>
 

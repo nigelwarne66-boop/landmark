@@ -87,15 +87,15 @@
   <columnHeader>
     <band height="34">
       <rectangle><reportElement x="0" y="0" width="782" height="34" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <staticText><reportElement x="4"   y="2" width="80"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Asset No]]></text></staticText>
-      <staticText><reportElement x="88"  y="2" width="180" height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
-      <staticText><reportElement x="272" y="2" width="60"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Tax Meth]]></text></staticText>
-      <staticText><reportElement x="336" y="2" width="40"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Rate%]]></text></staticText>
-      <staticText><reportElement x="380" y="2" width="40"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Bk Meth]]></text></staticText>
-      <staticText><reportElement x="424" y="2" width="100" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Cost]]></text></staticText>
-      <staticText><reportElement x="524" y="2" width="40"  height="12" forecolor="#ffffff"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Bk Rate]]></text></staticText>
-      <staticText><reportElement x="568" y="2" width="100" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Accum Depn]]></text></staticText>
-      <staticText><reportElement x="672" y="2" width="106" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Net Book Value]]></text></staticText>
+      <staticText><reportElement x="4"   y="2" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Asset No]]></text></staticText>
+      <staticText><reportElement x="88"  y="2" width="180" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="272" y="2" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Tax Meth]]></text></staticText>
+      <staticText><reportElement x="336" y="2" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Rate%]]></text></staticText>
+      <staticText><reportElement x="380" y="2" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Bk Meth]]></text></staticText>
+      <staticText><reportElement x="424" y="2" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Cost]]></text></staticText>
+      <staticText><reportElement x="524" y="2" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Bk Rate]]></text></staticText>
+      <staticText><reportElement x="568" y="2" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Accum Depn]]></text></staticText>
+      <staticText><reportElement x="672" y="2" width="106" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Net Book Value]]></text></staticText>
       <!-- Row 2 -->
       <staticText><reportElement x="272" y="16" width="60"  height="12" forecolor="#aac0e0"/><textElement><font size="7"/></textElement><text><![CDATA[Start Date]]></text></staticText>
       <staticText><reportElement x="336" y="16" width="80"  height="12" forecolor="#aac0e0"/><textElement><font size="7"/></textElement><text><![CDATA[Write-down Date]]></text></staticText>

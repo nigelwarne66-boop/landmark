@@ -95,12 +95,12 @@
   <columnHeader>
     <band height="20">
       <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <staticText><reportElement x="4"   y="4" width="70"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
-      <staticText><reportElement x="78"  y="4" width="80"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account]]></text></staticText>
-      <staticText><reportElement x="162" y="4" width="180" height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account Desc]]></text></staticText>
-      <staticText><reportElement x="346" y="4" width="200" height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
-      <staticText><reportElement x="550" y="4" width="108" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Debit]]></text></staticText>
-      <staticText><reportElement x="662" y="4" width="116" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Credit]]></text></staticText>
+      <staticText><reportElement x="4"   y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="78"  y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account]]></text></staticText>
+      <staticText><reportElement x="162" y="4" width="180" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account Desc]]></text></staticText>
+      <staticText><reportElement x="346" y="4" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="550" y="4" width="108" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Debit]]></text></staticText>
+      <staticText><reportElement x="662" y="4" width="116" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Credit]]></text></staticText>
     </band>
   </columnHeader>
 

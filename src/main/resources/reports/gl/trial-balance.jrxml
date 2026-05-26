@@ -93,32 +93,32 @@
         <graphicElement><pen lineWidth="0"/></graphicElement>
       </rectangle>
       <staticText>
-        <reportElement x="4"   y="4" width="70"  height="16" forecolor="#ffffff"/>
+        <reportElement x="4"   y="4" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
         <textElement><font size="9" isBold="true"/></textElement>
         <text><![CDATA[Acct No]]></text>
       </staticText>
       <staticText>
-        <reportElement x="80"  y="4" width="380" height="16" forecolor="#ffffff"/>
+        <reportElement x="80"  y="4" width="380" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
         <textElement><font size="9" isBold="true"/></textElement>
         <text><![CDATA[Description]]></text>
       </staticText>
       <staticText>
-        <reportElement x="460" y="4" width="50"  height="16" forecolor="#ffffff"/>
+        <reportElement x="460" y="4" width="50"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
         <textElement><font size="9" isBold="true"/></textElement>
         <text><![CDATA[Type]]></text>
       </staticText>
       <staticText>
-        <reportElement x="514" y="4" width="80"  height="16" forecolor="#ffffff"/>
+        <reportElement x="514" y="4" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
         <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
         <text><![CDATA[Debit]]></text>
       </staticText>
       <staticText>
-        <reportElement x="600" y="4" width="80"  height="16" forecolor="#ffffff"/>
+        <reportElement x="600" y="4" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
         <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
         <text><![CDATA[Credit]]></text>
       </staticText>
       <staticText>
-        <reportElement x="686" y="4" width="92"  height="16" forecolor="#ffffff"/>
+        <reportElement x="686" y="4" width="92"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
         <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
         <text><![CDATA[Balance]]></text>
       </staticText>

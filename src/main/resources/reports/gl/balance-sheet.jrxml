@@ -98,9 +98,9 @@
   <columnHeader>
     <band height="20">
       <rectangle><reportElement x="0" y="0" width="535" height="20" backcolor="#1e2d45" forecolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <staticText><reportElement x="4"   y="4" width="70"  height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account]]></text></staticText>
-      <staticText><reportElement x="78"  y="4" width="298" height="12" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
-      <staticText><reportElement x="380" y="4" width="155" height="12" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Balance]]></text></staticText>
+      <staticText><reportElement x="4"   y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account]]></text></staticText>
+      <staticText><reportElement x="78"  y="4" width="298" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="380" y="4" width="155" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Balance]]></text></staticText>
     </band>
   </columnHeader>
 

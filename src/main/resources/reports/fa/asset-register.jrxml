@@ -74,14 +74,14 @@
         <reportElement x="0" y="0" width="782" height="22" backcolor="#1e2d45" forecolor="#1e2d45"/>
         <graphicElement><pen lineWidth="0"/></graphicElement>
       </rectangle>
-      <staticText><reportElement x="4"   y="4" width="80"  height="14" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Asset No]]></text></staticText>
-      <staticText><reportElement x="88"  y="4" width="200" height="14" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
-      <staticText><reportElement x="292" y="4" width="110" height="14" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Group]]></text></staticText>
-      <staticText><reportElement x="406" y="4" width="80"  height="14" forecolor="#ffffff"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Location]]></text></staticText>
-      <staticText><reportElement x="490" y="4" width="70"  height="14" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Acqn Date]]></text></staticText>
-      <staticText><reportElement x="564" y="4" width="70"  height="14" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Cost]]></text></staticText>
-      <staticText><reportElement x="638" y="4" width="70"  height="14" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Accum Depn]]></text></staticText>
-      <staticText><reportElement x="712" y="4" width="66"  height="14" forecolor="#ffffff"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Net Book Val]]></text></staticText>
+      <staticText><reportElement x="4"   y="4" width="80"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Asset No]]></text></staticText>
+      <staticText><reportElement x="88"  y="4" width="200" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="292" y="4" width="110" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Group]]></text></staticText>
+      <staticText><reportElement x="406" y="4" width="80"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Location]]></text></staticText>
+      <staticText><reportElement x="490" y="4" width="70"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Acqn Date]]></text></staticText>
+      <staticText><reportElement x="564" y="4" width="70"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Cost]]></text></staticText>
+      <staticText><reportElement x="638" y="4" width="70"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Accum Depn]]></text></staticText>
+      <staticText><reportElement x="712" y="4" width="66"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Net Book Val]]></text></staticText>
     </band>
   </columnHeader>
 
