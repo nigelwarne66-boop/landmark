@@ -9,6 +9,10 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+
   <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
   <parameter name="COMPANY_NAME" class="java.lang.String"/>
   <parameter name="YEAR_DESC"    class="java.lang.String"/>

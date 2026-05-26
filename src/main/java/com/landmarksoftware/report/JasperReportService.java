@@ -55,21 +55,9 @@ public class JasperReportService {
 
     /** Export report as Excel (.xlsx) bytes. */
     public byte[] exportExcel(String reportPath, Map<String, Object> params) throws Exception {
-        JasperPrint print = fill(reportPath, params);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-        JRXlsxExporter exporter = new JRXlsxExporter();
-        exporter.setExporterInput(new SimpleExporterInput(print));
-        exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(out));
-
-        SimpleXlsxReportConfiguration cfg = new SimpleXlsxReportConfiguration();
-        cfg.setOnePagePerSheet(false);
-        cfg.setDetectCellType(true);
-        cfg.setCollapseRowSpan(false);
-        exporter.setConfiguration(cfg);
-        exporter.exportReport();
-
-        return out.toByteArray();
+        JasperPrint print = fill(reportPath, excelParams(params));
+        configureExcelExclusions(print);
+        return runXlsxExport(print);
     }
 
     // ── Data-source variants ───────────────────────────────────────────────
@@ -91,7 +79,46 @@ public class JasperReportService {
     public byte[] exportExcelFromDataSource(String reportPath,
                                             Map<String, Object> params,
                                             JRDataSource dataSource) throws Exception {
-        JasperPrint print = fillFromDataSource(reportPath, params, dataSource);
+        JasperPrint print = fillFromDataSource(reportPath, excelParams(params), dataSource);
+        configureExcelExclusions(print);
+        return runXlsxExport(print);
+    }
+
+    /**
+     * Wrap the caller's params with IS_IGNORE_PAGINATION=true so the fill
+     * produces a single continuous "page" instead of N paginated ones.
+     * Without this, the Excel exporter repeats the column header (and any
+     * page header/footer) at every page boundary because each page is
+     * independently formed during fill.
+     */
+    private Map<String, Object> excelParams(Map<String, Object> caller) {
+        Map<String, Object> p = new java.util.HashMap<>(caller);
+        p.put(JRParameter.IS_IGNORE_PAGINATION, Boolean.TRUE);
+        return p;
+    }
+
+    /**
+     * Set Excel-exclude properties on the JasperPrint so the exporter
+     * trims out per-page repeats. Setting on JasperPrint (not just the
+     * jrxml) is the reliable path — .jrxml properties don't always
+     * carry through to the Excel exporter.
+     */
+    private void configureExcelExclusions(JasperPrint print) {
+        // Keep column header only on the first page.
+        print.setProperty(
+            "net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1",
+            "columnHeader");
+        // Drop pageHeader / pageFooter entirely — page-boundary artefacts
+        // don't make sense in a single Excel sheet.
+        print.setProperty(
+            "net.sf.jasperreports.export.xls.exclude.origin.band.1",
+            "pageHeader");
+        print.setProperty(
+            "net.sf.jasperreports.export.xls.exclude.origin.band.2",
+            "pageFooter");
+    }
+
+    private byte[] runXlsxExport(JasperPrint print) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         JRXlsxExporter exporter = new JRXlsxExporter();
@@ -102,6 +129,9 @@ public class JasperReportService {
         cfg.setOnePagePerSheet(false);
         cfg.setDetectCellType(true);
         cfg.setCollapseRowSpan(false);
+        cfg.setRemoveEmptySpaceBetweenRows(true);
+        cfg.setIgnorePageMargins(true);
+        cfg.setWhitePageBackground(false);
         exporter.setConfiguration(cfg);
         exporter.exportReport();
 
