@@ -515,17 +515,39 @@ public class ReportsHubController implements Initializable {
             return;
         }
 
-        // Step 2 — open with system viewer (best-effort).
-        try {
-            if (java.awt.Desktop.isDesktopSupported()
-                    && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN)) {
-                java.awt.Desktop.getDesktop().open(file);
-            } else {
-                infoSaved(file);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        // Step 2 — open with system viewer.
+        // Use OS-native commands instead of java.awt.Desktop — JavaFX
+        // apps on Windows often report Desktop as unsupported because
+        // AWT was never initialised, so Desktop.open silently no-ops.
+        if (!openWithOsViewer(file)) {
             infoSaved(file);
+        }
+    }
+
+    /**
+     * Open the file with the OS's default viewer. Returns true on success.
+     *
+     * <p>Windows: {@code cmd /c start "" "<path>"} — the empty title arg is
+     * what {@code start} expects when the path itself is quoted.
+     * <br>Mac: {@code open <path>}.
+     * <br>Linux/other: {@code xdg-open <path>}.
+     */
+    private boolean openWithOsViewer(java.io.File file) {
+        String os = System.getProperty("os.name", "").toLowerCase();
+        java.util.List<String> cmd;
+        if (os.contains("win")) {
+            cmd = java.util.List.of("cmd", "/c", "start", "", file.getAbsolutePath());
+        } else if (os.contains("mac") || os.contains("darwin")) {
+            cmd = java.util.List.of("open", file.getAbsolutePath());
+        } else {
+            cmd = java.util.List.of("xdg-open", file.getAbsolutePath());
+        }
+        try {
+            new ProcessBuilder(cmd).inheritIO().start();
+            return true;
+        } catch (Exception ex) {
+            System.err.println("Could not open " + file + " via " + cmd.get(0) + ": " + ex);
+            return false;
         }
     }
 
