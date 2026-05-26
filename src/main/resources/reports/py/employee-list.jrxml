@@ -11,6 +11,12 @@
 
   <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
   <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="DEPT"         class="java.lang.String"  isForPrompting="false">
+    <defaultValueExpression><![CDATA["%"]]></defaultValueExpression>
+  </parameter>
+  <parameter name="EMP_STATUS"   class="java.lang.String"  isForPrompting="false">
+    <defaultValueExpression><![CDATA["A"]]></defaultValueExpression>
+  </parameter>
 
   <queryString>
     <![CDATA[
@@ -19,7 +25,9 @@
              e.date_started, e.email_address,
              COALESCE(NULLIF(e.dept,''), 'Unassigned') AS dept_display
       FROM pastaff e
-      WHERE e.company_no = $P{COMPANY_NO} AND e.employee_status = 'A'
+      WHERE e.company_no = $P{COMPANY_NO}
+        AND e.dept LIKE $P{DEPT}
+        AND ($P{EMP_STATUS} = '' OR e.employee_status = $P{EMP_STATUS})
       ORDER BY e.dept, e.surname, e.first_name
     ]]>
   </queryString>
@@ -54,7 +62,7 @@
 
   <title>
     <band height="50">
-      <staticText><reportElement x="0" y="0" width="782" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Employee List — Active Employees]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="782" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Employee List]]></text></staticText>
       <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
       <textField pattern="dd/MM/yyyy"><reportElement x="660" y="22" width="122" height="14"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>

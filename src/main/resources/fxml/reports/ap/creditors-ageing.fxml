@@ -23,6 +23,11 @@
             <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
 
             <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                <Label text="Output level" styleClass="sel-label" minWidth="120"/>
+                <ComboBox fx:id="detailSummary" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
                 <Label text="Age by date" styleClass="sel-label" minWidth="120"/>
                 <ComboBox fx:id="dateInd" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
             </HBox>

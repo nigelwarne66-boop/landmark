@@ -27,27 +27,27 @@ import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
- * Debtors Ageing — summary mode only for v1.
- *
- * <p>cc-migration.md lists a Summary/Detail combo but the detail layout
- * needs a separate .jrxml (different field set: docDate / docType / docNo
- * / status instead of location / phone). Detail mode is deferred to a
- * follow-up — controller always passes 'S' for detailSummary.
+ * Debtors Ageing.  Summary mode lists customer totals; detail mode
+ * lists every open transaction with its own bucket.  The two layouts
+ * live in separate .jrxml files (ar/debtors-ageing[ -detail].jrxml)
+ * because they have different field sets.
  *
  * <p>Data is pre-fetched via ArDataService.getDebtorsListingData and
- * passed to Jasper as a JRBeanCollectionDataSource because the underlying
- * SQL is built dynamically based on the selection flags.
+ * passed to Jasper as a JRBeanCollectionDataSource because the
+ * underlying SQL is built dynamically based on the selection flags.
  */
 @Component
 @Scope("prototype")
 public class ArDebtorsAgeingController implements Initializable {
 
-    private static final String REPORT_PATH = "ar/debtors-ageing";
+    private static final String SUMMARY_PATH = "ar/debtors-ageing";
+    private static final String DETAIL_PATH  = "ar/debtors-ageing-detail";
 
     @Autowired private ReportsHubController hub;
     @Autowired private AppSession           session;
     @Autowired private ArDataService        arData;
 
+    @FXML private ComboBox<LabelValue> detailSummary;
     @FXML private ComboBox<LabelValue> dateInd;
     @FXML private ComboBox<LabelValue> grossNet;
     @FXML private DatePicker           asAtDate;
@@ -63,6 +63,12 @@ public class ArDebtorsAgeingController implements Initializable {
             @Override public String toString(LabelValue o) { return o == null ? "" : o.label(); }
             @Override public LabelValue fromString(String s) { return null; }
         };
+        detailSummary.setConverter(conv);
+        detailSummary.setItems(FXCollections.observableArrayList(
+            new LabelValue("Summary (per customer)", "S"),
+            new LabelValue("Detail (per transaction)", "D")));
+        detailSummary.getSelectionModel().selectFirst();
+
         dateInd.setConverter(conv);
         dateInd.setItems(FXCollections.observableArrayList(
             new LabelValue("Due date",         "D"),
@@ -85,12 +91,13 @@ public class ArDebtorsAgeingController implements Initializable {
 
     @SuppressWarnings("unchecked")
     private void run(ActionEvent e, String format) {
-        String dateBasis = dateInd.getSelectionModel().getSelectedItem().value();
-        String amtBasis  = grossNet.getSelectionModel().getSelectedItem().value();
-        LocalDate asAt   = asAtDate.getValue() != null ? asAtDate.getValue() : LocalDate.now();
-        String asAtStr   = asAt.format(DateTimeFormatter.ISO_LOCAL_DATE);
+        String detailFlag = detailSummary.getSelectionModel().getSelectedItem().value();
+        String dateBasis  = dateInd.getSelectionModel().getSelectedItem().value();
+        String amtBasis   = grossNet.getSelectionModel().getSelectedItem().value();
+        LocalDate asAt    = asAtDate.getValue() != null ? asAtDate.getValue() : LocalDate.now();
+        String asAtStr    = asAt.format(DateTimeFormatter.ISO_LOCAL_DATE);
 
-        Map<String, Object> data = arData.getDebtorsListingData(session, "S", dateBasis, amtBasis, asAtStr);
+        Map<String, Object> data = arData.getDebtorsListingData(session, detailFlag, dateBasis, amtBasis, asAtStr);
         List<Map<String, Object>> rows = (List<Map<String, Object>>) data.getOrDefault("rows", List.of());
 
         Map<String, Object> jasperParams = new HashMap<>();
@@ -98,9 +105,11 @@ public class ArDebtorsAgeingController implements Initializable {
         jasperParams.put("DATE_BASIS", dateInd.getSelectionModel().getSelectedItem().label());
         jasperParams.put("AMT_BASIS",  grossNet.getSelectionModel().getSelectedItem().label());
 
+        String reportPath = "D".equals(detailFlag) ? DETAIL_PATH : SUMMARY_PATH;
+
         Window owner = ((Node) e.getSource()).getScene().getWindow();
         hub.runJasperReportWithDataSource(
-            REPORT_PATH, jasperParams,
+            reportPath, jasperParams,
             new JRBeanCollectionDataSource(rows),
             format, owner);
         close(e);

@@ -13,6 +13,8 @@
   <parameter name="YEAR_NO"      class="java.lang.Integer"/>
   <parameter name="COMPANY_NAME" class="java.lang.String"/>
   <parameter name="YEAR_DESC"    class="java.lang.String"/>
+  <parameter name="FROM_DATE"    class="java.sql.Date" isForPrompting="false"/>
+  <parameter name="TO_DATE"      class="java.sql.Date" isForPrompting="false"/>
 
   <queryString>
     <![CDATA[
@@ -28,6 +30,8 @@
       WHERE r.company_no = $P{COMPANY_NO}
         AND d.year_no    = $P{YEAR_NO}
         AND r.payrun_status = 'P'
+        AND ($P{FROM_DATE} IS NULL OR r.payrun_date >= $P{FROM_DATE})
+        AND ($P{TO_DATE}   IS NULL OR r.payrun_date <= $P{TO_DATE})
       GROUP BY r.payrun_no, r.payrun_date, r.paymt_date, r.no_of_employees_paid
       ORDER BY r.payrun_date
     ]]>

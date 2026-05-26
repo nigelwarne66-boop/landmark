@@ -27,20 +27,22 @@ import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
- * Creditors Ageing — summary mode only for v1.  Mirror of
+ * Creditors Ageing.  Summary mode lists supplier totals; detail mode
+ * lists every open transaction with its own bucket.  Mirror of
  * {@link ArDebtorsAgeingController}, but reads from ApDataService.
- * Detail mode is deferred — needs a separate .jrxml with doc-level fields.
  */
 @Component
 @Scope("prototype")
 public class ApCreditorsAgeingController implements Initializable {
 
-    private static final String REPORT_PATH = "ap/creditors-ageing";
+    private static final String SUMMARY_PATH = "ap/creditors-ageing";
+    private static final String DETAIL_PATH  = "ap/creditors-ageing-detail";
 
     @Autowired private ReportsHubController hub;
     @Autowired private AppSession           session;
     @Autowired private ApDataService        apData;
 
+    @FXML private ComboBox<LabelValue> detailSummary;
     @FXML private ComboBox<LabelValue> dateInd;
     @FXML private ComboBox<LabelValue> grossNet;
     @FXML private DatePicker           asAtDate;
@@ -55,6 +57,12 @@ public class ApCreditorsAgeingController implements Initializable {
             @Override public String toString(LabelValue o) { return o == null ? "" : o.label(); }
             @Override public LabelValue fromString(String s) { return null; }
         };
+        detailSummary.setConverter(conv);
+        detailSummary.setItems(FXCollections.observableArrayList(
+            new LabelValue("Summary (per supplier)",   "S"),
+            new LabelValue("Detail (per transaction)", "D")));
+        detailSummary.getSelectionModel().selectFirst();
+
         dateInd.setConverter(conv);
         dateInd.setItems(FXCollections.observableArrayList(
             new LabelValue("Due date",         "D"),
@@ -77,12 +85,13 @@ public class ApCreditorsAgeingController implements Initializable {
 
     @SuppressWarnings("unchecked")
     private void run(ActionEvent e, String format) {
-        String dateBasis = dateInd.getSelectionModel().getSelectedItem().value();
-        String amtBasis  = grossNet.getSelectionModel().getSelectedItem().value();
-        LocalDate asAt   = asAtDate.getValue() != null ? asAtDate.getValue() : LocalDate.now();
-        String asAtStr   = asAt.format(DateTimeFormatter.ISO_LOCAL_DATE);
+        String detailFlag = detailSummary.getSelectionModel().getSelectedItem().value();
+        String dateBasis  = dateInd.getSelectionModel().getSelectedItem().value();
+        String amtBasis   = grossNet.getSelectionModel().getSelectedItem().value();
+        LocalDate asAt    = asAtDate.getValue() != null ? asAtDate.getValue() : LocalDate.now();
+        String asAtStr    = asAt.format(DateTimeFormatter.ISO_LOCAL_DATE);
 
-        Map<String, Object> data = apData.getCreditorsListingData(session, "S", dateBasis, amtBasis, asAtStr);
+        Map<String, Object> data = apData.getCreditorsListingData(session, detailFlag, dateBasis, amtBasis, asAtStr);
         List<Map<String, Object>> rows = (List<Map<String, Object>>) data.getOrDefault("rows", List.of());
 
         Map<String, Object> jasperParams = new HashMap<>();
@@ -90,9 +99,11 @@ public class ApCreditorsAgeingController implements Initializable {
         jasperParams.put("DATE_BASIS", dateInd.getSelectionModel().getSelectedItem().label());
         jasperParams.put("AMT_BASIS",  grossNet.getSelectionModel().getSelectedItem().label());
 
+        String reportPath = "D".equals(detailFlag) ? DETAIL_PATH : SUMMARY_PATH;
+
         Window owner = ((Node) e.getSource()).getScene().getWindow();
         hub.runJasperReportWithDataSource(
-            REPORT_PATH, jasperParams,
+            reportPath, jasperParams,
             new JRBeanCollectionDataSource(rows),
             format, owner);
         close(e);
