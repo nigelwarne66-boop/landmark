@@ -69,7 +69,7 @@ The COBOL canonical source for `.fd`/`.ws` is `C:\landmark\compile\` (with rare 
 
 ---
 
-## Current state (as of 2026-05-25)
+## Current state (as of 2026-05-26)
 
 ### Wave 0 — Foundation ✅
 - Module scaffolding, `AppSession` (mirrors GLPASS), PACD01 (Pay Code Maintenance).
@@ -223,8 +223,53 @@ The `pa_audit` table (option B from the chat — batch-level metadata only) sits
 
 - JDK 25 (compile), JRE 1.8.0_421 (legacy Hibernate at runtime).
 - `mvn -q compile` to build, `mvn javafx:run` to launch.
+- **Reporting-only build**: `mvn javafx:run -Preporting` — same Spring context + login, swaps MENU01 for the Reports Hub (see "Reporting build" section below).
 - Maven picks up `JAVA_HOME` from env — set to `C:\Program Files\Java\latest\jdk-25` before running.
 - ProGuard runs at `package` phase (rules in `src/main/proguard/rules.pro`) — not in normal dev cycle.
+
+---
+
+## Reporting build (-Preporting)
+
+Standalone JavaFX entry that shares the full app's Spring context, login, and DB but renders a Reports Hub instead of MENU01. Run with `mvn javafx:run -Preporting`. 5 modules / 12 Jasper reports, all wired end-to-end.
+
+### Architecture
+- `AppMode.current` (set to REPORTING in `ReportingApplication.main()`) directs `FixedAssetsApplication.start()` to load `/fxml/reports-hub.fxml` instead of `MainMenuController.buildScene()`.
+- `MainMenuController.loadDefaultSession()` still runs to populate AppSession with company + year; the menu UI is never built.
+- Reports save to `cpcntrl.local_pc_dir` (single global row — not per-company despite the `company_no` PK) and open via `cmd /c start "" "<path>"`. **Don't use `java.awt.Desktop`** — it silently no-ops in JavaFX-only builds because AWT isn't initialised.
+- "Switch company" link spawns the same MENU23 dialog as the full app via `MainMenuController.showCompanyYearDialog(Window)` (made public + null-guarded for the sidebar-free reporting mode).
+
+### Modules + reports
+| Module | Reports | Notes |
+|---|---|---|
+| Fixed Assets | Asset Register, Depreciation, Acquired & Retired, Transaction List | No selection fields |
+| Payroll | Payroll Summary, Employee List | Gated on `MEUSERS.print_pa_from_pass = 'Y'` — module absent for users without it |
+| General Ledger | Trial Balance, Profit & Loss, Balance Sheet, General Journal, Account Transactions | Period-range selector (or single asAtPeriod for Balance Sheet) |
+| Accounts Receivable | Debtors Ageing — summary + detail | |
+| Accounts Payable | Creditors Ageing — summary + detail | |
+
+### Selection screen pattern
+Card click → `/fxml/reports/<module>/<report-name>.fxml` + `com.landmarksoftware.ui.reports.<Module><Name>Controller` (`@Component @Scope("prototype")`). Controllers call:
+- `hub.runJasperReport(reportPath, extraParams, format, ownerWindow)` — for reports with static .jrxml SQL
+- `hub.runJasperReportWithDataSource(reportPath, extraParams, JRDataSource, format, owner)` — for AR/AP ageing where SQL is too dynamic for a static block; rows pre-fetched via `Ar/ApDataService.get*ListingData(...)` and wrapped in a `JRBeanCollectionDataSource`
+
+GL share `GlPeriodSelector.fxml` via `<fx:include>`; included controller's fields are bound by the `fx:id + "Controller"` naming convention.
+
+### Jasper gotchas (each bit us at least once)
+- **Excel column header repeats on every page** unless filled with `IS_IGNORE_PAGINATION=true` — paginated fill = N pages = N column headers. `JasperReportService.excelParams()` injects this; PDF still uses normal pagination.
+- **White-text column headers invisible in Excel**: each `<staticText>` needs `mode="Opaque" backcolor="..."` because band-level `<rectangle>` backgrounds don't translate to Excel cell fills (PDF renders both).
+- **Band order in `.jrxml`** must be `title → columnHeader → detail → pageFooter → summary` per the Jasper XSD. Putting `summary` before `pageFooter` errors with "Invalid content: pageFooter, expected noData".
+- **Group variables with `resetType="Group"`** also need `resetGroup="<groupName>"` — missing this gives "Unknown reset group 'null'" at compile.
+- **Feather, not Tabler** for Ikonli icons — Tabler isn't bundled with Ikonli. Prefix is `fth-` (e.g. `fth-package`, `fth-users`, `fth-bar-chart-2`).
+- **GLDATES periods are 13 separate `period_end_01..period_end_13` columns** (COBOL OCCURS-style), not normalised rows. Unpivot in Java — see `GlPeriodService.loadPeriods()`. Use **`year_no` (4-digit calendar)** not `yr_no` (sequence PK) for matching.
+- **CPCNTRL is a single global row** even though the PK is `company_no` — query with `LIMIT 1`, ignore the PK.
+
+### Per-report .jrxml lookup
+`ReportsHubController.openSelectionScreen(report, moduleId)` tries to load `/fxml/reports/<moduleId>/<report.getName()>.fxml`. If the FXML doesn't exist (e.g. a future report card you haven't built yet), it falls back to the "Coming soon" alert — so adding a new report just means adding the FXML + controller, no hub registry edits beyond a `ReportDef.withParams(...)`.
+
+### Deferred
+- `GlReportWriterService` migration (custom report-builder feature — cc-migration.md note #2)
+- Excel report-time filter wires on the .jrxml are now complete for all 12 reports (filter UI matches what the SQL actually uses).
 
 ## Wave 2 detail — Batch operations
 

@@ -206,7 +206,8 @@ Both use `CREATE TABLE IF NOT EXISTS` in `@PostConstruct`. Don't add new tables 
 | MEUSERS | User accounts | user_id, name1, password, user_status (blank/H/L/T), supervisor_flag, passwd_expiry_date, last_access_date, email_address |
 | MEPASS | Terminal sessions | terminal_no PK (1–998), user_id, company_no, terminal_inactive, log_date, log_hr, log_min |
 | CPCOYCO | Company master | company_no, name1, name_2, fa_last_batch_no, fa_tax_yr_end_mth, fa_batch_control_flag, payroll_files_dir (blank→use application.properties), pa_instal_flag (blank→treat as Y) |
-| GLDATES | Fiscal years | **TWO keys**: year_no (calendar e.g. 2024) and yr_no (sequence PK). yr_start_date, yr_end_date are proper DATE columns |
+| GLDATES | Fiscal years | **TWO keys**: year_no (calendar e.g. 2024) and yr_no (sequence PK). Most queries use **year_no** with `session.getYearNo()` — see GL data services. Period boundaries are 13 separate `period_end_01..period_end_13` + `period_start_01..period_start_13` columns (COBOL OCCURS-style — unpivot in Java, see `GlPeriodService`). 1899-12-31 sentinel = "period not set up". yr_start_date, yr_end_date are proper DATE columns |
+| CPCNTRL | System-wide control row | **Single global row** despite `company_no` PK — query with `LIMIT 1`, ignore the key. `local_pc_dir` = directory where Reports Hub saves PDF/Excel output |
 
 ### GL
 | Our code used | Actual table | Key column differences |
