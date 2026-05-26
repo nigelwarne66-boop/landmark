@@ -63,7 +63,8 @@ public class UserService {
                 str(row.get("password")),
                 str(row.get("user_status")),
                 str(row.get("supervisor_flag")),
-                expiry));
+                expiry,
+                str(row.get("print_pa_from_pass"))));
         } catch (Exception e) {
             return Optional.empty();
         }

@@ -443,6 +443,7 @@ public class LoginController {
         // Record successful login (last-access date + MEPASS terminal)
         userService.recordSuccessfulLogin(userId, appSession.getCompanyNo(), appSession.getCompanyName());
         appSession.setSupervisorFlag("Y".equals(user.supervisorFlag()) ? "Y" : "N");
+        appSession.setPayrollAccess("Y".equals(user.printPaFromPass()));
         appSession.setUserName(user.name1());
         return null;
     }

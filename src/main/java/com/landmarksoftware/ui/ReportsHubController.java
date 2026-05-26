@@ -184,18 +184,21 @@ public class ReportsHubController implements Initializable {
             "fth-users");
         creditorsAgeing.setRunner(fmt -> comingSoon("Creditors Ageing"));
 
-        modules = List.of(
-            new ModuleDef("fa", "Fixed Assets",
-                List.of(assetRegister, depreciation, acquiredRetired, txnList)),
-            new ModuleDef("py", "Payroll",
-                List.of(payrollSummary, employeeList)),
-            new ModuleDef("gl", "General Ledger",
-                List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns)),
-            new ModuleDef("ar", "Accounts Receivable",
-                List.of(debtorsAgeing)),
-            new ModuleDef("ap", "Accounts Payable",
-                List.of(creditorsAgeing))
-        );
+        // Payroll module only visible to users with MEUSERS.print_pa_from_pass='Y'.
+        java.util.List<ModuleDef> mods = new java.util.ArrayList<>();
+        mods.add(new ModuleDef("fa", "Fixed Assets",
+            List.of(assetRegister, depreciation, acquiredRetired, txnList)));
+        if (session.isPayrollAccess()) {
+            mods.add(new ModuleDef("py", "Payroll",
+                List.of(payrollSummary, employeeList)));
+        }
+        mods.add(new ModuleDef("gl", "General Ledger",
+            List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns)));
+        mods.add(new ModuleDef("ar", "Accounts Receivable",
+            List.of(debtorsAgeing)));
+        mods.add(new ModuleDef("ap", "Accounts Payable",
+            List.of(creditorsAgeing)));
+        modules = mods;
     }
 
     /* ── Sidebar ────────────────────────────────────────────────── */

@@ -83,6 +83,9 @@ public class AppSession {
     /** MEUSERS-SUPERVISOR-FLAG — 'Y' or 'N' */
     private String supervisorFlag = "N";
 
+    /** MEUSERS-PRINT-PA-FROM-PASS — 'Y' grants Payroll-section visibility. */
+    private boolean payrollAccess = false;
+
     /** MEUSERS-NAME — display name of user */
     private String userName = "";
 
@@ -143,6 +146,9 @@ public class AppSession {
     public String  getSupervisorFlag()              { return supervisorFlag; }
     public void    setSupervisorFlag(String v)      { this.supervisorFlag = v; }
     public boolean isSupervisor()                   { return "Y".equals(supervisorFlag); }
+
+    public boolean isPayrollAccess()                { return payrollAccess; }
+    public void    setPayrollAccess(boolean v)      { this.payrollAccess = v; }
 
     public String  getUserName()                    { return userName; }
     public void    setUserName(String v)            { this.userName = v; }

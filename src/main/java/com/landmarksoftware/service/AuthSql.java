@@ -29,7 +29,7 @@ public final class AuthSql {
     /** Load a user row by PK. Params: userId. */
     public static final String FIND_USER_BY_PK =
         "SELECT user_id, name1, password, user_status, supervisor_flag, " +
-        "passwd_expiry_date FROM meusers WHERE user_id = ?";
+        "passwd_expiry_date, print_pa_from_pass FROM meusers WHERE user_id = ?";
 
     /**
      * Look up user IDs by email (Forgot User ID flow).

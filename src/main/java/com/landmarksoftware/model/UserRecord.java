@@ -28,5 +28,6 @@ public record UserRecord(
     String    storedPassword,
     String    userStatus,
     String    supervisorFlag,
-    LocalDate passwdExpiry
+    LocalDate passwdExpiry,
+    String    printPaFromPass     // 'Y' = user has Payroll access; anything else = no
 ) {}
