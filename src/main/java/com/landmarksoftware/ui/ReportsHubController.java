@@ -170,13 +170,31 @@ public class ReportsHubController implements Initializable {
             "fth-file-text");
         acctTxns.setRunner(fmt -> comingSoon("Account Transactions"));
 
+        /* Accounts Receivable */
+        ReportDef debtorsAgeing = ReportDef.withParams(
+            "debtors-ageing", "Debtors Ageing",
+            "Customer balances aged across 6 monthly buckets",
+            "fth-users");
+        debtorsAgeing.setRunner(fmt -> comingSoon("Debtors Ageing"));
+
+        /* Accounts Payable */
+        ReportDef creditorsAgeing = ReportDef.withParams(
+            "creditors-ageing", "Creditors Ageing",
+            "Supplier balances aged across 6 monthly buckets",
+            "fth-users");
+        creditorsAgeing.setRunner(fmt -> comingSoon("Creditors Ageing"));
+
         modules = List.of(
             new ModuleDef("fa", "Fixed Assets",
                 List.of(assetRegister, depreciation, acquiredRetired, txnList)),
             new ModuleDef("py", "Payroll",
                 List.of(payrollSummary, employeeList)),
             new ModuleDef("gl", "General Ledger",
-                List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns))
+                List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns)),
+            new ModuleDef("ar", "Accounts Receivable",
+                List.of(debtorsAgeing)),
+            new ModuleDef("ap", "Accounts Payable",
+                List.of(creditorsAgeing))
         );
     }
 
@@ -406,6 +424,42 @@ public class ReportsHubController implements Initializable {
                     ext = ".pdf";
                 } else {
                     data = jasper.exportExcel(reportPath, params);
+                    ext = ".xlsx";
+                }
+                final byte[] finalData = data;
+                final String finalExt = ext;
+                javafx.application.Platform.runLater(() ->
+                    saveOrOpen(finalData, reportPath, finalExt, owner));
+            } catch (Exception ex) {
+                javafx.application.Platform.runLater(() ->
+                    showError("Report failed", ex.getMessage()));
+            }
+        }, "jasper-" + reportPath).start();
+    }
+
+    /**
+     * Variant of runJasperReport for reports whose query is too dynamic
+     * for a static .jrxml SQL block — the caller pre-fetches rows and
+     * passes a JRDataSource (typically a JRBeanCollectionDataSource).
+     * Used by AR / AP ageing.
+     */
+    public void runJasperReportWithDataSource(String reportPath,
+                                                Map<String, Object> extraParams,
+                                                net.sf.jasperreports.engine.JRDataSource dataSource,
+                                                String format,
+                                                javafx.stage.Window owner) {
+        Map<String, Object> params = buildStandardParams();
+        params.putAll(extraParams);
+
+        new Thread(() -> {
+            try {
+                byte[] data;
+                String ext;
+                if ("pdf".equals(format)) {
+                    data = jasper.exportPdfFromDataSource(reportPath, params, dataSource);
+                    ext = ".pdf";
+                } else {
+                    data = jasper.exportExcelFromDataSource(reportPath, params, dataSource);
                     ext = ".xlsx";
                 }
                 final byte[] finalData = data;

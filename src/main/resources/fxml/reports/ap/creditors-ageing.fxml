@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.ApCreditorsAgeingController"
+    styleClass="sel-root"
+    prefWidth="560">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Creditors Ageing" styleClass="sel-title"/>
+            <Label text="Supplier balances aged across 6 monthly buckets" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox styleClass="sel-body" spacing="14">
+            <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                <Label text="Age by date" styleClass="sel-label" minWidth="120"/>
+                <ComboBox fx:id="dateInd" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                <Label text="Show amount as" styleClass="sel-label" minWidth="120"/>
+                <ComboBox fx:id="grossNet" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                <Label text="As at date" styleClass="sel-label" minWidth="120"/>
+                <DatePicker fx:id="asAtDate" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+        </VBox>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Cancel" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel"  styleClass="sel-btn-excel"  onAction="#onExcel"/>
+            <Button text="PDF"    styleClass="sel-btn-pdf"    onAction="#onPdf"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

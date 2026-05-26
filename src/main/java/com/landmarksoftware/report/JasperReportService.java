@@ -1,6 +1,7 @@
 package com.landmarksoftware.report;
 
 import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import net.sf.jasperreports.engine.export.*;
 import net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter;
 import net.sf.jasperreports.export.*;
@@ -69,6 +70,49 @@ public class JasperReportService {
         exporter.exportReport();
 
         return out.toByteArray();
+    }
+
+    // ── Data-source variants ───────────────────────────────────────────────
+    // Used by reports whose query is too dynamic for a static .jrxml SQL
+    // block (e.g. AR/AP ageing with 4 selection flags rewriting WHERE).
+    // The caller pre-fetches rows and wraps them in a JRBeanCollectionDataSource.
+
+    /** Export PDF using an in-memory list of beans/maps instead of JDBC. */
+    public byte[] exportPdfFromDataSource(String reportPath,
+                                          Map<String, Object> params,
+                                          JRDataSource dataSource) throws Exception {
+        JasperPrint print = fillFromDataSource(reportPath, params, dataSource);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        JasperExportManager.exportReportToPdfStream(print, out);
+        return out.toByteArray();
+    }
+
+    /** Export Excel using an in-memory list of beans/maps instead of JDBC. */
+    public byte[] exportExcelFromDataSource(String reportPath,
+                                            Map<String, Object> params,
+                                            JRDataSource dataSource) throws Exception {
+        JasperPrint print = fillFromDataSource(reportPath, params, dataSource);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        JRXlsxExporter exporter = new JRXlsxExporter();
+        exporter.setExporterInput(new SimpleExporterInput(print));
+        exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(out));
+
+        SimpleXlsxReportConfiguration cfg = new SimpleXlsxReportConfiguration();
+        cfg.setOnePagePerSheet(false);
+        cfg.setDetectCellType(true);
+        cfg.setCollapseRowSpan(false);
+        exporter.setConfiguration(cfg);
+        exporter.exportReport();
+
+        return out.toByteArray();
+    }
+
+    private JasperPrint fillFromDataSource(String reportPath,
+                                           Map<String, Object> params,
+                                           JRDataSource dataSource) throws Exception {
+        JasperReport compiled = compile(reportPath);
+        return JasperFillManager.fillReport(compiled, params, dataSource);
     }
 
     /** Export report as HTML string (for on-screen preview). */
