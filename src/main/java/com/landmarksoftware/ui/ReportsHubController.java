@@ -291,6 +291,12 @@ public class ReportsHubController implements Initializable {
             "fth-dollar-sign");
         arCommission.setRunner(fmt -> comingSoon("Commission"));
 
+        ReportDef arCustomerSalesByYear = ReportDef.withParams(
+            "customer-sales-by-year", "Customer Sales by Year",
+            "Five trailing-year sales totals per customer (SMTL38)",
+            "fth-bar-chart-2");
+        arCustomerSalesByYear.setRunner(fmt -> comingSoon("Customer Sales by Year"));
+
         /* Accounts Payable */
         ReportDef creditorsAgeing = ReportDef.withParams(
             "creditors-ageing", "Creditors Ageing",
@@ -374,7 +380,7 @@ public class ReportsHubController implements Initializable {
                     arDocumentNumber, arAdjustmentNote, salesDistribution, salesByGl,
                     arDebtorsControl, arCustomerAcctStatus, arCustomerSalesByType,
                     arCustomerSalesBySubLedger, arSalesBySalesperson, arSalespersonProfit,
-                    arSalesJournal, arCommission)));
+                    arSalesJournal, arCommission, arCustomerSalesByYear)));
         mods.add(new ModuleDef("ap", "Accounts Payable",
             List.of(creditorsAgeing, transactionListing, detailedTxnListing,
                     periodSummary, glDistributions, purchaseHistory,

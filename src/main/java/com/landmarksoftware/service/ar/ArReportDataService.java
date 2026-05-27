@@ -92,6 +92,19 @@ public class ArReportDataService {
         return list;
     }
 
+    /** Product-type codes for the company, "(All)" first, then "code — desc" from smcodpt. */
+    public List<CodeName> getProductTypes(AppSession s) {
+        List<CodeName> list = new ArrayList<>();
+        list.add(new CodeName("", "(All product types)"));
+        try {
+            jdbc.query("SELECT product_type_code, desc1 FROM smcodpt WHERE company_no=? ORDER BY product_type_code",
+                rs -> { list.add(new CodeName(trim(rs.getString("product_type_code")),
+                                              trim(rs.getString("product_type_code")) + " — " + trim(rs.getString("desc1")))); },
+                s.getCompanyNo());
+        } catch (Exception e) { log.warn("getProductTypes: {}", e.getMessage()); }
+        return list;
+    }
+
     /** Distinct foreign-currency codes present on AR transactions, "(All)" first. */
     public List<CodeName> getCurrencyCodes(AppSession s) {
         List<CodeName> list = new ArrayList<>();
@@ -1738,6 +1751,114 @@ public class ArReportDataService {
             ? p.startSalesman() + " to " + (notBlank(p.endSalesman()) ? p.endSalesman() : "end") : "All salespeople");
         params.put("DATE_RANGE", p.startDate() != null ? p.startDate() + " to " + (p.endDate() != null ? p.endDate() : "…") : "All dates");
         params.put("SUM_SALE", g[0]); params.put("SUM_COMMISSION", g[1]); params.put("ROW_COUNT", rows.size());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rows", rows); result.put("params", params); result.put("rowCount", rows.size());
+        return result;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SMTL38 — Customer Sales by Year  (cobol/sm2/smtl38.pl)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** Selection — SMTL38S0. Year 1 = [startDate..endDate]; years 2–5 trail by 1–4 years. */
+    public record CustomerSalesYearParams(
+            String startCustomer, String endCustomer,
+            String startSubLedger, String endSubLedger,
+            String startCustType, String endCustType,
+            String startProductType, String endProductType,
+            String startSalesman, String endSalesman,
+            LocalDate startDate, LocalDate endDate
+    ) {}
+
+    /**
+     * SMTL38 — five trailing-year sales totals per customer from smtrans
+     * (sales_or_recpt_value negated to show sales positive). Year N covers
+     * {@code [startDate−(N−1)yr, endDate−(N−1)yr]}. Filtered by customer / salesman
+     * ranges (smtrans) and product-type (smsthed) / sub-ledger + customer-type
+     * (arcusts) ranges — all inner joins, matching CHECK-TRX / CREATE-WORKFILE-RECORD.
+     */
+    public Map<String, Object> getCustomerSalesByYearData(AppSession s, CustomerSalesYearParams p) {
+        if (p.startDate() == null || p.endDate() == null) return warn("Enter the year-1 date range.");
+        LocalDate[] winStart = new LocalDate[6], winEnd = new LocalDate[6];
+        for (int n = 1; n <= 5; n++) { winStart[n] = p.startDate().minusYears(n - 1); winEnd[n] = p.endDate().minusYears(n - 1); }
+        LocalDate broadStart = winStart[5], broadEnd = winEnd[1];
+
+        // smsthed (product-type) and arcusts (name / sub-ledger / type) are enrichment
+        // lookups — LEFT-joined so the report still lists smtrans sales when those
+        // masters are sparse. The range filters below still require a match when used.
+        StringBuilder sql = new StringBuilder(
+            "SELECT t.cust_supplier_no, c.name_1, t.move_date, t.sales_or_recpt_value " +
+            "FROM smtrans t " +
+            "LEFT JOIN smsthed h ON h.company_no=t.company_no AND h.stock_code=t.stock_code " +
+            "LEFT JOIN arcusts c ON c.company_no=t.company_no AND c.cust_no=t.cust_supplier_no " +
+            "WHERE t.company_no=? AND t.move_date BETWEEN ? AND ? ");
+        List<Object> args = new ArrayList<>();
+        args.add(s.getCompanyNo()); args.add(Date.valueOf(broadStart)); args.add(Date.valueOf(broadEnd));
+        if (notBlank(p.startCustomer())) {
+            String end = notBlank(p.endCustomer()) ? p.endCustomer() : "zzzzzzzzzz";
+            sql.append(" AND t.cust_supplier_no BETWEEN ? AND ? "); args.add(p.startCustomer()); args.add(end);
+        }
+        if (notBlank(p.startSalesman())) {
+            String end = notBlank(p.endSalesman()) ? p.endSalesman() : "zzzzzz";
+            sql.append(" AND t.salesman BETWEEN ? AND ? "); args.add(p.startSalesman()); args.add(end);
+        }
+        if (notBlank(p.startProductType())) {
+            String end = notBlank(p.endProductType()) ? p.endProductType() : "zzzzzz";
+            sql.append(" AND h.product_type BETWEEN ? AND ? "); args.add(p.startProductType()); args.add(end);
+        }
+        if (notBlank(p.startSubLedger())) {
+            String end = notBlank(p.endSubLedger()) ? p.endSubLedger() : "zzzz";
+            sql.append(" AND c.sub_ledger BETWEEN ? AND ? "); args.add(p.startSubLedger()); args.add(end);
+        }
+        if (notBlank(p.startCustType())) {
+            String end = notBlank(p.endCustType()) ? p.endCustType() : "zzzzzz";
+            sql.append(" AND c.type BETWEEN ? AND ? "); args.add(p.startCustType()); args.add(end);
+        }
+        sql.append(" ORDER BY t.cust_supplier_no ");
+
+        Map<String, BigDecimal[]> acc = new LinkedHashMap<>();   // [total, yr1, yr2, yr3, yr4, yr5]
+        Map<String, String> names = new LinkedHashMap<>();
+        try {
+            jdbc.query(sql.toString(), rs -> {
+                LocalDate md = ld(rs.getDate("move_date"));
+                if (md == null) return;
+                int win = 0;
+                for (int n = 1; n <= 5; n++) if (!md.isBefore(winStart[n]) && !md.isAfter(winEnd[n])) { win = n; break; }
+                if (win == 0) return;
+                BigDecimal val = z(rs.getBigDecimal("sales_or_recpt_value")).negate();
+                String cust = trim(rs.getString("cust_supplier_no"));
+                BigDecimal[] a = acc.computeIfAbsent(cust, k -> new BigDecimal[]{
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO });
+                names.putIfAbsent(cust, trim(rs.getString("name_1")));
+                a[win] = a[win].add(val);
+                a[0] = a[0].add(val);
+            }, args.toArray());
+        } catch (Exception e) {
+            log.error("getCustomerSalesByYearData: {}", e.getMessage(), e);
+            return warn("Query failed: " + e.getMessage());
+        }
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        BigDecimal[] g = new BigDecimal[6];
+        Arrays.fill(g, BigDecimal.ZERO);
+        for (var e : acc.entrySet()) {
+            BigDecimal[] a = e.getValue();
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("custNo", e.getKey()); row.put("name", names.get(e.getKey()));
+            row.put("yr1", a[1]); row.put("yr2", a[2]); row.put("yr3", a[3]);
+            row.put("yr4", a[4]); row.put("yr5", a[5]); row.put("total", a[0]);
+            rows.add(row);
+            for (int i = 0; i <= 5; i++) g[i] = g[i].add(a[i]);
+        }
+        if (rows.isEmpty()) return warn("No sales for this selection.");
+        Map<String, Object> params = new LinkedHashMap<>();
+        for (int n = 1; n <= 5; n++) params.put("YR" + n + "_LABEL", String.valueOf(winEnd[n].getYear()));
+        params.put("CUST_RANGE", notBlank(p.startCustomer())
+            ? p.startCustomer() + " to " + (notBlank(p.endCustomer()) ? p.endCustomer() : "end") : "All customers");
+        params.put("DATE_RANGE", p.startDate() + " to " + p.endDate() + " (and 4 prior years)");
+        params.put("SUM_YR1", g[1]); params.put("SUM_YR2", g[2]); params.put("SUM_YR3", g[3]);
+        params.put("SUM_YR4", g[4]); params.put("SUM_YR5", g[5]); params.put("SUM_TOTAL", g[0]);
+        params.put("ROW_COUNT", rows.size());
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("rows", rows); result.put("params", params); result.put("rowCount", rows.size());
         return result;
