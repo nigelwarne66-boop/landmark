@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="document-listing-excel"
+              pageWidth="1200" pageHeight="595" orientation="Landscape"
+              columnWidth="1160" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="title"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"    class="java.lang.String"/>
+  <parameter name="BANK_DESC"       class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="DATE_RANGE"      class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="SUM_AMT"         class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_PAID"        class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_OUTSTANDING" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"       class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="docDate"     class="java.sql.Date"/>
+  <field name="docType"     class="java.lang.String"/>
+  <field name="docNo"       class="java.lang.Integer"/>
+  <field name="payee"       class="java.lang.String"/>
+  <field name="reference"   class="java.lang.String"/>
+  <field name="systemId"    class="java.lang.String"/>
+  <field name="amount"      class="java.math.BigDecimal"/>
+  <field name="amtPaid"     class="java.math.BigDecimal"/>
+  <field name="outstanding" class="java.math.BigDecimal"/>
+  <field name="status"      class="java.lang.String"/>
+
+  <title>
+    <band height="32">
+      <staticText><reportElement x="0" y="0" width="800" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Document Listing]]></text></staticText>
+      <textField><reportElement x="0" y="18" width="1160" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   " + $P{BANK_DESC} + "   —   " + $P{DATE_RANGE}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <staticText><reportElement x="0"   y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="70"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="150" y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Document No]]></text></staticText>
+      <staticText><reportElement x="220" y="0" width="220" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Payee]]></text></staticText>
+      <staticText><reportElement x="440" y="0" width="180" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Reference]]></text></staticText>
+      <staticText><reportElement x="620" y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Source]]></text></staticText>
+      <staticText><reportElement x="680" y="0" width="110" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+      <staticText><reportElement x="790" y="0" width="110" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount Paid]]></text></staticText>
+      <staticText><reportElement x="900" y="0" width="110" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Outstanding]]></text></staticText>
+      <staticText><reportElement x="1010" y="0" width="150" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Status]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0"   y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="70"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
+      <textField pattern="#0"><reportElement x="150" y="0" width="70"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="220" y="0" width="220" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payee}]]></textFieldExpression></textField>
+      <textField><reportElement x="440" y="0" width="180" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>
+      <textField><reportElement x="620" y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{systemId}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="0" width="110" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="790" y="0" width="110" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtPaid}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="900" y="0" width="110" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{outstanding}]]></textFieldExpression></textField>
+      <textField><reportElement x="1010" y="0" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{status}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="20">
+      <textField><reportElement x="0" y="3" width="440" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " document(s)"]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="3" width="110" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_AMT}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="790" y="3" width="110" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_PAID}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="900" y="3" width="110" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_OUTSTANDING}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="cashbook-ledger"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="BANK_DESC"    class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="DATE_RANGE"   class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="OPENING_BAL"  class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="CLOSING_BAL"  class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="docDate"  class="java.sql.Date"/>
+  <field name="docType"  class="java.lang.String"/>
+  <field name="docNo"    class="java.lang.Integer"/>
+  <field name="seqNo"    class="java.lang.Integer"/>
+  <field name="amount"   class="java.math.BigDecimal"/>
+  <field name="balance"  class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="68">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Cashbook Ledger]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{BANK_DESC}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$P{DATE_RANGE}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <staticText><reportElement x="0" y="54" width="150" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Opening balance: ]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="150" y="54" width="120" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$P{OPENING_BAL}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="76"  y="4" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="138" y="4" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Doc No]]></text></staticText>
+      <staticText><reportElement x="200" y="4" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Seq]]></text></staticText>
+      <staticText><reportElement x="432" y="4" width="120" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+      <staticText><reportElement x="554" y="4" width="140" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Running Balance]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="13">
+      <textField pattern="dd/MM/yyyy"><reportElement x="4"   y="1" width="70"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="76"  y="1" width="60"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
+      <textField pattern="#0"><reportElement x="138" y="1" width="60"  height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
+      <textField pattern="#0"><reportElement x="200" y="1" width="40"  height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{seqNo}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="432" y="1" width="120" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="554" y="1" width="140" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{balance}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="50">
+      <line><reportElement x="554" y="2" width="140" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
+      <textField><reportElement x="4" y="6" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="360" y="6" width="188" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Closing balance:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="554" y="6" width="140" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{CLOSING_BAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

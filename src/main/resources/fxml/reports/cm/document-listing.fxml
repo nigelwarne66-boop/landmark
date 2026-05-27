@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.CmDocumentListingController"
+    styleClass="sel-root"
+    prefWidth="640" prefHeight="480">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Document Listing" styleClass="sel-title"/>
+            <Label text="CMTL18 — cashbook document listing with amount paid and outstanding" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Bank" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="bankCode" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Date from / to" styleClass="sel-label" minWidth="140"/>
+                    <DatePicker fx:id="startDate" promptText="blank = all dates" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="endDate" promptText="to" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Document no from / to" styleClass="sel-label" minWidth="140"/>
+                    <TextField fx:id="startDocNo" promptText="0 = all" HBox.hgrow="ALWAYS"/>
+                    <TextField fx:id="endDocNo" promptText="to" HBox.hgrow="ALWAYS"/>
+                </HBox>
+
+                <Label text="Transaction types" styleClass="sel-section"/>
+                <GridPane hgap="18" vgap="6">
+                    <CheckBox fx:id="inclDeposits"    text="Deposits"     GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <CheckBox fx:id="inclBankCredits" text="Bank credits" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    <CheckBox fx:id="inclCheques"     text="Cheques"      GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                    <CheckBox fx:id="inclBankDebits"  text="Bank debits"  GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+                </GridPane>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Cancel" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel"  styleClass="sel-btn-excel"  onAction="#onExcel"/>
+            <Button text="PDF"    styleClass="sel-btn-pdf"    onAction="#onPdf"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

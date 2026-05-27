@@ -73,13 +73,15 @@ public class ReportsHubController implements Initializable {
     /* ── Colour + icon maps ────────────────────────────────────── */
     private static final Map<String, String> MODULE_STYLE = Map.of(
         "fa", "icon-fa", "gl", "icon-gl", "py", "icon-py",
-        "ar", "icon-ar", "ap", "icon-ap", "cm", "icon-cm", "fav", "icon-fav"
+        "ar", "icon-ar", "ap", "icon-ap", "cm", "icon-cm",
+        "bas", "icon-ap", "fav", "icon-fav"
     );
     // Feather (fth-*) — closest available substitute for the original Tabler ti-* names.
     private static final Map<String, String> MODULE_ICON = Map.of(
         "fa", "fth-package",       "gl", "fth-bar-chart-2",
         "py", "fth-users",         "ar", "fth-file-text",
-        "ap", "fth-file",          "cm", "fth-dollar-sign",  "fav", "fth-star"
+        "ap", "fth-file",          "cm", "fth-dollar-sign",
+        "bas", "fth-percent",      "fav", "fth-star"
     );
 
     /* ── Init ──────────────────────────────────────────────────── */
@@ -371,6 +373,72 @@ public class ReportsHubController implements Initializable {
             "fth-list");
         cmCashbookTransactions.setRunner(fmt -> comingSoon("Cashbook Transactions"));
 
+        ReportDef cmCashbookListing = ReportDef.withParams(
+            "cashbook-listing", "Cashbook Listing",
+            "Cashbook documents by bank, receipts / payments (CMCB02)",
+            "fth-file-text");
+        cmCashbookListing.setRunner(fmt -> comingSoon("Cashbook Listing"));
+
+        ReportDef cmCashbookByType = ReportDef.withParams(
+            "cashbook-by-type", "Cashbook by Type",
+            "Cashbook transactions grouped by document type (CMTL35)",
+            "fth-bar-chart-2");
+        cmCashbookByType.setRunner(fmt -> comingSoon("Cashbook by Type"));
+
+        ReportDef cmCashbookDistributions = ReportDef.withParams(
+            "cashbook-distributions", "Cashbook Distributions",
+            "Cashbook distribution lines by GL account and tax code (CMTL14)",
+            "fth-pie-chart");
+        cmCashbookDistributions.setRunner(fmt -> comingSoon("Cashbook Distributions"));
+
+        ReportDef cmCashbookLedger = ReportDef.withParams(
+            "cashbook-ledger", "Cashbook Ledger",
+            "Cashbook ledger with opening and running balance (CMTL05)",
+            "fth-book");
+        cmCashbookLedger.setRunner(fmt -> comingSoon("Cashbook Ledger"));
+
+        ReportDef cmDocumentListing = ReportDef.withParams(
+            "document-listing", "Document Listing",
+            "Cashbook documents with amount paid and outstanding (CMTL18)",
+            "fth-list");
+        cmDocumentListing.setRunner(fmt -> comingSoon("Document Listing"));
+
+        ReportDef cmBankReconciliation = ReportDef.withParams(
+            "bank-reconciliation", "Bank Reconciliation Statement",
+            "Reconciliation balances and the transactions reconciled (CMTL02)",
+            "fth-check-square");
+        cmBankReconciliation.setRunner(fmt -> comingSoon("Bank Reconciliation Statement"));
+
+        ReportDef cmReceiptListing = ReportDef.withParams(
+            "receipt-listing", "Receipt Listing",
+            "Cashbook receipts by bank, with receipt type and status (CMTL08)",
+            "fth-dollar-sign");
+        cmReceiptListing.setRunner(fmt -> comingSoon("Receipt Listing"));
+
+        ReportDef cmFcMatch = ReportDef.withParams(
+            "fc-match", "Cashbook FC Match",
+            "Foreign-currency cashbook transactions and rates (CMTL30)",
+            "fth-refresh-cw");
+        cmFcMatch.setRunner(fmt -> comingSoon("Cashbook FC Match"));
+
+        /* BAS — Business Activity Statement */
+        ReportDef basStatement = ReportDef.withParams(
+            "business-activity-statement", "Business Activity Statement",
+            "GST, PAYG and FBT summary for a BAS period (CPBA12)",
+            "fth-percent");
+        ReportDef detailedBas = ReportDef.withParams(
+            "detailed-bas", "Detailed BAS",
+            "BAS transactions by code — summary or full detail (CPBA13)",
+            "fth-list");
+        ReportDef basTransactions = ReportDef.withParams(
+            "bas-transactions", "BAS Transactions",
+            "Filtered BAS transaction listing with date range and GST code (CPBA06)",
+            "fth-file-text");
+        ReportDef basByGl = ReportDef.withParams(
+            "bas-by-gl", "BAS by GL Account",
+            "BAS amounts aggregated by GL clearing account and BAS code (CPBA16)",
+            "fth-bar-chart-2");
+
         // Payroll module only visible to users with MEUSERS.print_pa_from_pass='Y'.
         java.util.List<ModuleDef> mods = new java.util.ArrayList<>();
         mods.add(new ModuleDef("fa", "Fixed Assets",
@@ -394,7 +462,11 @@ public class ReportsHubController implements Initializable {
                     unbalancedRecon, accountRecon, cashRequirements,
                     supplierAnalysis, fcRevaluation)));
         mods.add(new ModuleDef("cm", "Cash Management",
-            List.of(cmCashbookTransactions)));
+            List.of(cmCashbookTransactions, cmCashbookListing, cmCashbookByType,
+                    cmCashbookDistributions, cmCashbookLedger, cmDocumentListing,
+                    cmBankReconciliation, cmReceiptListing, cmFcMatch)));
+        mods.add(new ModuleDef("bas", "Business Activity Statement",
+            List.of(basStatement, detailedBas, basTransactions, basByGl)));
         modules = mods;
     }
 

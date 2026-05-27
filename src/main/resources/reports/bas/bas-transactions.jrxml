@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="bas-transactions"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"    class="java.lang.String"/>
+  <parameter name="BAS_DESC"        class="java.lang.String"      isForPrompting="false"/>
+  <parameter name="DATE_BASIS_DESC" class="java.lang.String"      isForPrompting="false"/>
+  <parameter name="DATE_RANGE"      class="java.lang.String"      isForPrompting="false"/>
+  <parameter name="SUM_GROSS"       class="java.math.BigDecimal"  isForPrompting="false"/>
+  <parameter name="SUM_TAX"         class="java.math.BigDecimal"  isForPrompting="false"/>
+  <parameter name="ROW_COUNT"       class="java.lang.Integer"     isForPrompting="false"/>
+
+  <field name="basGroup"    class="java.lang.String"/>
+  <field name="basNo"       class="java.lang.Integer"/>
+  <field name="basCode"     class="java.lang.String"/>
+  <field name="trxDate"     class="java.sql.Date"/>
+  <field name="postingDate" class="java.sql.Date"/>
+  <field name="gstCode"     class="java.lang.String"/>
+  <field name="party"       class="java.lang.String"/>
+  <field name="reference"   class="java.lang.String"/>
+  <field name="glAcct"      class="java.lang.String"/>
+  <field name="source"      class="java.lang.String"/>
+  <field name="batchNo"     class="java.lang.Integer"/>
+  <field name="docRef"      class="java.lang.String"/>
+  <field name="grossAmt"    class="java.math.BigDecimal"/>
+  <field name="taxAmt"      class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="56">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[BAS Transactions]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  BAS: " + ($P{BAS_DESC}==null?"":$P{BAS_DESC})]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[($P{DATE_BASIS_DESC}==null?"":$P{DATE_BASIS_DESC}) + "  —  " + ($P{DATE_RANGE}==null?"":$P{DATE_RANGE})]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="34"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Group]]></text></staticText>
+      <staticText><reportElement x="40"  y="4" width="30"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[No]]></text></staticText>
+      <staticText><reportElement x="72"  y="4" width="46"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Code]]></text></staticText>
+      <staticText><reportElement x="120" y="4" width="66"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="188" y="4" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[GST]]></text></staticText>
+      <staticText><reportElement x="230" y="4" width="150" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Party]]></text></staticText>
+      <staticText><reportElement x="382" y="4" width="120" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Reference]]></text></staticText>
+      <staticText><reportElement x="504" y="4" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[GL Acct]]></text></staticText>
+      <staticText><reportElement x="566" y="4" width="96"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Gross]]></text></staticText>
+      <staticText><reportElement x="664" y="4" width="114" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Tax]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="13">
+      <textField><reportElement x="4"   y="1" width="34"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basGroup}]]></textFieldExpression></textField>
+      <textField><reportElement x="40"  y="1" width="30"  height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="72"  y="1" width="46"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basCode}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="120" y="1" width="66"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{trxDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="188" y="1" width="40"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{gstCode}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="230" y="1" width="150" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{party}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="382" y="1" width="120" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>
+      <textField><reportElement x="504" y="1" width="60"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcct}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="566" y="1" width="96"  height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{grossAmt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="664" y="1" width="114" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{taxAmt}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="50">
+      <line><reportElement x="566" y="2" width="96" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
+      <line><reportElement x="664" y="2" width="114" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
+      <textField><reportElement x="4" y="8" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " transaction(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="380" y="8" width="180" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand total:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="566" y="8" width="96" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_GROSS}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="664" y="8" width="114" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_TAX}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>
