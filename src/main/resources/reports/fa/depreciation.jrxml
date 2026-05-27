@@ -27,7 +27,7 @@
         a.accum_tax_depn, a.tax_depn_cost,
         a.book_depn_method, a.book_depn_rate_1,
         a.accum_book_depn, a.book_depn_cost,
-        a.actual_cost - a.accum_book_depn AS net_book_value,
+        a.actual_cost - a.accum_book_depn - a.accum_book_depn_adj AS net_book_value,
         a.start_depn_date, a.write_down_date
       FROM FAASSET a
       LEFT JOIN FACODGR g ON g.company_no = a.company_no AND g.grp_code = a.grp_code

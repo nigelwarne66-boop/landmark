@@ -21,7 +21,7 @@
     <![CDATA[
       SELECT a.asset_no, a.desc_1, a.loc_code, a.grp_code,
              a.acqn_date, a.actual_cost, a.accum_book_depn,
-             a.actual_cost - a.accum_book_depn AS net_book_value,
+             a.actual_cost - a.accum_book_depn - a.accum_book_depn_adj AS net_book_value,
              a.asset_status,
              COALESCE(g.desc1, a.grp_code) AS grp_desc,
              COALESCE(l.desc1, a.loc_code) AS loc_desc
