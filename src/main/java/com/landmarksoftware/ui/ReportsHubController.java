@@ -364,6 +364,13 @@ public class ReportsHubController implements Initializable {
             "fth-refresh-cw");
         fcRevaluation.setRunner(fmt -> comingSoon("Foreign Currency Revaluation"));
 
+        /* Cash Management (cashbook) */
+        ReportDef cmCashbookTransactions = ReportDef.withParams(
+            "cashbook-transactions", "Cashbook Transactions",
+            "Cashbook transactions for a bank, with reconciliation filter (CMTL10)",
+            "fth-list");
+        cmCashbookTransactions.setRunner(fmt -> comingSoon("Cashbook Transactions"));
+
         // Payroll module only visible to users with MEUSERS.print_pa_from_pass='Y'.
         java.util.List<ModuleDef> mods = new java.util.ArrayList<>();
         mods.add(new ModuleDef("fa", "Fixed Assets",
@@ -386,6 +393,8 @@ public class ReportsHubController implements Initializable {
                     periodSummary, glDistributions, purchaseHistory,
                     unbalancedRecon, accountRecon, cashRequirements,
                     supplierAnalysis, fcRevaluation)));
+        mods.add(new ModuleDef("cm", "Cash Management",
+            List.of(cmCashbookTransactions)));
         modules = mods;
     }
 
