@@ -57,16 +57,19 @@ public class DepreciationProjectionService {
     private final FaTransactionRepository trxRepo;
     private final GlDateRepository        glDateRepo;
     private final CompanyRepository       companyRepo;
+    private final FaDepnCodeRepository    depnCodeRepo;
 
     public DepreciationProjectionService(
             FaAssetRepository       assetRepo,
             FaTransactionRepository trxRepo,
             GlDateRepository        glDateRepo,
-            CompanyRepository       companyRepo) {
-        this.assetRepo   = assetRepo;
-        this.trxRepo     = trxRepo;
-        this.glDateRepo  = glDateRepo;
-        this.companyRepo = companyRepo;
+            CompanyRepository       companyRepo,
+            FaDepnCodeRepository    depnCodeRepo) {
+        this.assetRepo    = assetRepo;
+        this.trxRepo      = trxRepo;
+        this.glDateRepo   = glDateRepo;
+        this.companyRepo  = companyRepo;
+        this.depnCodeRepo = depnCodeRepo;
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -183,12 +186,23 @@ public class DepreciationProjectionService {
 
         char stream = req.getTaxOrBook();
 
-        // Skip assets with no depreciation method configured
-        String method  = asset.depnMethod(stream);
-        String calcInd = asset.depnCalcInd(stream);
-        if (method == null || method.isBlank() || calcInd == null || calcInd.isBlank()) {
+        // Skip assets with no depreciation method configured at all
+        String method = asset.depnMethod(stream);
+        if (method == null || method.isBlank()) {
             return null;
         }
+
+        // Resolve rate + calc indicator/base (GET-DEPN-RATE in fatl12.pl):
+        //   code blank   → FAASSET rate_1 for both straight-line and diminishing
+        //   code present → FACODDN str-line / dimin rates + calc-ind/base
+        // The method ('D' vs 'S') then selects which rate applies. Coded assets
+        // are NOT skipped just because FAASSET calc-ind is blank — the indicator
+        // comes from FACODDN (defaulting to 'D' per the COBOL tax-stream guard).
+        DepnPlan plan = resolveDepnPlan(asset, stream, req);
+        if (plan == null) {
+            return null;   // no code and no calc indicator → genuinely unconfigured
+        }
+        String calcInd = plan.calcInd();
 
         // ── Compute opening WDV ─────────────────────────────────────────
         BigDecimal openingWdv = computeOpeningWdv(asset, stream, glYears, req);
@@ -207,9 +221,7 @@ public class DepreciationProjectionService {
         result.setLastDepnDate(asset.lastDepnDate(stream));
         result.setDepnFreq(asset.depnFreq(stream));
 
-        BigDecimal effectiveRate = req.getProjectedRate().compareTo(ZERO) != 0
-                ? req.getProjectedRate()
-                : asset.depnRate1(stream);
+        BigDecimal effectiveRate = plan.rate();
         result.setDepnRate(effectiveRate);
         result.setProjectedRate(req.getProjectedRate());
         result.setOpeningWdv(openingWdv);
@@ -363,12 +375,16 @@ public class DepreciationProjectionService {
     // ════════════════════════════════════════════════════════════════════
 
     /**
-     * Pooled assets use two rates:
-     *   Rate-1 applied to current-year acquisitions (POOL-ACQN-POSTED-FLAG)
-     *   Rate-2 applied to the pool opening balance
+     * Pooled-asset depreciation (CALC-POOLED-DEPN-AMT in fatl12.pl).
      *
-     * TODO: complete implementation once full pooled-asset transaction flow
-     *       is confirmed. Current skeleton returns a zero placeholder.
+     * COBOL annual charge:
+     *   currYearAcqns × rate_1 / 100   (acquisitions posted this GL year)
+     * + poolOpeningBal × rate_2 / 100  (FAASSET-POOL-BOOK/TAX-BAL)
+     *
+     * The COBOL evaluates this once per GL year (calc-ind forced to 'D').
+     * Because the Java engine walks period columns, the annual charge is
+     * apportioned to each period by its calendar-day fraction of the year, so
+     * the per-year column sum equals the COBOL annual amount.
      */
     private BigDecimal computePooledDepn(
             AssetRow asset, char stream, ProjectionRequest req,
@@ -376,11 +392,105 @@ public class DepreciationProjectionService {
             long workDaysInPeriod, long workDaysInYear, int periodsInYear,
             DepreciationCalculator calc) {
 
-        // TODO: implement pooled-asset Rate-1/Rate-2 split
-        // Acquire pool balance and current-year acquisition amounts from FATRANS
-        // Apply Rate-1 to current-year acqns, Rate-2 to pool balance
-        return ZERO;
+        BigDecimal poolBal = stream == 'T'
+                ? (asset.getPoolTaxBalDate()  != null ? nz(asset.getPoolTaxBal())  : ZERO)
+                : (asset.getPoolBookBalDate() != null ? nz(asset.getPoolBookBal()) : ZERO);
+        BigDecimal rate1 = nz(asset.depnRate1(stream));   // current-year acquisitions
+        BigDecimal rate2 = nz(asset.depnRate2(stream));   // pool opening balance
+
+        BigDecimal currYearAcqns = currentYearAcquisitions(
+                req.getCompanyNo(), asset.getAssetNo(), stream,
+                yr.getYrStartDate(), yr.getYrEndDate());
+
+        // Projected-rate override applies to the acquisition rate (WS-DEPN-RATE).
+        if (req.getProjectedRate().compareTo(ZERO) != 0) rate1 = req.getProjectedRate();
+
+        BigDecimal annual = currYearAcqns.multiply(rate1).add(poolBal.multiply(rate2))
+                .divide(HUNDRED, 2, RM);
+
+        // Apportion the annual charge to this period by calendar-day fraction.
+        long yearDays   = ChronoUnit.DAYS.between(yr.getYrStartDate(), yr.getYrEndDate()) + 1;
+        long periodDays = ChronoUnit.DAYS.between(periodStart, periodEnd) + 1;
+        if (yearDays <= 0) return ZERO;
+
+        return annual.multiply(BigDecimal.valueOf(periodDays))
+                     .divide(BigDecimal.valueOf(yearDays), 2, RM);
     }
+
+    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+
+    /** Sum of AQ acquisition cost (stream-specific) posted within a GL year. */
+    private BigDecimal currentYearAcquisitions(
+            int companyNo, String assetNo, char stream, LocalDate yrStart, LocalDate yrEnd) {
+        BigDecimal total = ZERO;
+        for (FaTransactionRow t : trxRepo.findAcquisitions(companyNo, assetNo)) {
+            LocalDate d = t.getTrxDate();
+            if (d == null || d.isBefore(yrStart) || d.isAfter(yrEnd)) continue;
+            BigDecimal cost = stream == 'T' ? t.getAcqnTaxDepnCost() : t.getAcqnBookDepnCost();
+            if (cost != null) total = total.add(cost);
+        }
+        return total;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Rate / method resolution  (GET-DEPN-RATE)
+    // ════════════════════════════════════════════════════════════════════
+
+    /** Resolved depreciation rate + calc indicator/base for an asset stream. */
+    private record DepnPlan(BigDecimal rate, String calcInd, String calcBase) {}
+
+    /**
+     * Mirrors GET-DEPN-RATE (fatl12.pl:438-515):
+     *   - depn-code blank → FAASSET rate_1 used for both straight-line and
+     *     diminishing; calc-ind/base from FAASSET.
+     *   - depn-code present → read FACODDN for straight-line + diminishing rates
+     *     and calc-ind/base. If FACODDN has no row, rates stay zero (asset still
+     *     lists with zero depreciation).
+     *   - method 'D' selects the diminishing rate, else the straight-line rate.
+     *   - WS-PROJECTED-RATE overrides; a 99.99 rate is bumped to 100.00.
+     *
+     * @return null only when the asset is genuinely unconfigured (no code AND no
+     *         calc indicator) — preserving the original skip for such rows.
+     */
+    private DepnPlan resolveDepnPlan(AssetRow asset, char stream, ProjectionRequest req) {
+        String method = asset.depnMethod(stream);
+        String code   = asset.depnCode(stream);
+
+        BigDecimal strLine, dimin;
+        String calcInd, calcBase;
+
+        if (code == null || code.isBlank()) {
+            calcInd = asset.depnCalcInd(stream);
+            if (calcInd == null || calcInd.isBlank()) return null;   // unconfigured non-coded asset
+            strLine = dimin = nz(asset.depnRate1(stream));
+            calcBase = asset.depnCalcBase(stream);
+        } else {
+            Optional<FaDepnCodeRepository.DepnCodeRates> r =
+                    depnCodeRepo.find(req.getCompanyNo(), code, stream);
+            if (r.isPresent()) {
+                strLine  = nz(r.get().strLineRate());
+                dimin    = nz(r.get().diminRate());
+                calcInd  = r.get().calcInd();
+                calcBase = r.get().calcBase();
+            } else {
+                // FACODDN not loaded / code absent — COBOL leaves the rate zero.
+                strLine = dimin = ZERO;
+                calcInd = calcBase = "";
+            }
+            // COBOL guard (fatl12.pl:496-500): force a valid indicator/base so the
+            // calculator can run (yields zero when the rate is zero).
+            if (!"D".equals(calcInd) && !"W".equals(calcInd) && !"F".equals(calcInd)) calcInd = "D";
+            if (calcBase == null || calcBase.isBlank()) calcBase = "D";
+        }
+
+        BigDecimal rate = "D".equals(method) ? dimin : strLine;
+        if (req.getProjectedRate().compareTo(ZERO) != 0) rate = req.getProjectedRate();
+        if (rate.compareTo(new BigDecimal("99.99")) == 0) rate = new BigDecimal("100.00");
+
+        return new DepnPlan(rate, calcInd, calcBase);
+    }
+
+    private static BigDecimal nz(BigDecimal v) { return v != null ? v : ZERO; }
 
     // ════════════════════════════════════════════════════════════════════
     // Helpers

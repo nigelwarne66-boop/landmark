@@ -268,6 +268,7 @@ public class AssetRow {
 
     /** Selects book or tax fields depending on stream indicator */
     public String depnMethod(char stream)  { return stream == 'T' ? taxDepnMethod  : bookDepnMethod;  }
+    public String depnCode(char stream)    { return stream == 'T' ? taxDepnCode    : bookDepnCode;    }
     public String depnCalcInd(char stream) { return stream == 'T' ? taxDepnCalcInd : bookDepnCalcInd; }
     public String depnCalcBase(char stream){ return stream == 'T' ? taxDepnCalcBase: bookDepnCalcBase; }
     public int    depnFreq(char stream)    { return stream == 'T' ? taxDepnFreq    : bookDepnFreq;    }
