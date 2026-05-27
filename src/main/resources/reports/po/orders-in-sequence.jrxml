@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="orders-in-sequence"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="SEQUENCE_DESC" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="LOC_DESC"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="PO_RANGE"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SUPP_RANGE"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="DATE_RANGE"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="AMT_BASIS"    class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SUM_EXT"      class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_TAX"      class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="poNo"        class="java.lang.Integer"/>
+  <field name="lineNo"      class="java.lang.Integer"/>
+  <field name="poDate"      class="java.sql.Date"/>
+  <field name="supplierNo"  class="java.lang.String"/>
+  <field name="stockCode"   class="java.lang.String"/>
+  <field name="description" class="java.lang.String"/>
+  <field name="glAcct"      class="java.lang.String"/>
+  <field name="delivDate"   class="java.sql.Date"/>
+  <field name="qtyOrdered"  class="java.math.BigDecimal"/>
+  <field name="unitCost"    class="java.math.BigDecimal"/>
+  <field name="extAmt"      class="java.math.BigDecimal"/>
+  <field name="taxAmt"      class="java.math.BigDecimal"/>
+
+  <variable name="SUM_E" class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{extAmt}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+
+  <title>
+    <band height="58">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Purchase Orders in Sequence]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  by " + $P{SEQUENCE_DESC} + "  •  " + $P{LOC_DESC} + "  •  " + $P{AMT_BASIS}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$P{PO_RANGE} + "  •  " + $P{SUPP_RANGE} + "  •  " + $P{DATE_RANGE}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="42"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[PO No]]></text></staticText>
+      <staticText><reportElement x="46"  y="4" width="26"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Ln]]></text></staticText>
+      <staticText><reportElement x="72"  y="4" width="52"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="124" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier]]></text></staticText>
+      <staticText><reportElement x="194" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Stock]]></text></staticText>
+      <staticText><reportElement x="264" y="4" width="160" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="424" y="4" width="56"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[GL Acct]]></text></staticText>
+      <staticText><reportElement x="480" y="4" width="52"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Deliv]]></text></staticText>
+      <staticText><reportElement x="532" y="4" width="48"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Qty]]></text></staticText>
+      <staticText><reportElement x="580" y="4" width="58"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Unit Cost]]></text></staticText>
+      <staticText><reportElement x="638" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Ext Amt]]></text></staticText>
+      <staticText><reportElement x="708" y="4" width="74"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Tax]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="13">
+      <textField pattern="#0"><reportElement x="4" y="1" width="42" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
+      <textField pattern="#0"><reportElement x="46" y="1" width="26" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineNo}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="72" y="1" width="52" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="124" y="1" width="70" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="194" y="1" width="70" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="264" y="1" width="160" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+      <textField><reportElement x="424" y="1" width="56" height="11"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[$F{glAcct}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="480" y="1" width="52" height="11"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[$F{delivDate}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="532" y="1" width="48" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyOrdered}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0000"><reportElement x="580" y="1" width="58" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{unitCost}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="638" y="1" width="70" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{extAmt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="708" y="1" width="74" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{taxAmt}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="30">
+      <line><reportElement x="420" y="2" width="362" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
+      <textField><reportElement x="4" y="8" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="520" y="8" width="118" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total ext / tax:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="638" y="8" width="70" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_EXT}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="708" y="8" width="74" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_TAX}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

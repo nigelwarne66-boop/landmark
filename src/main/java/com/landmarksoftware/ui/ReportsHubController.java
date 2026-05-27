@@ -71,17 +71,18 @@ public class ReportsHubController implements Initializable {
     private ModuleDef       activeModule;
 
     /* ── Colour + icon maps ────────────────────────────────────── */
-    private static final Map<String, String> MODULE_STYLE = Map.of(
-        "fa", "icon-fa", "gl", "icon-gl", "py", "icon-py",
-        "ar", "icon-ar", "ap", "icon-ap", "cm", "icon-cm",
-        "bas", "icon-ap", "fav", "icon-fav"
+    private static final Map<String, String> MODULE_STYLE = Map.ofEntries(
+        Map.entry("fa", "icon-fa"), Map.entry("gl", "icon-gl"), Map.entry("py", "icon-py"),
+        Map.entry("ar", "icon-ar"), Map.entry("ap", "icon-ap"), Map.entry("cm", "icon-cm"),
+        Map.entry("bas", "icon-ap"), Map.entry("po", "icon-ap"), Map.entry("fav", "icon-fav")
     );
     // Feather (fth-*) — closest available substitute for the original Tabler ti-* names.
-    private static final Map<String, String> MODULE_ICON = Map.of(
-        "fa", "fth-package",       "gl", "fth-bar-chart-2",
-        "py", "fth-users",         "ar", "fth-file-text",
-        "ap", "fth-file",          "cm", "fth-dollar-sign",
-        "bas", "fth-percent",      "fav", "fth-star"
+    private static final Map<String, String> MODULE_ICON = Map.ofEntries(
+        Map.entry("fa", "fth-package"),  Map.entry("gl", "fth-bar-chart-2"),
+        Map.entry("py", "fth-users"),    Map.entry("ar", "fth-file-text"),
+        Map.entry("ap", "fth-file"),     Map.entry("cm", "fth-dollar-sign"),
+        Map.entry("bas", "fth-percent"), Map.entry("po", "fth-shopping-cart"),
+        Map.entry("fav", "fth-star")
     );
 
     /* ── Init ──────────────────────────────────────────────────── */
@@ -421,6 +422,50 @@ public class ReportsHubController implements Initializable {
             "fth-refresh-cw");
         cmFcMatch.setRunner(fmt -> comingSoon("Cashbook FC Match"));
 
+        /* Purchasing (PO) */
+        ReportDef poInSequence = ReportDef.withParams(
+            "orders-in-sequence", "Purchase Orders in Sequence",
+            "PO list in a chosen sort sequence — order/supplier/item/date/GL/ledger (POTL22)",
+            "fth-list");
+        poInSequence.setRunner(fmt -> comingSoon("Purchase Orders in Sequence"));
+
+        ReportDef poSummary = ReportDef.withParams(
+            "po-summary", "Purchase Order Summary",
+            "One row per PO: ordered, invoiced, delivered and outstanding values (POTL20)",
+            "fth-file-text");
+
+        ReportDef poDetail = ReportDef.withParams(
+            "po-detail", "Purchase Order Detail",
+            "One row per PO line: quantities and values grouped by PO (POTL21)",
+            "fth-align-justify");
+
+        ReportDef purchaseIndex = ReportDef.withParams(
+            "purchase-index", "Purchase Index",
+            "Per-line ordered/delivered/invoiced values with AP document count (POTL33)",
+            "fth-search");
+
+        ReportDef poVariance = ReportDef.withParams(
+            "delivery-invoice-variance", "Delivery / Invoice Variance",
+            "Per-line delivered value vs invoiced value and variance (POTL28)",
+            "fth-alert-triangle");
+
+        ReportDef poUninvoicedGoods = ReportDef.withParams(
+            "uninvoiced-goods", "Uninvoiced Goods Reconcile",
+            "Received-not-invoiced value per PO line, stock goods (POTL36)",
+            "fth-truck");
+        ReportDef poUninvoicedSundries = ReportDef.withParams(
+            "uninvoiced-sundries", "Uninvoiced Goods (Sundries)",
+            "Received-not-invoiced value for sundry / non-stock lines (POTL37)",
+            "fth-truck");
+        ReportDef poSundriesRecon = ReportDef.withParams(
+            "sundries-reconcile", "Sundries Reconcile",
+            "AP purchase documents — matched value and adjustments (POTL39)",
+            "fth-check-square");
+        ReportDef poExpedite = ReportDef.withParams(
+            "expedite-action", "Expedite Action",
+            "Overdue / undelivered PO lines due in a window (POTL30)",
+            "fth-clock");
+
         /* BAS — Business Activity Statement */
         ReportDef basStatement = ReportDef.withParams(
             "business-activity-statement", "Business Activity Statement",
@@ -465,6 +510,11 @@ public class ReportsHubController implements Initializable {
             List.of(cmCashbookTransactions, cmCashbookListing, cmCashbookByType,
                     cmCashbookDistributions, cmCashbookLedger, cmDocumentListing,
                     cmBankReconciliation, cmReceiptListing, cmFcMatch)));
+        mods.add(new ModuleDef("bas", "Business Activity Statement",
+            List.of(basStatement, detailedBas, basTransactions, basByGl)));
+        mods.add(new ModuleDef("po", "Purchasing",
+            List.of(poInSequence, poSummary, poDetail, purchaseIndex, poVariance,
+                    poUninvoicedGoods, poUninvoicedSundries, poSundriesRecon, poExpedite)));
         mods.add(new ModuleDef("bas", "Business Activity Statement",
             List.of(basStatement, detailedBas, basTransactions, basByGl)));
         modules = mods;
