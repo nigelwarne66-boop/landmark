@@ -1,0 +1,114 @@
+package com.landmarksoftware.ui.reports;
+
+import com.landmarksoftware.model.AppSession;
+import com.landmarksoftware.service.ar.ArReportDataService;
+import com.landmarksoftware.service.ar.ArReportDataService.SalespersonProfitParams;
+import com.landmarksoftware.ui.ReportsHubController;
+import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.control.*;
+import javafx.stage.Stage;
+import javafx.stage.Window;
+import javafx.util.StringConverter;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
+
+/**
+ * ARTL16 — Salesperson Profitability selection screen.
+ *
+ * <p>PDF groups by salesman with subtotals; Excel is a flat wide layout.
+ * Both fill from {@link ArReportDataService#getSalespersonProfitData}.
+ */
+@Component
+@Scope("prototype")
+public class ArSalespersonProfitabilityController implements Initializable {
+
+    private static final String PDF_PATH   = "ar/salesperson-profitability";
+    private static final String EXCEL_PATH = "ar/salesperson-profitability-excel";
+
+    @Autowired private ReportsHubController hub;
+    @Autowired private AppSession           session;
+    @Autowired private ArReportDataService  arReports;
+
+    @FXML private ComboBox<ArReportDataService.CodeName> startSalesman;
+    @FXML private ComboBox<ArReportDataService.CodeName> endSalesman;
+    @FXML private DatePicker startDate;
+    @FXML private DatePicker endDate;
+
+    record LabelValue(String label, String value) {
+        @Override public String toString() { return label; }
+    }
+
+    private StringConverter<LabelValue> conv() {
+        return new StringConverter<>() {
+            @Override public String toString(LabelValue o) { return o == null ? "" : o.label(); }
+            @Override public LabelValue fromString(String s) { return null; }
+        };
+    }
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        List<ArReportDataService.CodeName> salesmen = arReports.getSalesmen(session);
+        startSalesman.setItems(FXCollections.observableArrayList(salesmen));
+        endSalesman.setItems(FXCollections.observableArrayList(salesmen));
+        startSalesman.getSelectionModel().selectFirst();
+        endSalesman.getSelectionModel().selectFirst();
+    }
+
+    @FXML private void onPdf(ActionEvent e)    { run(e, "pdf"); }
+    @FXML private void onExcel(ActionEvent e)  { run(e, "excel"); }
+    @FXML private void onCancel(ActionEvent e) { close(e); }
+
+    @SuppressWarnings("unchecked")
+    private void run(ActionEvent e, String format) {
+        SalespersonProfitParams params = new SalespersonProfitParams(
+            code(startSalesman),
+            code(endSalesman),
+            startDate.getValue(),
+            endDate.getValue());
+
+        Map<String, Object> data = arReports.getSalespersonProfitData(session, params);
+        if (data.get("warning") != null) {
+            alert(Alert.AlertType.WARNING, "Nothing to list", (String) data.get("warning"));
+            return;
+        }
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) data.get("rows");
+        if (rows == null || rows.isEmpty()) {
+            alert(Alert.AlertType.INFORMATION, "No data", "No profitability data matched the selection.");
+            return;
+        }
+        Map<String, Object> jasperParams = new HashMap<>((Map<String, Object>) data.get("params"));
+        String reportPath = "excel".equals(format) ? EXCEL_PATH : PDF_PATH;
+        Window owner = ((Node) e.getSource()).getScene().getWindow();
+        hub.runJasperReportWithDataSource(reportPath, jasperParams,
+            new JRBeanCollectionDataSource(rows), format, owner);
+        close(e);
+    }
+
+    private static String code(ComboBox<ArReportDataService.CodeName> cb) {
+        ArReportDataService.CodeName c = cb.getSelectionModel().getSelectedItem();
+        String v = c == null ? null : c.code();
+        return (v == null || v.isBlank()) ? null : v;
+    }
+
+    private void alert(Alert.AlertType type, String header, String msg) {
+        Alert a = new Alert(type);
+        a.setTitle(header); a.setHeaderText(header); a.setContentText(msg);
+        a.showAndWait();
+    }
+
+    private void close(ActionEvent e) {
+        ((Stage) ((Node) e.getSource()).getScene().getWindow()).close();
+    }
+}

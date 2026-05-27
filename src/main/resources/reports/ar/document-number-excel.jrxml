@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="document-number-excel"
+              pageWidth="1200" pageHeight="595" orientation="Landscape"
+              columnWidth="1160" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.3" value="title"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NO"       class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME"     class="java.lang.String"/>
+  <parameter name="REPORT_SEQ_DESC"  class="java.lang.String" isForPrompting="false"/>
+  <parameter name="DOC_RANGE"        class="java.lang.String" isForPrompting="false"/>
+  <parameter name="DATE_RANGE"       class="java.lang.String" isForPrompting="false"/>
+  <parameter name="GRAND_TOTAL"      class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"        class="java.lang.Integer" isForPrompting="false"/>
+
+  <field name="docNo"     class="java.lang.String"/>
+  <field name="docDate"   class="java.sql.Date"/>
+  <field name="docType"   class="java.lang.String"/>
+  <field name="custNo"    class="java.lang.String"/>
+  <field name="name"      class="java.lang.String"/>
+  <field name="amt"       class="java.math.BigDecimal"/>
+  <field name="status"    class="java.lang.String"/>
+  <field name="poNo"      class="java.lang.String"/>
+  <field name="orderInfo" class="java.lang.String"/>
+  <field name="source"    class="java.lang.String"/>
+  <field name="batchNo"   class="java.lang.Integer"/>
+
+  <title>
+    <band height="36">
+      <staticText><reportElement x="0" y="0" width="700" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Document Number Register]]></text></staticText>
+      <textField><reportElement x="0" y="20" width="1160" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   Sequence: " + $P{REPORT_SEQ_DESC} + "   Docs: " + $P{DOC_RANGE} + "   Dates: " + $P{DATE_RANGE}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <staticText><reportElement x="0"   y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Document No]]></text></staticText>
+      <staticText><reportElement x="100" y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Document Date]]></text></staticText>
+      <staticText><reportElement x="190" y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Doc Type]]></text></staticText>
+      <staticText><reportElement x="250" y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Customer No]]></text></staticText>
+      <staticText><reportElement x="340" y="0" width="200" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Customer Name]]></text></staticText>
+      <staticText><reportElement x="540" y="0" width="130" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+      <staticText><reportElement x="670" y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Status]]></text></staticText>
+      <staticText><reportElement x="760" y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[PO No]]></text></staticText>
+      <staticText><reportElement x="880" y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Order / Location]]></text></staticText>
+      <staticText><reportElement x="1020" y="0" width="60" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Source]]></text></staticText>
+      <staticText><reportElement x="1080" y="0" width="80" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Batch No]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="0"    y="0" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="100" y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="190" y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
+      <textField><reportElement x="250" y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{custNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="340" y="0" width="200" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="540" y="0" width="130" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amt}]]></textFieldExpression></textField>
+      <textField><reportElement x="670" y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{status}]]></textFieldExpression></textField>
+      <textField><reportElement x="760" y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="880" y="0" width="140" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{orderInfo}]]></textFieldExpression></textField>
+      <textField><reportElement x="1020" y="0" width="60" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{source}]]></textFieldExpression></textField>
+      <textField><reportElement x="1080" y="0" width="80" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{batchNo}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="20">
+      <textField><reportElement x="0" y="2" width="540" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " document(s) — Grand total:"]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="540" y="2" width="130" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

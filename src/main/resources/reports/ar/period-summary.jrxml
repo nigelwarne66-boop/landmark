@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="period-summary"
+              pageWidth="1190" pageHeight="842" orientation="Landscape"
+              columnWidth="1140" leftMargin="25" rightMargin="25"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NO"      class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME"    class="java.lang.String"/>
+  <parameter name="PERIOD_END"      class="java.lang.String" isForPrompting="false"/>
+  <parameter name="SUB_LEDGER_DESC" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="SUM_OPENING"     class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_INV"         class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_CR"          class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_DR"          class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_RECPT"       class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_VOID"        class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_DISC"        class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_FLUCT"       class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_CLOSING"     class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"       class="java.lang.Integer" isForPrompting="false"/>
+
+  <field name="subLedger"   class="java.lang.String"/>
+  <field name="name"        class="java.lang.String"/>
+  <field name="opening"     class="java.math.BigDecimal"/>
+  <field name="invoices"    class="java.math.BigDecimal"/>
+  <field name="crNotes"     class="java.math.BigDecimal"/>
+  <field name="drNotes"     class="java.math.BigDecimal"/>
+  <field name="receipts"    class="java.math.BigDecimal"/>
+  <field name="voidChqs"    class="java.math.BigDecimal"/>
+  <field name="discounts"   class="java.math.BigDecimal"/>
+  <field name="fluctuation" class="java.math.BigDecimal"/>
+  <field name="closing"     class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="52">
+      <staticText><reportElement x="0" y="0" width="600" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Period Summary]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="700" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   Period ending: " + $P{PERIOD_END}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="700" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA["Sub ledger: " + $P{SUB_LEDGER_DESC}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="900" y="38" width="240" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="1140" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="2"    y="4" width="44"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Sub Ldgr]]></text></staticText>
+      <staticText><reportElement x="48"   y="4" width="120" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Name]]></text></staticText>
+      <staticText><reportElement x="170"  y="4" width="102" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Opening]]></text></staticText>
+      <staticText><reportElement x="274"  y="4" width="102" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Invoices]]></text></staticText>
+      <staticText><reportElement x="378"  y="4" width="102" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Cr Notes]]></text></staticText>
+      <staticText><reportElement x="482"  y="4" width="102" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Dr Notes]]></text></staticText>
+      <staticText><reportElement x="586"  y="4" width="102" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Receipts]]></text></staticText>
+      <staticText><reportElement x="690"  y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Void Chqs]]></text></staticText>
+      <staticText><reportElement x="792"  y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Discounts]]></text></staticText>
+      <staticText><reportElement x="894"  y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Fluctuation]]></text></staticText>
+      <staticText><reportElement x="996"  y="4" width="144" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Closing]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="13">
+      <textField><reportElement x="2"   y="0" width="44"  height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[$F{subLedger}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="48"  y="0" width="120" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="170"  y="0" width="102" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA[$F{opening}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="274"  y="0" width="102" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA[$F{invoices}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="378"  y="0" width="102" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA[$F{crNotes}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="482"  y="0" width="102" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA[$F{drNotes}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="586"  y="0" width="102" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA[$F{receipts}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="690"  y="0" width="100" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA[$F{voidChqs}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="792"  y="0" width="100" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA[$F{discounts}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="894"  y="0" width="100" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA[$F{fluctuation}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="996"  y="0" width="144" height="12"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{closing}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="1010" y="2" width="130" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="30">
+      <line><reportElement x="0" y="2" width="1140" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
+      <textField><reportElement x="2" y="8" width="168" height="12"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " sub-ledger(s)"]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="170" y="8" width="102" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_OPENING}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="274" y="8" width="102" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_INV}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="378" y="8" width="102" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CR}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="8" width="102" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DR}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="586" y="8" width="102" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_RECPT}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="690" y="8" width="100" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_VOID}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="792" y="8" width="100" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DISC}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="894" y="8" width="100" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_FLUCT}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="996" y="8" width="144" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CLOSING}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

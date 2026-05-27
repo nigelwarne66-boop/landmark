@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="cash-requirements-summary-excel"
+              pageWidth="870" pageHeight="595" orientation="Landscape"
+              columnWidth="830" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"      class="java.lang.String"/>
+  <parameter name="PAYMENT_DATE"      class="java.lang.String" isForPrompting="false"/>
+  <parameter name="NEXT_PAYMENT_DATE" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="GT_MUST_PAY"   class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_PROMPT_PAY" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_OVERDUE"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_NOW_DUE"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_DISC_DUE"   class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_DISC_AVAIL" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_TOTAL"      class="java.math.BigDecimal" isForPrompting="false"/>
+
+  <field name="supplierNo" class="java.lang.String"/>
+  <field name="name"       class="java.lang.String"/>
+  <field name="subLedger"  class="java.lang.String"/>
+  <field name="mustPay"    class="java.math.BigDecimal"/>
+  <field name="promptPay"  class="java.math.BigDecimal"/>
+  <field name="overdue"    class="java.math.BigDecimal"/>
+  <field name="nowDue"     class="java.math.BigDecimal"/>
+  <field name="discDue"    class="java.math.BigDecimal"/>
+  <field name="discAvail"  class="java.math.BigDecimal"/>
+  <field name="total"      class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="22">
+      <textField><reportElement x="0" y="0" width="800" height="16"/><textElement><font size="11" isBold="true"/></textElement><textFieldExpression><![CDATA["Cash Requirements (Summary) — " + $P{COMPANY_NAME} + "  (payment " + $P{PAYMENT_DATE} + ", next " + $P{NEXT_PAYMENT_DATE} + ")"]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="16">
+      <staticText><reportElement x="0"   y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier No]]></text></staticText>
+      <staticText><reportElement x="70"  y="0" width="180" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier Name]]></text></staticText>
+      <staticText><reportElement x="250" y="0" width="50"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub Ledger]]></text></staticText>
+      <staticText><reportElement x="300" y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Must Pay]]></text></staticText>
+      <staticText><reportElement x="374" y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Prompt Pay]]></text></staticText>
+      <staticText><reportElement x="448" y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Overdue]]></text></staticText>
+      <staticText><reportElement x="522" y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Now Due]]></text></staticText>
+      <staticText><reportElement x="596" y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Discount Due]]></text></staticText>
+      <staticText><reportElement x="670" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Discount Available]]></text></staticText>
+      <staticText><reportElement x="740" y="0" width="90"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Total to Pay]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="0"   y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="70" y="0" width="180" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
+      <textField><reportElement x="250" y="0" width="50"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedger}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="300" y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{mustPay}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="374" y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{promptPay}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="448" y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{overdue}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="522" y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{nowDue}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="596" y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{discDue}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="670" y="0" width="70" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{discAvail}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="740" y="0" width="90" height="14"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{total}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="20">
+      <staticText><reportElement x="150" y="4" width="150" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[REPORT TOTALS]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="300" y="4" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_MUST_PAY}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="374" y="4" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PROMPT_PAY}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="448" y="4" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_OVERDUE}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="522" y="4" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_NOW_DUE}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="596" y="4" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_DISC_DUE}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="670" y="4" width="70" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_DISC_AVAIL}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="740" y="4" width="90" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_TOTAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

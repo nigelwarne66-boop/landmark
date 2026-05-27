@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.ApTransactionListingController"
+    styleClass="sel-root"
+    prefWidth="640">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Transaction Listing" styleClass="sel-title"/>
+            <Label text="APRC05 — AP transactions with optional distribution lines and PO matches" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="12">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Print sequence" styleClass="sel-label" minWidth="130"/>
+                    <ComboBox fx:id="printSeq" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Supplier from / to" styleClass="sel-label" minWidth="130"/>
+                    <ComboBox fx:id="startSupplier" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endSupplier" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <Label text="Document types" styleClass="sel-section"/>
+                <GridPane hgap="18" vgap="6">
+                    <CheckBox fx:id="invoices"       text="Invoices"        GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <CheckBox fx:id="drNotes"        text="Debit notes"     GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    <CheckBox fx:id="crNotes"        text="Credit notes"    GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                    <CheckBox fx:id="crClaims"       text="Credit claims"   GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <CheckBox fx:id="claimReversals" text="Claim reversals" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    <CheckBox fx:id="payments"       text="Payments"        GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                    <CheckBox fx:id="cancelledChqs"  text="Cancelled chqs"  GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <CheckBox fx:id="balances"       text="Balances"        GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                </GridPane>
+
+                <Label text="Selection" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Include fully paid" styleClass="sel-label" minWidth="130"/>
+                    <ComboBox fx:id="includePaid" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Date basis" styleClass="sel-label" minWidth="130"/>
+                    <ComboBox fx:id="docPostInd" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Date from / to" styleClass="sel-label" minWidth="130"/>
+                    <DatePicker fx:id="startDate" promptText="blank = all dates" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="endDate" promptText="to" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Sub ledger" styleClass="sel-label" minWidth="130"/>
+                    <ComboBox fx:id="subLedger" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Label text="Batch no" styleClass="sel-label" minWidth="70"/>
+                    <TextField fx:id="batchNo" promptText="0 = all" HBox.hgrow="ALWAYS"/>
+                </HBox>
+
+                <Label text="Posting status" styleClass="sel-section"/>
+                <GridPane hgap="18" vgap="6">
+                    <CheckBox fx:id="posted"          text="Posted"            GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <CheckBox fx:id="unposted"        text="Unposted"          GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    <CheckBox fx:id="standingInvoice" text="Standing invoices" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+                    <CheckBox fx:id="onHold"          text="On hold"           GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                </GridPane>
+
+                <Label text="On-hold sub-filters" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Fully delivered" styleClass="sel-label" minWidth="130"/>
+                    <ComboBox fx:id="fullyDelivered" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Label text="Within tolerance" styleClass="sel-label" minWidth="110"/>
+                    <ComboBox fx:id="withinTolerance" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Paid but flags not set" styleClass="sel-label" minWidth="130"/>
+                    <ComboBox fx:id="paidButFlags" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <Label text="Detail options" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="24">
+                    <CheckBox fx:id="printLines" text="Print distribution lines"/>
+                    <CheckBox fx:id="printPosMatched" text="Print PO matches"/>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Cancel" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel"  styleClass="sel-btn-excel"  onAction="#onExcel"/>
+            <Button text="PDF"    styleClass="sel-btn-pdf"    onAction="#onPdf"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

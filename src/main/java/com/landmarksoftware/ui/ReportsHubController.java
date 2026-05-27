@@ -173,9 +173,123 @@ public class ReportsHubController implements Initializable {
         /* Accounts Receivable */
         ReportDef debtorsAgeing = ReportDef.withParams(
             "debtors-ageing", "Debtors Ageing",
-            "Customer balances aged across 6 monthly buckets",
+            "Customer balances aged across 4 configurable periods (ARTL32)",
             "fth-users");
         debtorsAgeing.setRunner(fmt -> comingSoon("Debtors Ageing"));
+
+        ReportDef arTransactionListing = ReportDef.withParams(
+            "transaction-listing", "Transaction Listing",
+            "AR transactions by customer, with optional distribution lines (ARRC05)",
+            "fth-list");
+        arTransactionListing.setRunner(fmt -> comingSoon("Transaction Listing"));
+
+        ReportDef salesDistribution = ReportDef.withParams(
+            "sales-distribution", "Sales Distribution",
+            "MTD/YTD sales by sub-ledger and sales code, this year vs last year (ARTL10)",
+            "fth-trending-up");
+        salesDistribution.setRunner(fmt -> comingSoon("Sales Distribution"));
+
+        ReportDef salesByGl = ReportDef.withParams(
+            "sales-by-gl", "Sales by GL",
+            "MTD/YTD sales by GL account, this year vs last year (ARTL18)",
+            "fth-bar-chart-2");
+        salesByGl.setRunner(fmt -> comingSoon("Sales by GL"));
+
+        ReportDef arAccountRecon = ReportDef.withParams(
+            "account-reconciliation", "Account Reconciliation",
+            "Reconciliation detail by customer — gross / net per transaction (ARRC03)",
+            "fth-check-square");
+        arAccountRecon.setRunner(fmt -> comingSoon("Account Reconciliation"));
+
+        ReportDef arUnbalancedRecon = ReportDef.withParams(
+            "unbalanced-reconciliation", "Unbalanced Reconciliation",
+            "Reconciliations out of balance, by customer (ARRC04)",
+            "fth-alert-triangle");
+        arUnbalancedRecon.setRunner(fmt -> comingSoon("Unbalanced Reconciliation"));
+
+        ReportDef arDetailedTxn = ReportDef.withParams(
+            "detailed-transaction-listing", "Detailed Transaction Listing",
+            "AR distribution lines per transaction, with tax detail (ARRC09)",
+            "fth-file-text");
+        arDetailedTxn.setRunner(fmt -> comingSoon("Detailed Transaction Listing"));
+
+        ReportDef arFcReval = ReportDef.withParams(
+            "fc-revaluation", "Foreign Currency Revaluation",
+            "FC transactions with revaluation adjustments (ARRC11)",
+            "fth-refresh-cw");
+        arFcReval.setRunner(fmt -> comingSoon("Foreign Currency Revaluation"));
+
+        ReportDef arGlDistribution = ReportDef.withParams(
+            "gl-distribution", "GL Distribution",
+            "AR GL postings by account, control vs sales, for a period (ARTL02)",
+            "fth-pie-chart");
+        arGlDistribution.setRunner(fmt -> comingSoon("GL Distribution"));
+
+        ReportDef arPeriodSummary = ReportDef.withParams(
+            "period-summary", "Period Summary",
+            "Opening, movements and closing per AR sub ledger for a period (ARTL03)",
+            "fth-calendar");
+        arPeriodSummary.setRunner(fmt -> comingSoon("Period Summary"));
+
+        ReportDef arDocumentNumber = ReportDef.withParams(
+            "document-number", "Document Number",
+            "AR document register — invoices, credit and debit notes (ARTL20)",
+            "fth-file");
+        arDocumentNumber.setRunner(fmt -> comingSoon("Document Number"));
+
+        ReportDef arAdjustmentNote = ReportDef.withParams(
+            "adjustment-note-analysis", "Adjustment Note Analysis",
+            "Credit and debit notes over a date range (ARTL22)",
+            "fth-file-text");
+        arAdjustmentNote.setRunner(fmt -> comingSoon("Adjustment Note Analysis"));
+
+        ReportDef arDebtorsControl = ReportDef.withParams(
+            "debtors-control", "Debtors Control",
+            "Customer balances and period sales, sortable with top-N (ARTL11)",
+            "fth-activity");
+        arDebtorsControl.setRunner(fmt -> comingSoon("Debtors Control"));
+
+        ReportDef arCustomerAcctStatus = ReportDef.withParams(
+            "customer-account-status", "Customer Account Status",
+            "Customers by account status — active / no sales / on hold / inactive (ARTL21)",
+            "fth-user");
+        arCustomerAcctStatus.setRunner(fmt -> comingSoon("Customer Account Status"));
+
+        ReportDef arCustomerSalesByType = ReportDef.withParams(
+            "customer-sales-by-type", "Customer Sales by Type",
+            "Customer YTD sales / cost / profit grouped by customer type (ARTL06)",
+            "fth-bar-chart-2");
+        arCustomerSalesByType.setRunner(fmt -> comingSoon("Customer Sales by Type"));
+
+        ReportDef arCustomerSalesBySubLedger = ReportDef.withParams(
+            "customer-sales-by-subledger", "Customer Sales by Sub Ledger",
+            "Customer YTD sales / cost / profit grouped by sub ledger (ARTL27)",
+            "fth-bar-chart-2");
+        arCustomerSalesBySubLedger.setRunner(fmt -> comingSoon("Customer Sales by Sub Ledger"));
+
+        ReportDef arSalesBySalesperson = ReportDef.withParams(
+            "sales-by-salesperson", "Customer Sales by Salesperson",
+            "Customers grouped by salesperson, MTD + YTD sales (ARTL15)",
+            "fth-users");
+        arSalesBySalesperson.setRunner(fmt -> comingSoon("Customer Sales by Salesperson"));
+
+        ReportDef arSalespersonProfit = ReportDef.withParams(
+            "salesperson-profitability", "Salesperson Profitability",
+            "Sales, cost and gross margin by salesperson (ARTL16)",
+            "fth-trending-up");
+        arSalespersonProfit.setRunner(fmt -> comingSoon("Salesperson Profitability"));
+
+        ReportDef arSalesJournal = ReportDef.withParams(
+            "sales-journal", "Sales Journal",
+            "Invoices, debit and credit notes by sub ledger over a date range (ARTL05)",
+            "fth-book");
+        arSalesJournal.setRunner(fmt -> comingSoon("Sales Journal"));
+
+        ReportDef arCommission = ReportDef.withParams(
+            "commission", "Commission",
+            "Per-transaction commission by salesperson (ARTL04)",
+            "fth-dollar-sign");
+        arCommission.setRunner(fmt -> comingSoon("Commission"));
 
         /* Accounts Payable */
         ReportDef creditorsAgeing = ReportDef.withParams(
@@ -183,6 +297,66 @@ public class ReportsHubController implements Initializable {
             "Supplier balances aged across 6 monthly buckets",
             "fth-users");
         creditorsAgeing.setRunner(fmt -> comingSoon("Creditors Ageing"));
+
+        ReportDef transactionListing = ReportDef.withParams(
+            "transaction-listing", "Transaction Listing",
+            "AP transactions by supplier, with optional distribution lines",
+            "fth-list");
+        transactionListing.setRunner(fmt -> comingSoon("Transaction Listing"));
+
+        ReportDef detailedTxnListing = ReportDef.withParams(
+            "detailed-transaction-listing", "Detailed Transaction Listing",
+            "AP transactions with full GL distribution detail and tax codes",
+            "fth-file-text");
+        detailedTxnListing.setRunner(fmt -> comingSoon("Detailed Transaction Listing"));
+
+        ReportDef periodSummary = ReportDef.withParams(
+            "period-summary", "Period Summary",
+            "Opening, movements and closing per AP sub ledger for a period",
+            "fth-calendar");
+        periodSummary.setRunner(fmt -> comingSoon("Period Summary"));
+
+        ReportDef glDistributions = ReportDef.withParams(
+            "gl-distributions", "GL Distributions Summary",
+            "AP GL postings by account, control vs expense, for a period",
+            "fth-pie-chart");
+        glDistributions.setRunner(fmt -> comingSoon("GL Distributions Summary"));
+
+        ReportDef purchaseHistory = ReportDef.withParams(
+            "purchase-history", "Supplier Purchase History",
+            "Period and YTD purchases per supplier, this year vs last year",
+            "fth-trending-up");
+        purchaseHistory.setRunner(fmt -> comingSoon("Supplier Purchase History"));
+
+        ReportDef unbalancedRecon = ReportDef.withParams(
+            "unbalanced-reconciliation", "Unbalanced Reconciliation",
+            "Suppliers/reconciliations out of balance in local or foreign currency",
+            "fth-alert-triangle");
+        unbalancedRecon.setRunner(fmt -> comingSoon("Unbalanced Reconciliation"));
+
+        ReportDef accountRecon = ReportDef.withParams(
+            "account-reconciliation", "Account Reconciliation",
+            "Reconciliation detail — invoices matched to payments",
+            "fth-check-square");
+        accountRecon.setRunner(fmt -> comingSoon("Account Reconciliation"));
+
+        ReportDef cashRequirements = ReportDef.withParams(
+            "cash-requirements", "Cash Requirements",
+            "Outstanding transactions due for payment, allocated by rule",
+            "fth-dollar-sign");
+        cashRequirements.setRunner(fmt -> comingSoon("Cash Requirements"));
+
+        ReportDef supplierAnalysis = ReportDef.withParams(
+            "supplier-analysis", "Supplier Analysis",
+            "N-month transaction analysis by supplier (Excel) with top-N ranking",
+            "fth-activity");
+        supplierAnalysis.setRunner(fmt -> comingSoon("Supplier Analysis"));
+
+        ReportDef fcRevaluation = ReportDef.withParams(
+            "fc-revaluation", "Foreign Currency Revaluation",
+            "FC transactions with revaluation gain/loss (FC companies only)",
+            "fth-refresh-cw");
+        fcRevaluation.setRunner(fmt -> comingSoon("Foreign Currency Revaluation"));
 
         // Payroll module only visible to users with MEUSERS.print_pa_from_pass='Y'.
         java.util.List<ModuleDef> mods = new java.util.ArrayList<>();
@@ -195,9 +369,17 @@ public class ReportsHubController implements Initializable {
         mods.add(new ModuleDef("gl", "General Ledger",
             List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns)));
         mods.add(new ModuleDef("ar", "Accounts Receivable",
-            List.of(debtorsAgeing)));
+            List.of(debtorsAgeing, arTransactionListing, arAccountRecon, arUnbalancedRecon,
+                    arDetailedTxn, arFcReval, arGlDistribution, arPeriodSummary,
+                    arDocumentNumber, arAdjustmentNote, salesDistribution, salesByGl,
+                    arDebtorsControl, arCustomerAcctStatus, arCustomerSalesByType,
+                    arCustomerSalesBySubLedger, arSalesBySalesperson, arSalespersonProfit,
+                    arSalesJournal, arCommission)));
         mods.add(new ModuleDef("ap", "Accounts Payable",
-            List.of(creditorsAgeing)));
+            List.of(creditorsAgeing, transactionListing, detailedTxnListing,
+                    periodSummary, glDistributions, purchaseHistory,
+                    unbalancedRecon, accountRecon, cashRequirements,
+                    supplierAnalysis, fcRevaluation)));
         modules = mods;
     }
 
@@ -499,6 +681,15 @@ public class ReportsHubController implements Initializable {
      * filesystem-friendly slug ("fa_asset-register") and stamped with the
      * current timestamp so repeat runs don't overwrite earlier files.
      */
+    /**
+     * Public entry for reports that build their own bytes (e.g. an Apache POI
+     * workbook for dynamic-column Excel) instead of going through Jasper.
+     * {@code slug} becomes the filename stem; {@code ext} like ".xlsx".
+     */
+    public void saveAndOpen(byte[] data, String slug, String ext, javafx.stage.Window owner) {
+        saveOrOpen(data, slug, ext, owner);
+    }
+
     private void saveOrOpen(byte[] data, String reportPath, String ext, javafx.stage.Window owner) {
         String slug = reportPath.replace('/', '_').replace('\\', '_');
         String stamp = java.time.LocalDateTime.now()

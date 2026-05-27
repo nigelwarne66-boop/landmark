@@ -7,6 +7,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -32,6 +35,43 @@ public class ArDataService {
     private final JdbcTemplate jdbc;
 
     public ArDataService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+
+    // ── Picker lookups (shared by AR selection screens) ──────────────────────
+
+    /** A selectable code with a display label; {@code toString()} drives ComboBox rendering. */
+    public record CodeName(String code, String label) {
+        @Override public String toString() { return label; }
+    }
+
+    /** Sub-ledgers for the company, "(All)" first, then "code — name" from arledgr. */
+    public List<CodeName> getSubLedgers(AppSession s) {
+        List<CodeName> list = new ArrayList<>();
+        list.add(new CodeName("", "(All sub ledgers)"));
+        try {
+            jdbc.query("SELECT sub_ledger, name1 FROM arledgr WHERE company_no=? ORDER BY sub_ledger",
+                rs -> { list.add(new CodeName(trimv(rs.getString("sub_ledger")),
+                                              trimv(rs.getString("sub_ledger")) + " — " + trimv(rs.getString("name1")))); },
+                s.getCompanyNo());
+        } catch (Exception e) { log.warn("getSubLedgers: {}", e.getMessage()); }
+        return list;
+    }
+
+    /** Customers for the company, "(All)" first; keyed by cust no or alpha key per the screen sequence. */
+    public List<CodeName> getCustomers(AppSession s, boolean byAlpha) {
+        List<CodeName> list = new ArrayList<>();
+        list.add(new CodeName("", "(All customers)"));
+        try {
+            String order = byAlpha ? "alpha_key, alpha_cust_no" : "cust_no";
+            jdbc.query("SELECT cust_no, alpha_key, name_1 FROM arcusts WHERE company_no=? ORDER BY " + order,
+                rs -> {
+                    String code = byAlpha ? trimv(rs.getString("alpha_key")) : trimv(rs.getString("cust_no"));
+                    list.add(new CodeName(code, code + " — " + trimv(rs.getString("name_1"))));
+                }, s.getCompanyNo());
+        } catch (Exception e) { log.warn("getCustomers: {}", e.getMessage()); }
+        return list;
+    }
+
+    private static String trimv(String s) { return s == null ? "" : s.trim(); }
 
     // ── KPI methods ───────────────────────────────────────────────────────────
 
@@ -119,186 +159,253 @@ public class ArDataService {
         return rows;
     }
 
-    // ── Debtors Ageing Listing (with parameter options) ───────────────────────
+    // ── Debtors Ageing (Aged Trial Balance) — COBOL ARTL32 ────────────────────
+
+    /** ARTL32 selection (one screen), minus the deferred FC block + audit latest-date balance. */
+    public record DebtorsAgeingParams(
+            String subLedgerStart, String subLedgerEnd,
+            String printSeq,                 // "N" customer no | "A" alpha key
+            String customerStart, String customerEnd,
+            boolean sortDescBalance,         // sort customers by descending balance
+            boolean includeZeroBalance,      // print customers whose total nets to zero
+            String dateInd,                  // "T" doc | "P" posting | "D" due
+            String ageUnallocCr,             // "D" by date | "O" against oldest
+            String grossNet,                 // "G" gross | "N" net
+            String datesType,                // "C" calendar | "P" acct periods | "W" weeks | "N" manual
+            LocalDate anchorDate,            // latest/as-at date for C/P/W
+            List<LocalDate> manualPeriods) {} // 1–4 ascending dates for N
 
     /**
-     * @param detailSummary 'D'=detail (one row per transaction), 'S'=summary (customer totals)
-     * @param dateInd       'D'=due date (payments use doc_date), 'T'=transaction/doc date, 'P'=posting date
-     * @param grossNet      'N'=net outstanding, 'G'=gross original amount
+     * Debtors Ageing — port of COBOL ARTL32 (Aging Summary; one row per customer).
+     *
+     * <p>Up to <b>4</b> ascending period-ending dates form the buckets, derived from
+     * {@code datesType}: C=calendar months, P=accounting periods (GLDATES), W=weeks,
+     * N=manual. Period date 4 is the as-at cut-off (later transactions suppressed).
+     * Each transaction lands in the first bucket whose boundary is on/after its ageing
+     * date (T=doc, P=posting, D=due; payments always age by doc date). Net vs gross per
+     * doc_type (net of non-payments also subtracts {@code for_curr_fluct_amt}); net mode
+     * skips fully-paid docs and zeroes fully-balanced reconciliations. Unallocated
+     * credits/payments are aged by date, or rolled into the oldest buckets.
+     *
+     * <p><b>Deferred</b> vs COBOL: the foreign-currency block, the "as at latest aging
+     * date" audit-balance mode (arrctrx reconstruction), and the arcodte due-period column.
      */
-    public Map<String, Object> getDebtorsListingData(AppSession s,
-                                                      String detailSummary,
-                                                      String dateInd,
-                                                      String grossNet,
-                                                      String asAtDate) {
-        boolean isDetail    = "D".equalsIgnoreCase(detailSummary);
-        boolean isGross     = "G".equalsIgnoreCase(grossNet);
-        boolean useDocDate  = "T".equalsIgnoreCase(dateInd);
-        boolean usePostDate = "P".equalsIgnoreCase(dateInd);
+    public Map<String, Object> getDebtorsAgeingData(AppSession s, DebtorsAgeingParams p) {
+        final List<LocalDate> bounds;
+        try { bounds = computeAgeingBounds(s, p); }
+        catch (IllegalArgumentException ex) { return warn(ex.getMessage()); }
+        final int nb = bounds.size();
+        final LocalDate latest = bounds.get(nb - 1);
 
-        String asAt = (asAtDate != null && !asAtDate.isBlank()) ? "'" + asAtDate + "'" : "CURDATE()";
+        boolean isGross = "G".equalsIgnoreCase(p.grossNet());
+        boolean alpha   = "A".equalsIgnoreCase(p.printSeq());
+        boolean ageOldest = "O".equalsIgnoreCase(p.ageUnallocCr());
 
-        // 6 monthly period-end boundaries working back from as-at date
-        String p1 = "LAST_DAY(DATE_SUB(" + asAt + ", INTERVAL 5 MONTH))";
-        String p2 = "LAST_DAY(DATE_SUB(" + asAt + ", INTERVAL 4 MONTH))";
-        String p3 = "LAST_DAY(DATE_SUB(" + asAt + ", INTERVAL 3 MONTH))";
-        String p4 = "LAST_DAY(DATE_SUB(" + asAt + ", INTERVAL 2 MONTH))";
-        String p5 = "LAST_DAY(DATE_SUB(" + asAt + ", INTERVAL 1 MONTH))";
-        String p6 = asAt;
+        StringBuilder sql = new StringBuilder(
+            "SELECT c.cust_no, c.name_1, c.alpha_key, c.sub_ledger, c.city, c.state, c.contact_phone, c.credit_limit, " +
+            "       COALESCE(l.name1,'') AS sub_ledger_name, " +
+            "       t.doc_date, t.posting_date, t.due_date, t.doc_type, t.trx_status, t.fully_paid_flag, t.recon_no, " +
+            "       t.amt, t.retent_amt, t.amt_paid, t.disc_taken, t.for_curr_fluct_amt, " +
+            "       r.gross_bal, r.outstanding_bal, r.recon_no AS recon_found " +
+            "FROM arcusts c " +
+            "JOIN artrans t ON t.company_no=c.company_no AND t.cust_no=c.cust_no " +
+            "LEFT JOIN arledgr l ON l.company_no=c.company_no AND l.sub_ledger=c.sub_ledger " +
+            "LEFT JOIN arrecon r ON r.company_no=t.company_no AND r.cust_no=t.cust_no AND r.recon_no=t.recon_no " +
+            "WHERE c.company_no=? AND t.trx_status<>'U' AND TRIM(t.archive_flag)='' ");
+        List<Object> args = new ArrayList<>();
+        args.add(s.getCompanyNo());
+        if (notBlank(p.subLedgerStart())) {
+            sql.append(" AND c.sub_ledger BETWEEN ? AND ? ");
+            args.add(p.subLedgerStart());
+            args.add(notBlank(p.subLedgerEnd()) ? p.subLedgerEnd() : "zzzz");
+        }
+        if (notBlank(p.customerStart())) {
+            sql.append(alpha ? " AND c.alpha_key BETWEEN ? AND ? " : " AND c.cust_no BETWEEN ? AND ? ");
+            args.add(p.customerStart());
+            args.add(notBlank(p.customerEnd()) ? p.customerEnd() : "zzzzzzzzzz");
+        }
 
-        // AR: payments use doc_date even when ageing by due date (per artl01 COBOL)
-        String dateExpr = useDocDate  ? "t.doc_date" :
-                          usePostDate ? "t.posting_date" :
-                          "CASE WHEN t.doc_type='P' THEN t.doc_date ELSE t.due_date END";
+        Map<String, Object[]> byCust = new LinkedHashMap<>();   // cust_no -> [accumulator object]
+        Map<String, Map<String, Object>> meta = new LinkedHashMap<>();
+        String err = null;
+        try {
+            jdbc.query(sql.toString(), rs -> {
+                String docType = trim(rs.getString("doc_type"));
+                boolean fullyPaid = "Y".equalsIgnoreCase(trim(rs.getString("fully_paid_flag")));
+                if (!isGross && fullyPaid) return;            // net + as-at-today skips fully-paid
 
-        String balExpr = isGross
-            ? "CASE WHEN t.doc_type='P' THEN t.amt + t.disc_taken ELSE t.amt - t.retent_amt END"
-            : "CASE WHEN t.doc_type='P' THEN t.amt + t.disc_taken - t.amt_paid " +
-              "ELSE t.amt - t.retent_amt - t.amt_paid - t.disc_taken END";
+                LocalDate ageDate;
+                if ("P".equalsIgnoreCase(p.dateInd()))      ageDate = ld(rs.getDate("posting_date"));
+                else if ("D".equalsIgnoreCase(p.dateInd())) ageDate = "P".equals(docType) ? ld(rs.getDate("doc_date")) : ld(rs.getDate("due_date"));
+                else                                         ageDate = ld(rs.getDate("doc_date"));
+                if (ageDate == null || ageDate.isAfter(latest)) return;
 
-        String openFilter = "t.trx_status <> 'U' AND (t.amt - t.retent_amt - t.amt_paid - t.disc_taken) <> 0";
+                BigDecimal amt = z(rs.getBigDecimal("amt")), ret = z(rs.getBigDecimal("retent_amt")),
+                           paid = z(rs.getBigDecimal("amt_paid")), disc = z(rs.getBigDecimal("disc_taken")),
+                           fcf = z(rs.getBigDecimal("for_curr_fluct_amt"));
+                BigDecimal bal;
+                if ("P".equals(docType)) { bal = amt.add(disc); if (!isGross) bal = bal.subtract(paid); }
+                else { bal = amt.subtract(ret).subtract(fcf); if (!isGross) bal = bal.subtract(paid).subtract(disc); }
+                if (!isGross && rs.getObject("recon_found") != null
+                        && z(rs.getBigDecimal("gross_bal")).signum() == 0
+                        && z(rs.getBigDecimal("outstanding_bal")).signum() == 0) bal = BigDecimal.ZERO;
+                if (bal.signum() == 0) return;
 
-        String bucket =
-            "CASE WHEN " + dateExpr + " <= " + p1 + " THEN 1" +
-            "     WHEN " + dateExpr + " <= " + p2 + " THEN 2" +
-            "     WHEN " + dateExpr + " <= " + p3 + " THEN 3" +
-            "     WHEN " + dateExpr + " <= " + p4 + " THEN 4" +
-            "     WHEN " + dateExpr + " <= " + p5 + " THEN 5" +
-            "     WHEN " + dateExpr + " <= " + p6 + " THEN 6" +
-            "     ELSE 6 END";
+                String custNo = rs.getString("cust_no");
+                Object[] acc = byCust.get(custNo);
+                if (acc == null) {
+                    acc = new Object[]{new BigDecimal[nb], BigDecimal.ZERO};   // [buckets, unallocCr]
+                    BigDecimal[] bk = (BigDecimal[]) acc[0];
+                    Arrays.fill(bk, BigDecimal.ZERO);
+                    byCust.put(custNo, acc);
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("custNo", custNo); m.put("name", rs.getString("name_1"));
+                    m.put("alphaKey", rs.getString("alpha_key"));
+                    m.put("subLedger", rs.getString("sub_ledger"));
+                    m.put("subLedgerName", rs.getString("sub_ledger_name"));
+                    m.put("location", trim(rs.getString("city")) + " " + trim(rs.getString("state")));
+                    m.put("phone", rs.getString("contact_phone"));
+                    m.put("creditLimit", rs.getLong("credit_limit"));
+                    meta.put(custNo, m);
+                }
+                BigDecimal[] bk = (BigDecimal[]) acc[0];
+
+                if (ageOldest && ("P".equals(docType) || "C".equals(docType)) && bal.signum() < 0) {
+                    acc[1] = ((BigDecimal) acc[1]).add(bal);   // hold unallocated credit aside
+                } else {
+                    int idx = nb - 1;
+                    for (int i = 0; i < nb; i++) { if (!ageDate.isAfter(bounds.get(i))) { idx = i; break; } }
+                    bk[idx] = bk[idx].add(bal);
+                }
+            }, args.toArray());
+        } catch (Exception e) {
+            log.error("getDebtorsAgeingData: {}", e.getMessage(), e);
+            err = e.getMessage();
+        }
+        if (err != null) return warn("Query failed: " + err);
 
         List<Map<String, Object>> rows = new ArrayList<>();
-        String errMsg = null;
-
-        try {
-            if (isDetail) {
-                String sql =
-                    "SELECT c.cust_no, c.name_1, t.doc_date, t.posting_date, t.due_date, " +
-                    "  t.doc_type, t.doc_no, t.trx_status, (" + balExpr + ") AS bal, " +
-                    "  (" + bucket + ") AS period_bucket " +
-                    "FROM arcusts c " +
-                    "JOIN artrans t ON t.company_no=c.company_no AND t.cust_no=c.cust_no " +
-                    "WHERE c.company_no=? AND " + openFilter +
-                    " AND t.doc_date <= " + p6 +
-                    " ORDER BY c.name_1, t.doc_date, t.doc_no";
-                jdbc.query(sql, rs -> {
-                    int b = rs.getInt("period_bucket");
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("custNo",  rs.getString("cust_no"));
-                    row.put("name",    rs.getString("name_1"));
-                    row.put("docDate", rs.getString("doc_date"));
-                    row.put("docType", docTypeLabel(rs.getString("doc_type")));
-                    row.put("docNo",   rs.getString("doc_no"));
-                    row.put("status",  trxStatusLabel(rs.getString("trx_status")));
-                    java.math.BigDecimal bal = rs.getBigDecimal("bal");
-                    row.put("p1", b==1 ? bal : java.math.BigDecimal.ZERO);
-                    row.put("p2", b==2 ? bal : java.math.BigDecimal.ZERO);
-                    row.put("p3", b==3 ? bal : java.math.BigDecimal.ZERO);
-                    row.put("p4", b==4 ? bal : java.math.BigDecimal.ZERO);
-                    row.put("p5", b==5 ? bal : java.math.BigDecimal.ZERO);
-                    row.put("p6", b==6 ? bal : java.math.BigDecimal.ZERO);
-                    row.put("balance", bal);
-                    rows.add(row);
-                }, s.getCompanyNo());
-            } else {
-                String sql =
-                    "SELECT c.cust_no, c.name_1, c.city, c.state, c.contact_phone, " +
-                    "  COALESCE(SUM(CASE WHEN " + dateExpr + " <= " + p1 + " THEN (" + balExpr + ") ELSE 0 END),0) AS p1, " +
-                    "  COALESCE(SUM(CASE WHEN " + dateExpr + " > " + p1 + " AND " + dateExpr + " <= " + p2 + " THEN (" + balExpr + ") ELSE 0 END),0) AS p2, " +
-                    "  COALESCE(SUM(CASE WHEN " + dateExpr + " > " + p2 + " AND " + dateExpr + " <= " + p3 + " THEN (" + balExpr + ") ELSE 0 END),0) AS p3, " +
-                    "  COALESCE(SUM(CASE WHEN " + dateExpr + " > " + p3 + " AND " + dateExpr + " <= " + p4 + " THEN (" + balExpr + ") ELSE 0 END),0) AS p4, " +
-                    "  COALESCE(SUM(CASE WHEN " + dateExpr + " > " + p4 + " AND " + dateExpr + " <= " + p5 + " THEN (" + balExpr + ") ELSE 0 END),0) AS p5, " +
-                    "  COALESCE(SUM(CASE WHEN " + dateExpr + " > " + p5 + " AND " + dateExpr + " <= " + p6 + " THEN (" + balExpr + ") ELSE 0 END),0) AS p6, " +
-                    "  COALESCE(SUM(CASE WHEN " + dateExpr + " <= " + p6 + " THEN (" + balExpr + ") ELSE 0 END),0) AS total " +
-                    "FROM arcusts c " +
-                    "JOIN artrans t ON t.company_no=c.company_no AND t.cust_no=c.cust_no " +
-                    "WHERE c.company_no=? AND " + openFilter + " AND t.doc_date <= " + p6 + " " +
-                    "GROUP BY c.cust_no, c.name_1, c.city, c.state, c.contact_phone " +
-                    "HAVING total <> 0 ORDER BY c.name_1";
-                jdbc.query(sql, rs -> {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("custNo",   rs.getString("cust_no"));
-                    row.put("name",     rs.getString("name_1"));
-                    row.put("location", rs.getString("city") + " " + rs.getString("state"));
-                    row.put("phone",    rs.getString("contact_phone"));
-                    row.put("p1", rs.getBigDecimal("p1")); row.put("p2", rs.getBigDecimal("p2"));
-                    row.put("p3", rs.getBigDecimal("p3")); row.put("p4", rs.getBigDecimal("p4"));
-                    row.put("p5", rs.getBigDecimal("p5")); row.put("p6", rs.getBigDecimal("p6"));
-                    row.put("total",    rs.getBigDecimal("total"));
-                    rows.add(row);
-                }, s.getCompanyNo());
+        for (var e : byCust.entrySet()) {
+            BigDecimal[] bk = (BigDecimal[]) e.getValue()[0];
+            BigDecimal unalloc = (BigDecimal) e.getValue()[1];
+            if (unalloc.signum() < 0) {                       // SHUFFLE-UNALLOC-CR: offset oldest first
+                for (int i = 0; i < nb && unalloc.signum() < 0; i++) {
+                    if (bk[i].signum() > 0) {
+                        BigDecimal nv = bk[i].add(unalloc);
+                        if (nv.signum() >= 0) { bk[i] = nv; unalloc = BigDecimal.ZERO; }
+                        else { unalloc = nv; bk[i] = BigDecimal.ZERO; }
+                    }
+                }
+                bk[nb - 1] = bk[nb - 1].add(unalloc);         // leftover credit into newest bucket
             }
-        } catch (Exception e) {
-            log.error("getDebtorsListingData: {}", e.getMessage());
-            errMsg = e.getMessage();
+            BigDecimal total = BigDecimal.ZERO;
+            for (BigDecimal b : bk) total = total.add(b);
+            if (!p.includeZeroBalance() && total.signum() == 0) continue;
+            Map<String, Object> row = meta.get(e.getKey());
+            for (int i = 0; i < 4; i++) row.put("p" + (i + 1), i < nb ? bk[i] : BigDecimal.ZERO);
+            row.put("total", total);
+            rows.add(row);
         }
 
-        if (errMsg != null) return err(errMsg);
+        // sort: descending balance (if requested) else by alpha key / cust no
+        rows.sort((a, b) -> {
+            int sl = ((String) a.get("subLedger")).compareTo((String) b.get("subLedger"));
+            if (sl != 0) return sl;
+            if (p.sortDescBalance()) return ((BigDecimal) b.get("total")).compareTo((BigDecimal) a.get("total"));
+            String ka = (String) (alpha ? a.get("alphaKey") : a.get("custNo"));
+            String kb = (String) (alpha ? b.get("alphaKey") : b.get("custNo"));
+            return ka.compareTo(kb);
+        });
 
-        String amtDesc  = isGross ? "Gross" : "Net Outstanding";
-        String dateDesc = useDocDate ? "Doc Date" : (usePostDate ? "Posting Date" : "Due Date");
-        String modeDesc = isDetail ? "Detail" : "Summary";
-        String asAtDesc = (asAtDate != null && !asAtDate.isBlank()) ? asAtDate : "today";
-        String title = "Debtors Ageing — " + modeDesc + " | " + dateDesc + " | " + amtDesc + " | as at " + asAtDesc;
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        Map<String, Object> params = new LinkedHashMap<>();
+        for (int i = 0; i < 4; i++) params.put("PERIOD_" + (i + 1), i < nb ? bounds.get(i).format(f) : "");
+        params.put("AS_AT_DATE", latest.format(f));
+        params.put("DATE_BASIS", "P".equalsIgnoreCase(p.dateInd()) ? "Posting date"
+                               : "D".equalsIgnoreCase(p.dateInd()) ? "Due date" : "Document date");
+        params.put("AMT_BASIS", isGross ? "Gross" : "Net outstanding");
+        params.put("DATES_TYPE_DESC", agesTypeDesc(p.datesType()));
 
-        List<Map<String, Object>> cols;
-        if (isDetail) {
-            cols = List.of(
-                col("Cust No",  "custNo",  "text"),  col("Customer","name",    "text"),
-                col("Doc Date", "docDate", "date"),  col("Type",    "docType", "text"),
-                col("Doc No",   "docNo",   "text"),  col("Status",  "status",  "text"),
-                col("P1 Oldest","p1","currency"),    col("P2","p2","currency"),
-                col("P3","p3","currency"),           col("P4","p4","currency"),
-                col("P5","p5","currency"),           col("P6 Current","p6","currency"),
-                col("Balance",  "balance", "currency")
-            );
-        } else {
-            cols = List.of(
-                col("Cust No",  "custNo",   "text"), col("Customer","name",    "text"),
-                col("Location", "location", "text"), col("Phone",   "phone",   "text"),
-                col("P1 Oldest","p1","currency"),    col("P2","p2","currency"),
-                col("P3","p3","currency"),           col("P4","p4","currency"),
-                col("P5","p5","currency"),           col("P6 Current","p6","currency"),
-                col("Total",    "total",    "currency")
-            );
-        }
-        // Build period date labels for column headers via SQL
-        List<String> periodDates = new ArrayList<>();
-        try {
-            jdbc.query(
-                "SELECT " +
-                "DATE_FORMAT(" + p1 + ",'%d/%m/%Y') d1, DATE_FORMAT(" + p2 + ",'%d/%m/%Y') d2, " +
-                "DATE_FORMAT(" + p3 + ",'%d/%m/%Y') d3, DATE_FORMAT(" + p4 + ",'%d/%m/%Y') d4, " +
-                "DATE_FORMAT(" + p5 + ",'%d/%m/%Y') d5, DATE_FORMAT(" + p6 + ",'%d/%m/%Y') d6",
-                rs -> {
-                    for (int i = 1; i <= 6; i++) periodDates.add(rs.getString("d"+i));
-                });
-        } catch (Exception e) { log.warn("periodDates: {}", e.getMessage()); }
-
-        Map<String, Object> r = new LinkedHashMap<>();
-        r.put("columns", cols); r.put("rows", rows); r.put("title", title);
-        if (!periodDates.isEmpty()) r.put("periodDates", periodDates);
-        return r;
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rows", rows);
+        result.put("params", params);
+        result.put("rowCount", rows.size());
+        return result;
     }
 
+    /** Build the 1–4 ascending ageing boundary dates per the chosen dates-type (ARTL32 CALC-DATES). */
+    private List<LocalDate> computeAgeingBounds(AppSession s, DebtorsAgeingParams p) {
+        String dt = trim(p.datesType()).toUpperCase();
+        List<LocalDate> b = new ArrayList<>();
+        switch (dt) {
+            case "C" -> {
+                LocalDate a = p.anchorDate();
+                if (a == null) throw new IllegalArgumentException("Enter the latest (anchor) month-end date.");
+                if (!a.equals(a.withDayOfMonth(a.lengthOfMonth())))
+                    throw new IllegalArgumentException("Calendar-months: the anchor date must be a month-end.");
+                for (int i = 3; i >= 0; i--) { LocalDate m = a.minusMonths(i); b.add(m.withDayOfMonth(m.lengthOfMonth())); }
+            }
+            case "W" -> {
+                LocalDate a = p.anchorDate();
+                if (a == null) throw new IllegalArgumentException("Enter the latest (anchor) date.");
+                for (int i = 3; i >= 0; i--) b.add(a.minusWeeks(i));
+            }
+            case "P" -> {
+                LocalDate a = p.anchorDate();
+                if (a == null) throw new IllegalArgumentException("Enter the latest (anchor) period-end date.");
+                List<LocalDate> ends = glPeriodEnds(s);
+                if (!ends.contains(a)) throw new IllegalArgumentException("Anchor must be a GL period-end date.");
+                List<LocalDate> le = new ArrayList<>();
+                for (LocalDate d : ends) if (!d.isAfter(a)) le.add(d);
+                b.addAll(le.subList(Math.max(0, le.size() - 4), le.size()));
+            }
+            case "N" -> {
+                if (p.manualPeriods() == null) throw new IllegalArgumentException("Enter at least one ageing date.");
+                TreeSet<LocalDate> set = new TreeSet<>();
+                for (LocalDate d : p.manualPeriods()) if (d != null) set.add(d);
+                if (set.isEmpty()) throw new IllegalArgumentException("Enter at least one ageing date.");
+                for (LocalDate d : set) { b.add(d); if (b.size() == 4) break; }
+            }
+            default -> throw new IllegalArgumentException("Choose an ageing dates type (calendar / periods / weeks / manual).");
+        }
+        return b;
+    }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    private List<LocalDate> glPeriodEnds(AppSession s) {
+        TreeSet<LocalDate> set = new TreeSet<>();
+        try {
+            StringBuilder cols = new StringBuilder();
+            for (int i = 1; i <= 13; i++) cols.append(i > 1 ? "," : "").append(String.format("period_end_%02d", i));
+            jdbc.query("SELECT " + cols + " FROM gldates WHERE company_no=?", rs -> {
+                for (int i = 1; i <= 13; i++) {
+                    Date d = rs.getDate(String.format("period_end_%02d", i));
+                    if (d != null && d.toLocalDate().isAfter(LocalDate.of(1900, 1, 1))) set.add(d.toLocalDate());
+                }
+            }, s.getCompanyNo());
+        } catch (Exception e) { log.warn("glPeriodEnds: {}", e.getMessage()); }
+        return new ArrayList<>(set);
+    }
 
-    private String docTypeLabel(String t) {
-        if (t == null) return "";
-        return switch (t.trim()) {
-            case "I" -> "INV"; case "C" -> "CR";  case "D" -> "DR";
-            case "V" -> "VOI"; case "B" -> "BAL"; case "P" -> "PAY";
-            default  -> t.trim();
+    private static String agesTypeDesc(String t) {
+        return switch (trim(t).toUpperCase()) {
+            case "C" -> "Calendar months"; case "P" -> "Accounting periods";
+            case "W" -> "Weeks"; case "N" -> "Manual dates"; default -> "";
         };
     }
 
-    private String trxStatusLabel(String s) {
-        if (s == null || s.isBlank()) return "";
-        return "H".equals(s.trim()) ? "HOLD" : "";
+    private static LocalDate ld(Date d) {
+        if (d == null) return null;
+        LocalDate v = d.toLocalDate();
+        return v.isAfter(LocalDate.of(1900, 1, 1)) ? v : null;
     }
+    private static boolean notBlank(String s) { return s != null && !s.trim().isEmpty(); }
+    private static String trim(String s) { return s == null ? "" : s.trim(); }
+    private static BigDecimal z(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
 
-    private BigDecimal z(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
-    private Map<String, Object> col(String l, String f, String t) { return Map.of("label", l, "field", f, "type", t); }
-    private Map<String, Object> err(String m) { return Map.of("error", m, "columns", List.of(), "rows", List.of(), "title", "Error"); }
+    private Map<String, Object> warn(String msg) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("rows", new ArrayList<>()); m.put("params", new LinkedHashMap<>());
+        m.put("rowCount", 0); m.put("warning", msg);
+        return m;
+    }
 }

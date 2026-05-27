@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="unbalanced-reconciliation"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="LOCAL_DESC"   class="java.lang.String" isForPrompting="false"/>
+  <parameter name="FC_DESC"      class="java.lang.String" isForPrompting="false"/>
+  <parameter name="GT_GROSS"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_OUTST"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_CLAIM"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_FC_GROSS" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_FC_OUTST" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_FC_CLAIM" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUPPLIER_COUNT" class="java.lang.Integer" isForPrompting="false"/>
+
+  <field name="supplierNo"     class="java.lang.String"/>
+  <field name="name"           class="java.lang.String"/>
+  <field name="subLedger"      class="java.lang.String"/>
+  <field name="reconNo"        class="java.lang.Integer"/>
+  <field name="grossBal"       class="java.math.BigDecimal"/>
+  <field name="outstandingBal" class="java.math.BigDecimal"/>
+  <field name="claimBal"       class="java.math.BigDecimal"/>
+  <field name="forCurrCode"    class="java.lang.String"/>
+  <field name="fcGrossBal"     class="java.math.BigDecimal"/>
+  <field name="fcOutstBal"     class="java.math.BigDecimal"/>
+  <field name="fcClaimBal"     class="java.math.BigDecimal"/>
+  <field name="lastDocDate"    class="java.sql.Date"/>
+
+  <variable name="GP_GROSS" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="suppGroup"><variableExpression><![CDATA[$F{grossBal}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GP_OUTST" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="suppGroup"><variableExpression><![CDATA[$F{outstandingBal}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GP_CLAIM" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="suppGroup"><variableExpression><![CDATA[$F{claimBal}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+
+  <group name="suppGroup">
+    <groupExpression><![CDATA[$F{supplierNo}]]></groupExpression>
+    <groupHeader>
+      <band height="16">
+        <rectangle><reportElement x="0" y="1" width="782" height="14" backcolor="#dbe2ef"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="600" height="12" mode="Opaque" backcolor="#dbe2ef"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{supplierNo} + "  " + ($F{name}==null?"":$F{name})]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="15">
+        <line><reportElement x="60" y="1" width="722" height="1" forecolor="#888888"/></line>
+        <staticText><reportElement x="4" y="2" width="56" height="11"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><text><![CDATA[Total]]></text></staticText>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="60"  y="2" width="90" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_GROSS}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="152" y="2" width="90" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_OUTST}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="244" y="2" width="90" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_CLAIM}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="52">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Unbalanced Reconciliation]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="500" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA["Local: " + $P{LOCAL_DESC} + "  •  Foreign: " + $P{FC_DESC}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Recon]]></text></staticText>
+      <staticText><reportElement x="60"  y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Gross Bal]]></text></staticText>
+      <staticText><reportElement x="152" y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Outst Bal]]></text></staticText>
+      <staticText><reportElement x="244" y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Claim Bal]]></text></staticText>
+      <staticText><reportElement x="336" y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[FC Gross]]></text></staticText>
+      <staticText><reportElement x="428" y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[FC Outst]]></text></staticText>
+      <staticText><reportElement x="520" y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[FC Claim]]></text></staticText>
+      <staticText><reportElement x="612" y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Curr]]></text></staticText>
+      <staticText><reportElement x="666" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Last Date]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="13">
+      <textField><reportElement x="4" y="1" width="50" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reconNo}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="60"  y="1" width="90" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{grossBal}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="152" y="1" width="90" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{outstandingBal}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="244" y="1" width="90" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{claimBal}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="336" y="1" width="90" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{fcGrossBal}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="428" y="1" width="90" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{fcOutstBal}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="520" y="1" width="90" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{fcClaimBal}]]></textFieldExpression></textField>
+      <textField><reportElement x="612" y="1" width="50" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{forCurrCode}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="666" y="1" width="70" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lastDocDate}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="34">
+      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
+      <staticText><reportElement x="4" y="6" width="56" height="12"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="60"  y="6" width="90" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_GROSS}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="152" y="6" width="90" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_OUTST}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="244" y="6" width="90" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_CLAIM}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="336" y="6" width="90" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_FC_GROSS}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="428" y="6" width="90" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_FC_OUTST}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="520" y="6" width="90" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_FC_CLAIM}]]></textFieldExpression></textField>
+      <textField><reportElement x="4" y="20" width="300" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$P{SUPPLIER_COUNT} + " supplier(s) listed"]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>
