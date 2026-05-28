@@ -8,21 +8,42 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.landmarksoftware.ui.reports.GlTrialBalanceController"
     styleClass="sel-root"
-    prefWidth="560">
+    prefWidth="620" prefHeight="360">
 
     <top>
         <VBox styleClass="sel-header">
             <Label text="Trial Balance" styleClass="sel-title"/>
-            <Label text="Account balances for a period range" styleClass="sel-sub"/>
-            <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
+            <Label text="GLTL01 — account closing balances as at end of period" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>
 
     <center>
-        <VBox styleClass="sel-body" spacing="14">
-            <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
-            <fx:include fx:id="periodSelector" source="GlPeriodSelector.fxml"/>
-        </VBox>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <Label text="Period" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="As at end of period" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="asAtPeriod" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <Label text="Account range" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Account from / to" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="startAcct" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endAcct" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <Label text="Options" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label styleClass="sel-label" minWidth="160"/>
+                    <CheckBox fx:id="includeZero" text="Include zero balances"/>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
     </center>
 
     <bottom>
