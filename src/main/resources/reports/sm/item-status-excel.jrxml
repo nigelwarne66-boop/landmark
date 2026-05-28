@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="item-status-excel"
+              pageWidth="1500" pageHeight="595" orientation="Landscape"
+              columnWidth="1460" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="title"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"  class="java.lang.String"/>
+  <parameter name="SEQUENCE_DESC" class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="LOC_DESC"      class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="ITEM_RANGE"    class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="PTYPE_RANGE"   class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="REPORT_DATE"   class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="SUM_VALUE"     class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"     class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="locNo"        class="java.lang.String"/>
+  <field name="stockCode"    class="java.lang.String"/>
+  <field name="description"  class="java.lang.String"/>
+  <field name="productType"  class="java.lang.String"/>
+  <field name="itemStatus"   class="java.lang.String"/>
+  <field name="qtyOnHand"    class="java.math.BigDecimal"/>
+  <field name="qtyAllocated" class="java.math.BigDecimal"/>
+  <field name="qtyOnOrder"   class="java.math.BigDecimal"/>
+  <field name="stdCost"      class="java.math.BigDecimal"/>
+  <field name="valueOnHand"  class="java.math.BigDecimal"/>
+  <field name="lastSaleDate" class="java.sql.Date"/>
+  <field name="lastMoveDate" class="java.sql.Date"/>
+
+  <title>
+    <band height="34">
+      <staticText><reportElement x="0" y="0" width="600" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Item Status]]></text></staticText>
+      <textField><reportElement x="0" y="20" width="1460" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   by " + $P{SEQUENCE_DESC} + "   •   " + $P{LOC_DESC} + "   •   " + $P{ITEM_RANGE} + "   •   " + $P{PTYPE_RANGE} + "   •   As at " + $P{REPORT_DATE}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <staticText><reportElement x="0"    y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Location]]></text></staticText>
+      <staticText><reportElement x="60"   y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Stock Code]]></text></staticText>
+      <staticText><reportElement x="180"  y="0" width="280" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="460"  y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Product Type]]></text></staticText>
+      <staticText><reportElement x="560"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Item Status]]></text></staticText>
+      <staticText><reportElement x="640"  y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Qty On Hand]]></text></staticText>
+      <staticText><reportElement x="740"  y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Qty Allocated]]></text></staticText>
+      <staticText><reportElement x="840"  y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Qty On Order]]></text></staticText>
+      <staticText><reportElement x="940"  y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Standard Cost]]></text></staticText>
+      <staticText><reportElement x="1040" y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Value On Hand]]></text></staticText>
+      <staticText><reportElement x="1160" y="0" width="150" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Last Sale Date]]></text></staticText>
+      <staticText><reportElement x="1310" y="0" width="150" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Last Move Date]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="0"    y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{locNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="60"   y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
+      <textField><reportElement x="180"  y="0" width="280" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+      <textField><reportElement x="460"  y="0" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{productType}]]></textFieldExpression></textField>
+      <textField><reportElement x="560"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{itemStatus}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="640"  y="0" width="100" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyOnHand}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="740"  y="0" width="100" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyAllocated}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="840"  y="0" width="100" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyOnOrder}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0000"><reportElement x="940"  y="0" width="100" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stdCost}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1040" y="0" width="120" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{valueOnHand}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="1160" y="0" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lastSaleDate}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="1310" y="0" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lastMoveDate}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="20">
+      <textField><reportElement x="0" y="3" width="600" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " item(s)"]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1040" y="3" width="120" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_VALUE}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

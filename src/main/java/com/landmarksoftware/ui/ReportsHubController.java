@@ -74,7 +74,8 @@ public class ReportsHubController implements Initializable {
     private static final Map<String, String> MODULE_STYLE = Map.ofEntries(
         Map.entry("fa", "icon-fa"), Map.entry("gl", "icon-gl"), Map.entry("py", "icon-py"),
         Map.entry("ar", "icon-ar"), Map.entry("ap", "icon-ap"), Map.entry("cm", "icon-cm"),
-        Map.entry("bas", "icon-ap"), Map.entry("po", "icon-ap"), Map.entry("fav", "icon-fav")
+        Map.entry("bas", "icon-ap"), Map.entry("po", "icon-ap"), Map.entry("sm", "icon-cm"),
+        Map.entry("fav", "icon-fav")
     );
     // Feather (fth-*) — closest available substitute for the original Tabler ti-* names.
     private static final Map<String, String> MODULE_ICON = Map.ofEntries(
@@ -82,7 +83,7 @@ public class ReportsHubController implements Initializable {
         Map.entry("py", "fth-users"),    Map.entry("ar", "fth-file-text"),
         Map.entry("ap", "fth-file"),     Map.entry("cm", "fth-dollar-sign"),
         Map.entry("bas", "fth-percent"), Map.entry("po", "fth-shopping-cart"),
-        Map.entry("fav", "fth-star")
+        Map.entry("sm", "fth-box"),      Map.entry("fav", "fth-star")
     );
 
     /* ── Init ──────────────────────────────────────────────────── */
@@ -466,6 +467,64 @@ public class ReportsHubController implements Initializable {
             "Overdue / undelivered PO lines due in a window (POTL30)",
             "fth-clock");
 
+        /* SM — Inventory Management */
+        ReportDef smMovementsDetail = ReportDef.withParams(
+            "inventory-movements-detail", "Inventory Movements Detail",
+            "Every stock movement — receipts, sales, adjustments, transfers (SMTL01)",
+            "fth-activity");
+        ReportDef smMovementsSummary = ReportDef.withParams(
+            "inventory-movements-summary", "Inventory Movements Summary",
+            "Net quantity in / out and value per item (SMTL02)",
+            "fth-bar-chart-2");
+        ReportDef smValuation = ReportDef.withParams(
+            "inventory-valuation", "Inventory Valuation",
+            "Stock on hand at cost by location and item (SMTL07)",
+            "fth-dollar-sign");
+        ReportDef smAvailability = ReportDef.withParams(
+            "item-availability", "Item Availability",
+            "On hand, allocated, on order and available quantities (SMTL26)",
+            "fth-check-circle");
+        ReportDef smReorder = ReportDef.withParams(
+            "reorder-requisitions", "Reorder & PO Requisitions",
+            "Items below minimum level with suggested reorder qty (SMTL10)",
+            "fth-shopping-cart");
+        ReportDef smInactive = ReportDef.withParams(
+            "inactive-inventory", "Inactive Inventory",
+            "Items with no movement / sale since a date (SMTL20)",
+            "fth-pause-circle");
+        ReportDef smItemStatus = ReportDef.withParams(
+            "item-status", "Item Status",
+            "One list, sort by Item or Location (SMTL15 + SMTL24)",
+            "fth-info");
+        ReportDef smSerialBatch = ReportDef.withParams(
+            "serial-batch-history", "Serial / Batch History",
+            "Movement history by serial / batch number (SMTL27)",
+            "fth-hash");
+        ReportDef smConsignGl = ReportDef.withParams(
+            "consignment-gl-reconcile", "Consignment Stock GL Reconcile",
+            "Consignment stock on hand at cost (SMTL36)",
+            "fth-git-merge");
+        ReportDef smConsignStock = ReportDef.withParams(
+            "consignment-stock", "Consignment Stock",
+            "One list, sort by Customer or Item (SMTL53 + SMTL56)",
+            "fth-share-2");
+        ReportDef smSalesHistory = ReportDef.withParams(
+            "sales-history", "Sales History",
+            "Sales by item and customer with margin (SMTL06)",
+            "fth-trending-up");
+        ReportDef smTxnByCustomer = ReportDef.withParams(
+            "transactions-by-customer", "Transactions by Customer",
+            "Stock movements grouped by customer (SMTL16)",
+            "fth-users");
+        ReportDef smPurchaseAnalysis = ReportDef.withParams(
+            "purchase-analysis", "Purchase Analysis",
+            "Purchase receipts by item and supplier (SMTL12)",
+            "fth-trending-down");
+        ReportDef smPriceList = ReportDef.withParams(
+            "price-list", "Price List",
+            "Recommended and wholesale prices by item (SMTL08)",
+            "fth-tag");
+
         /* BAS — Business Activity Statement */
         ReportDef basStatement = ReportDef.withParams(
             "business-activity-statement", "Business Activity Statement",
@@ -515,6 +574,11 @@ public class ReportsHubController implements Initializable {
         mods.add(new ModuleDef("po", "Purchasing",
             List.of(poInSequence, poSummary, poDetail, purchaseIndex, poVariance,
                     poUninvoicedGoods, poUninvoicedSundries, poSundriesRecon, poExpedite)));
+        mods.add(new ModuleDef("sm", "Inventory Management",
+            List.of(smMovementsDetail, smMovementsSummary, smValuation, smAvailability,
+                    smReorder, smInactive, smItemStatus, smSerialBatch, smConsignGl,
+                    smConsignStock, smSalesHistory, smTxnByCustomer, smPurchaseAnalysis,
+                    smPriceList)));
         mods.add(new ModuleDef("bas", "Business Activity Statement",
             List.of(basStatement, detailedBas, basTransactions, basByGl)));
         modules = mods;
