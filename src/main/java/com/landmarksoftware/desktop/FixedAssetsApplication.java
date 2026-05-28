@@ -11,13 +11,19 @@
  */
 package com.landmarksoftware.desktop;
 
+import com.landmarksoftware.ui.LandmarkLogo;
 import com.landmarksoftware.ui.LoginController;
 import com.landmarksoftware.ui.MainMenuController;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -46,9 +52,14 @@ public class FixedAssetsApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        // Landmark pin-mark (mirrors landmark-logo-icon.svg) as the window/taskbar icon.
+        Image appIcon = landmarkWindowIcon();
+        primaryStage.getIcons().add(appIcon);
+
         // Show login screen first (MENU00)
         LoginController login = springContext.getBean(LoginController.class);
         Stage loginStage = new Stage();
+        loginStage.getIcons().add(appIcon);
         loginStage.setOnCloseRequest(e -> Platform.exit());
 
         boolean authenticated = login.showAndWait(loginStage);
@@ -65,6 +76,19 @@ public class FixedAssetsApplication extends Application {
         } else {
             showMainMenu(primaryStage);
         }
+    }
+
+    /**
+     * Renders the vector pin-mark to a transparent raster Image for use as the
+     * Stage icon (JavaFX window/taskbar icons require a raster Image, not a node).
+     */
+    private static Image landmarkWindowIcon() {
+        Node mark = LandmarkLogo.iconMark(128);
+        Scene holder = new Scene(new Group(mark));
+        holder.setFill(Color.TRANSPARENT);
+        SnapshotParameters sp = new SnapshotParameters();
+        sp.setFill(Color.TRANSPARENT);
+        return mark.snapshot(sp, null);
     }
 
     private void showMainMenu(Stage primaryStage) {

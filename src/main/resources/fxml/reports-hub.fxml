@@ -15,7 +15,7 @@
         <HBox styleClass="hub-topbar" alignment="CENTER_LEFT" spacing="10">
             <HBox.margin><Insets/></HBox.margin>
 
-            <Label styleClass="hub-brand" text="Landmark"/>
+            <HBox fx:id="brandBox" styleClass="hub-brand" alignment="CENTER_LEFT"/>
 
             <Label styleClass="hub-sep" text="|"/>
 

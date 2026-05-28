@@ -37,6 +37,7 @@ import java.util.*;
 public class ReportsHubController implements Initializable {
 
     /* ── FXML ──────────────────────────────────────────────────── */
+    @FXML private HBox      brandBox;
     @FXML private Label     companyLabel;
     @FXML private Label     yearLabel;
     @FXML private Label     userLabel;
@@ -97,6 +98,8 @@ public class ReportsHubController implements Initializable {
     }
 
     private void populateHeader() {
+        // Full Landmark logo (mirrors landmark-logo.svg) in place of the old text brand.
+        brandBox.getChildren().setAll(LandmarkLogo.fullLogo(40));
         companyLabel.setText(session.getCompanyName());
         yearLabel.setText(session.getYearDesc());
         userLabel.setText(session.getUserId());
@@ -543,14 +546,9 @@ public class ReportsHubController implements Initializable {
             "BAS amounts aggregated by GL clearing account and BAS code (CPBA16)",
             "fth-bar-chart-2");
 
+        // Sidebar order: GL, AR, AP, CM, PO, SM, FA, Payroll, BAS.
         // Payroll module only visible to users with MEUSERS.print_pa_from_pass='Y'.
         java.util.List<ModuleDef> mods = new java.util.ArrayList<>();
-        mods.add(new ModuleDef("fa", "Fixed Assets",
-            List.of(assetRegister, depreciation, acquiredRetired, txnList)));
-        if (session.isPayrollAccess()) {
-            mods.add(new ModuleDef("py", "Payroll",
-                List.of(payrollSummary, employeeList)));
-        }
         mods.add(new ModuleDef("gl", "General Ledger",
             List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns)));
         mods.add(new ModuleDef("ar", "Accounts Receivable",
@@ -569,8 +567,6 @@ public class ReportsHubController implements Initializable {
             List.of(cmCashbookTransactions, cmCashbookListing, cmCashbookByType,
                     cmCashbookDistributions, cmCashbookLedger, cmDocumentListing,
                     cmBankReconciliation, cmReceiptListing, cmFcMatch)));
-        mods.add(new ModuleDef("bas", "Business Activity Statement",
-            List.of(basStatement, detailedBas, basTransactions, basByGl)));
         mods.add(new ModuleDef("po", "Purchasing",
             List.of(poInSequence, poSummary, poDetail, purchaseIndex, poVariance,
                     poUninvoicedGoods, poUninvoicedSundries, poSundriesRecon, poExpedite)));
@@ -579,6 +575,12 @@ public class ReportsHubController implements Initializable {
                     smReorder, smInactive, smItemStatus, smSerialBatch, smConsignGl,
                     smConsignStock, smSalesHistory, smTxnByCustomer, smPurchaseAnalysis,
                     smPriceList)));
+        mods.add(new ModuleDef("fa", "Fixed Assets",
+            List.of(assetRegister, depreciation, acquiredRetired, txnList)));
+        if (session.isPayrollAccess()) {
+            mods.add(new ModuleDef("py", "Payroll",
+                List.of(payrollSummary, employeeList)));
+        }
         mods.add(new ModuleDef("bas", "Business Activity Statement",
             List.of(basStatement, detailedBas, basTransactions, basByGl)));
         modules = mods;
@@ -613,11 +615,13 @@ public class ReportsHubController implements Initializable {
         lbl.getStyleClass().add("module-item-label");
         HBox.setHgrow(lbl, Priority.ALWAYS);
 
-        Label countLbl = new Label(
-            isFav ? String.valueOf(favStore.count()) : String.valueOf(mod.getReportCount()));
-        countLbl.getStyleClass().add(isFav ? "module-badge-fav" : "module-badge-count");
-
-        row.getChildren().addAll(iconBadge, lbl, countLbl);
+        row.getChildren().addAll(iconBadge, lbl);
+        // Favourites keeps a count badge; module rows show the name only.
+        if (isFav) {
+            Label countLbl = new Label(String.valueOf(favStore.count()));
+            countLbl.getStyleClass().add("module-badge-fav");
+            row.getChildren().add(countLbl);
+        }
         row.setOnMouseClicked(e -> selectModule(mod));
         return row;
     }
@@ -669,6 +673,16 @@ public class ReportsHubController implements Initializable {
         if (emptyLabel != null) emptyLabel.setVisible(!any);
     }
 
+    /**
+     * Drops a trailing COBOL program-code parenthetical from a report hint —
+     * e.g. " (SMTL01)", " (GLTL14/15)", " (SMTL15 + SMTL24)" — leaving plain text.
+     * Only strips an all-caps/digit parenthetical so normal-word hints survive.
+     */
+    private static String stripProgramCode(String desc) {
+        if (desc == null) return "";
+        return desc.replaceAll("\\s*\\([A-Z0-9 +/&-]+\\)\\s*$", "").trim();
+    }
+
     /* ── Build one card — icon + name/hint + star, NO format buttons ── */
     private HBox buildReportCard(ReportDef report, String moduleId) {
         String favKey = moduleId + ":" + report.getName();
@@ -691,7 +705,7 @@ public class ReportsHubController implements Initializable {
         HBox.setHgrow(body, Priority.ALWAYS);
         Label name = new Label(report.getLabel());
         name.getStyleClass().add("report-name");
-        Label hint = new Label(report.getDescription());
+        Label hint = new Label(stripProgramCode(report.getDescription()));
         hint.getStyleClass().add("report-hint");
         body.getChildren().addAll(name, hint);
 
