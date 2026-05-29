@@ -108,8 +108,8 @@ public class LoginController {
             "-fx-background-radius: 14;" +
             "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 28, 0, 0, 4);");
 
-        // Logo
-        javafx.scene.Node pin = LandmarkLogo.iconMark(110);
+        // Logo — full pin + LANDMARK / SOFTWARE wordmark on the login card.
+        javafx.scene.Node pin = LandmarkLogo.fullLogo(110);
         HBox logoRow = new HBox(pin);
         logoRow.setAlignment(Pos.CENTER);
         VBox.setMargin(logoRow, new Insets(0, 0, 18, 0));

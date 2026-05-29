@@ -98,8 +98,9 @@ public class ReportsHubController implements Initializable {
     }
 
     private void populateHeader() {
-        // Full Landmark logo (mirrors landmark-logo.svg) in place of the old text brand.
-        brandBox.getChildren().setAll(LandmarkLogo.fullLogo(40));
+        // Pin-mark only (mirrors landmark-logo-icon.svg) in the slim topbar —
+        // a near-square mark fits the bar height better than the stacked logo.
+        brandBox.getChildren().setAll(LandmarkLogo.iconMark(34));
         companyLabel.setText(session.getCompanyName());
         yearLabel.setText(session.getYearDesc());
         userLabel.setText(session.getUserId());

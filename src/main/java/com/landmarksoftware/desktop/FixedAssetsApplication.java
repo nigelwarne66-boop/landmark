@@ -79,11 +79,12 @@ public class FixedAssetsApplication extends Application {
     }
 
     /**
-     * Renders the vector pin-mark to a transparent raster Image for use as the
-     * Stage icon (JavaFX window/taskbar icons require a raster Image, not a node).
+     * Renders the full vector logo (pin + wordmark) to a transparent raster
+     * Image for the Stage icon — JavaFX window/taskbar icons require a raster
+     * Image, not a node.
      */
     private static Image landmarkWindowIcon() {
-        Node mark = LandmarkLogo.iconMark(128);
+        Node mark = LandmarkLogo.fullLogo(128);
         Scene holder = new Scene(new Group(mark));
         holder.setFill(Color.TRANSPARENT);
         SnapshotParameters sp = new SnapshotParameters();

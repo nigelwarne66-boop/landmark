@@ -10,8 +10,8 @@
     -fx-background-color: white;
     -fx-border-color: #e5e5e3;
     -fx-border-width: 0 0 1 0;
-    -fx-padding: 8 16 8 16;
-    -fx-pref-height: 60px; -fx-min-height: 60px;
+    -fx-padding: 10 16 10 16;
+    -fx-pref-height: 52px; -fx-min-height: 52px;
 }
 .hub-brand   { -fx-padding: 0 4 0 0; }
 .hub-sep     { -fx-text-fill: #d0d0ce; -fx-padding: 0 4 0 4; }
