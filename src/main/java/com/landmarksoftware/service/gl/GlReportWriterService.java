@@ -205,59 +205,84 @@ public class GlReportWriterService {
         }
         String horizDesc = describeHoriz(s.getCompanyNo(), p.horizFormatKey());
         int colCount = Math.min(columns.size(), MAX_COLUMNS);
-        // Total accumulators keyed by total_no — running per column. Each "+" /
-        // "-" row contributes; "U" (subtotal) prints the accumulator without
-        // resetting; "T" (total) prints and resets.
-        Map<Integer, BigDecimal[]> totals = new HashMap<>();
+        // Engine state: running tracks the credit-positive net since the last
+        // subtotal (income +, expense −); buckets accumulate the running into
+        // a totalled bucket on each subtotal print so the final calculation row
+        // (Net Profit Before Tax) can read the last-used bucket.
+        BigDecimal[] running = zeroes(colCount);
+        Map<Integer, BigDecimal[]> buckets = new HashMap<>();
+        int lastBucketNo = 0;
+
+        // Preload account descriptions once for the company so expansion rows
+        // can render their own desc1 instead of the row's range label.
+        Map<String, String> acctDescs = loadAccountDescriptions(s.getCompanyNo());
 
         List<Map<String, Object>> outRows = new ArrayList<>();
         for (RowDef r : vert.rows()) {
-            String kind = kindOf(r);
-            BigDecimal[] cells;
+            String tt = trim(r.totalType()).toUpperCase();
+            // Skip the 'V' (variance / special) and obviously out-of-range
+            // account ranges — they leak through some glrpvel definitions.
+            if ("V".equals(tt)) continue;
+            if (r.startMain() > 999999) continue;
 
-            switch (kind) {
-                case "constant" -> {
-                    cells = new BigDecimal[colCount];
-                    Arrays.fill(cells, r.constant());
-                }
-                case "subtotal", "total" -> {
-                    cells = copyOrZero(totals.get(r.totalNo()), colCount);
-                    if ("total".equals(kind)) totals.remove(r.totalNo());
-                }
-                default -> {
-                    if (r.startMain() == 0 && r.endMain() == 0) {
-                        // Structure / label row, no account range. Emit label
-                        // with blank cells; if there is no label either, skip.
-                        // TODO: confirm against glrp60.cbl whether total_type='+'
-                        // with no account range should print accumulator[total_no]
-                        // (i.e. true subtotal printing) — needs COBOL verification.
-                        if (!notBlank(r.lineDesc())) continue;
-                        cells = new BigDecimal[colCount]; // all null = blank in jrxml
-                    } else {
-                        cells = aggregateAccountRow(s.getCompanyNo(), r, columns, colCount);
-                        String op = trim(r.totalType()).toUpperCase();
-                        if (r.totalNo() > 0 && ("+".equals(op) || "-".equals(op) || op.isEmpty())) {
-                            BigDecimal[] acc = totals.computeIfAbsent(r.totalNo(), k -> zeroes(colCount));
-                            boolean subtract = "-".equals(op);
-                            for (int c = 0; c < colCount; c++) {
-                                acc[c] = subtract ? acc[c].subtract(cells[c]) : acc[c].add(cells[c]);
-                            }
+            if (r.startMain() > 0) {
+                // ── Account row ─────────────────────────────────────────────
+                Map<String, BigDecimal[]> perAcct = aggregatePerAccount(s.getCompanyNo(), r, columns, colCount);
+                boolean expand = "M".equalsIgnoreCase(r.printEachAcctFlag());
+                boolean credit = "C".equalsIgnoreCase(r.drCrInd());
+
+                if (expand) {
+                    for (Map.Entry<String, BigDecimal[]> en : perAcct.entrySet()) {
+                        BigDecimal[] net = en.getValue();  // dr-cr per column
+                        BigDecimal[] display = credit ? negate(net) : net.clone();
+                        if (p.zeroBalSuppress() && allZero(display)) continue;
+                        String desc = acctDescs.getOrDefault(en.getKey(), en.getKey());
+                        emit(outRows, desc, "account", display, colCount);
+                        // running and bucket contribution = credit-positive net
+                        // contribution = −(dr−cr) regardless of dr_cr_ind so both
+                        // C and D rows feed the running net consistently.
+                        for (int c = 0; c < colCount; c++) running[c] = running[c].subtract(net[c]);
+                        if (r.totalNo() > 0) {
+                            BigDecimal[] bk = buckets.computeIfAbsent(r.totalNo(), k -> zeroes(colCount));
+                            for (int c = 0; c < colCount; c++) bk[c] = bk[c].subtract(net[c]);
                         }
                     }
+                } else {
+                    // Collapsed: sum across all accounts in the range
+                    BigDecimal[] sum = zeroes(colCount);
+                    for (BigDecimal[] net : perAcct.values()) {
+                        for (int c = 0; c < colCount; c++) sum[c] = sum[c].add(net[c]);
+                    }
+                    BigDecimal[] display = credit ? negate(sum) : sum.clone();
+                    if (!(p.zeroBalSuppress() && allZero(display))) {
+                        emit(outRows, labelOf(r), "account", display, colCount);
+                    }
+                    for (int c = 0; c < colCount; c++) running[c] = running[c].subtract(sum[c]);
+                    if (r.totalNo() > 0) {
+                        BigDecimal[] bk = buckets.computeIfAbsent(r.totalNo(), k -> zeroes(colCount));
+                        for (int c = 0; c < colCount; c++) bk[c] = bk[c].subtract(sum[c]);
+                    }
                 }
+            } else if (("+".equals(tt) || "-".equals(tt)) && r.totalNo() > 0 && notBlank(r.lineDesc())) {
+                // ── Subtotal print (e.g. "Total Income" / "Total Expenses") ─
+                // Display the current running, sign-flipped by the row's dr_cr_ind:
+                //   C-row label (income): running directly (positive for income)
+                //   D-row label (expense): −running (positive for expense)
+                boolean credit = "C".equalsIgnoreCase(r.drCrInd());
+                BigDecimal[] display = credit ? running.clone() : negate(running);
+                emit(outRows, labelOf(r), "subtotal", display, colCount);
+                BigDecimal[] bk = buckets.computeIfAbsent(r.totalNo(), k -> zeroes(colCount));
+                for (int c = 0; c < colCount; c++) bk[c] = bk[c].add(running[c]);
+                lastBucketNo = r.totalNo();
+                Arrays.fill(running, BigDecimal.ZERO);
+            } else if (notBlank(r.lineDesc()) && r.totalNo() == 0 && tt.isEmpty()) {
+                // ── Final calculation row (Net Profit Before Tax) ───────────
+                // Display the last-used bucket — that's the running net of all
+                // subtotals (income − expense in the canonical P&L).
+                BigDecimal[] netBucket = buckets.getOrDefault(lastBucketNo > 0 ? lastBucketNo : 2, zeroes(colCount));
+                emit(outRows, labelOf(r), "total", netBucket.clone(), colCount);
             }
-
-            // Zero-suppression: omit account rows whose every cell is zero, but
-            // always keep structure rows (subtotal/total/constant).
-            if (p.zeroBalSuppress() && "account".equals(kind) && allZero(cells)) continue;
-
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("rowLabel", labelOf(r));
-            row.put("rowKind",  kind);
-            for (int c = 1; c <= MAX_COLUMNS; c++) {
-                row.put(colKey(c), c <= colCount ? cells[c - 1] : null);
-            }
-            outRows.add(row);
+            // else: blank separator / non-actionable row — skip
         }
 
         Map<String, Object> params = new LinkedHashMap<>();
@@ -280,11 +305,16 @@ public class GlReportWriterService {
             int vertFormatNo, String desc1, String desc2, String vertFormatType,
             int roundingMain, int roundingSub, List<RowDef> rows) {}
 
-    /** One {@code glrpvel} line — an output row template. */
+    /**
+     * One {@code glrpvel} line — an output row template. {@code printEachAcctFlag}
+     * carries the raw COBOL flag character (commonly {@code "M"} = expand into
+     * one row per active account, {@code "N"} = collapse to a single row,
+     * blank = default).
+     */
     public record RowDef(
             int seqNo, int startMain, int startSub, int endMain, int endSub,
             String lineDesc, String drCrInd, String totalType, int totalNo,
-            BigDecimal constant, int colNo, boolean printEachAcct,
+            BigDecimal constant, int colNo, String printEachAcctFlag,
             String acctType, String printFlag,
             String startReportGroup, String endReportGroup) {}
 
@@ -327,7 +357,7 @@ public class GlReportWriterService {
                         rs.getInt("total_no"),
                         z(rs.getBigDecimal("constant")),
                         rs.getInt("col_no"),
-                        "Y".equalsIgnoreCase(trim(rs.getString("print_each_acct_flag"))),
+                        trim(rs.getString("print_each_acct_flag")),
                         trim(rs.getString("acct_type")),
                         trim(rs.getString("print_flag")),
                         trim(rs.getString("start_report_group")),
@@ -597,17 +627,21 @@ public class GlReportWriterService {
     /**
      * Pulls every {@code gltrx} posting in this row's account range across the
      * full date span (min column start … max column end) <b>in one query</b>,
-     * then buckets each posting into its matching column in memory. With M rows
-     * and N columns this gives M queries instead of M×N.
+     * then buckets each posting into its matching column AND keys the result
+     * by account. The caller decides whether to render one row per account
+     * ({@code print_each_acct_flag='M'}) or one collapsed row.
      *
-     * <p>Sign convention: stored {@code dr_amt}/{@code cr_amt} are positive.
-     * Net = (dr − cr). A credit-normal row ({@code dr_cr_ind='C'}) negates the
-     * net so income rows render positive; debit-normal rows pass net through.
+     * <p>Sign convention: stored {@code dr_amt}/{@code cr_amt} are positive,
+     * the returned cells carry {@code (dr − cr)} per column. Display sign is
+     * applied by the caller using the row's {@code dr_cr_ind}.
+     *
+     * <p>One query per glrpvel row, regardless of column count, so a M×N
+     * matrix costs M queries, not M×N.
      */
-    private BigDecimal[] aggregateAccountRow(int companyNo, RowDef r,
-                                             List<ColumnDef> columns, int colCount) {
-        BigDecimal[] cells = zeroes(colCount);
-        if (colCount == 0) return cells;
+    private Map<String, BigDecimal[]> aggregatePerAccount(int companyNo, RowDef r,
+                                                          List<ColumnDef> columns, int colCount) {
+        Map<String, BigDecimal[]> perAcct = new LinkedHashMap<>();
+        if (colCount == 0) return perAcct;
 
         LocalDate spanStart = columns.get(0).periodStart();
         LocalDate spanEnd   = columns.get(0).periodEnd();
@@ -619,21 +653,25 @@ public class GlReportWriterService {
         int endMain = r.endMain() > 0 ? r.endMain() : r.startMain();
         int endSub  = r.endSub()  > 0 ? r.endSub()  : 9999;
 
+        final LocalDate[] cols0 = new LocalDate[colCount];
+        final LocalDate[] cols1 = new LocalDate[colCount];
+        for (int i = 0; i < colCount; i++) {
+            cols0[i] = columns.get(i).periodStart();
+            cols1[i] = columns.get(i).periodEnd();
+        }
+
         try {
-            final LocalDate[] cols0 = new LocalDate[colCount];
-            final LocalDate[] cols1 = new LocalDate[colCount];
-            for (int i = 0; i < colCount; i++) {
-                cols0[i] = columns.get(i).periodStart();
-                cols1[i] = columns.get(i).periodEnd();
-            }
             jdbc.query(
-                "SELECT jnl_date, dr_amt, cr_amt FROM gltrx " +
+                "SELECT acct_main_no, acct_sub_no, jnl_date, dr_amt, cr_amt FROM gltrx " +
                 "WHERE company_no=? AND acct_main_no BETWEEN ? AND ? " +
                 "  AND acct_sub_no BETWEEN ? AND ? " +
-                "  AND jnl_date BETWEEN ? AND ?",
+                "  AND jnl_date BETWEEN ? AND ? " +
+                "ORDER BY acct_main_no, acct_sub_no",
                 rs -> {
                     java.sql.Date dd = rs.getDate("jnl_date");
                     if (dd == null) return;
+                    String key = rs.getInt("acct_main_no") + "." + rs.getInt("acct_sub_no");
+                    BigDecimal[] cells = perAcct.computeIfAbsent(key, k -> zeroes(colCount));
                     LocalDate d = dd.toLocalDate();
                     BigDecimal net = z(rs.getBigDecimal("dr_amt")).subtract(z(rs.getBigDecimal("cr_amt")));
                     for (int c = 0; c < colCount; c++) {
@@ -646,14 +684,39 @@ public class GlReportWriterService {
                 companyNo, r.startMain(), endMain, r.startSub(), endSub,
                 Date.valueOf(spanStart), Date.valueOf(spanEnd));
         } catch (Exception e) {
-            log.warn("aggregateAccountRow row seq={} accts={}.{}–{}.{}: {}",
+            log.warn("aggregatePerAccount row seq={} accts={}.{}–{}.{}: {}",
                 r.seqNo(), r.startMain(), r.startSub(), endMain, endSub, e.getMessage());
         }
+        return perAcct;
+    }
 
-        if ("C".equalsIgnoreCase(r.drCrInd())) {
-            for (int c = 0; c < colCount; c++) cells[c] = cells[c].negate();
+    /** Loads the company's chart of accounts as a {@code "main.sub" → desc1} map. */
+    private Map<String, String> loadAccountDescriptions(int companyNo) {
+        Map<String, String> map = new HashMap<>();
+        try {
+            jdbc.query(
+                "SELECT acct_main_no, acct_sub_no, desc1 FROM glchart WHERE company_no=?",
+                rs -> { map.put(rs.getInt(1) + "." + rs.getInt(2), trim(rs.getString(3))); },
+                companyNo);
+        } catch (Exception e) { log.warn("loadAccountDescriptions: {}", e.getMessage()); }
+        return map;
+    }
+
+    private static BigDecimal[] negate(BigDecimal[] a) {
+        BigDecimal[] out = new BigDecimal[a.length];
+        for (int i = 0; i < a.length; i++) out[i] = a[i].negate();
+        return out;
+    }
+
+    private static void emit(List<Map<String, Object>> rows, String label, String kind,
+                             BigDecimal[] cells, int colCount) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("rowLabel", label);
+        row.put("rowKind",  kind);
+        for (int c = 1; c <= MAX_COLUMNS; c++) {
+            row.put(colKey(c), c <= colCount ? cells[c - 1] : null);
         }
-        return cells;
+        rows.add(row);
     }
 
     private static BigDecimal[] zeroes(int n) {
