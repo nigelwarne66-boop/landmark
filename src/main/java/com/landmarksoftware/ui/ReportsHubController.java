@@ -918,8 +918,10 @@ public class ReportsHubController implements Initializable {
 
     private void saveOrOpen(byte[] data, String reportPath, String ext, javafx.stage.Window owner) {
         String slug = reportPath.replace('/', '_').replace('\\', '_');
+        // Millisecond precision so a bulk run firing several reports in the
+        // same second doesn't have them overwrite each other on disk.
         String stamp = java.time.LocalDateTime.now()
-            .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"));
         String filename = slug + "_" + stamp + ext;
 
         java.io.File file = resolveOutputFile(filename, ext, owner);

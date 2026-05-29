@@ -278,6 +278,7 @@ public class GlReportWriterService {
                     : zeroes(colCount);
                 boolean credit = "C".equalsIgnoreCase(r.drCrInd());
                 BigDecimal[] display = credit ? value.clone() : negate(value);
+                if (isCurrentYearEarnings(r.lineDesc())) display = negate(display);
                 if (hasLabel) {
                     emit(outRows, labelOf(r), "subtotal", display, colCount);
                 }
@@ -294,6 +295,7 @@ public class GlReportWriterService {
                     : zeroes(colCount);
                 boolean credit = "C".equalsIgnoreCase(r.drCrInd());
                 BigDecimal[] display = credit ? value.clone() : negate(value);
+                if (isCurrentYearEarnings(r.lineDesc())) display = negate(display);
                 emit(outRows, labelOf(r), "total", display, colCount);
                 continue;
             }
@@ -766,6 +768,18 @@ public class GlReportWriterService {
             default  -> { /* unknown operator — ignore */ }
         }
         lastBucketNo[0] = totalNo;
+    }
+
+    /**
+     * COBOL convention: rows labelled "CURRENT YEAR EARNINGS" always render
+     * sign-reversed from the engine's natural calculation — they carry the
+     * P&amp;L Net Profit into the equity section, but the BS displays it
+     * positive whether the engine reads it from bucket[NET ASSETS] or from
+     * bucket[EQUITY]. Match by label rather than tracking a per-row context.
+     */
+    private static boolean isCurrentYearEarnings(String lineDesc) {
+        return lineDesc != null
+            && lineDesc.toUpperCase(java.util.Locale.ROOT).contains("CURRENT YEAR EARNINGS");
     }
 
     private static BigDecimal[] negate(BigDecimal[] a) {

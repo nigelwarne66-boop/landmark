@@ -63,7 +63,7 @@
   <columnHeader>
     <band height="20">
       <rectangle><reportElement x="0" y="0" width="1340" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <staticText><reportElement x="4"    y="4" width="240" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="0"    y="4" width="244" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
       <textField><reportElement x="246"  y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{COL_HEAD_01}]]></textFieldExpression></textField>
       <textField><reportElement x="328"  y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{COL_HEAD_02}]]></textFieldExpression></textField>
       <textField><reportElement x="410"  y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{COL_HEAD_03}]]></textFieldExpression></textField>
@@ -82,7 +82,7 @@
 
   <detail>
     <band height="14">
-      <textField isStretchWithOverflow="true"><reportElement x="4" y="1" width="240" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$F{rowLabel}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="1" width="244" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$F{rowLabel}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="246"  y="1" width="80"  height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{col_01}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="328"  y="1" width="80"  height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{col_02}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="410"  y="1" width="80"  height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{col_03}]]></textFieldExpression></textField>
@@ -105,7 +105,7 @@
 
   <summary>
     <band height="22">
-      <textField><reportElement x="4" y="6" width="600" height="12"/><textElement><font size="10" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) — " + ($P{COL_COUNT}==null?0:$P{COL_COUNT}) + " column(s)"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="6" width="600" height="12"/><textElement><font size="10" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) — " + ($P{COL_COUNT}==null?0:$P{COL_COUNT}) + " column(s)"]]></textFieldExpression></textField>
     </band>
   </summary>
 
