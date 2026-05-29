@@ -153,8 +153,16 @@ public class GlReportWriterService {
         if (vert == null) {
             return warn("Vertical format " + p.vertFormatNo() + " not found in glrpveh.");
         }
-        // COBOL convention: yr_no=0 on a saved selection means "current year".
-        int yr = p.yearNo() > 0 ? p.yearNo() : s.getYearNo();
+        // glrpsel.yr_no is the COBOL fiscal-year sequence (gldates.yr_no),
+        // not the 4-digit calendar year. Translate via gldates; 0 means
+        // "current year" so fall back to the session calendar year.
+        int yr;
+        if (p.yearNo() > 0) {
+            Integer calendar = lookupCalendarYear(s.getCompanyNo(), p.yearNo());
+            yr = (calendar != null) ? calendar : s.getYearNo();
+        } else {
+            yr = s.getYearNo();
+        }
         HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), yr);
         if (horiz == null) {
             return warn("Horizontal table '" + p.horizFormatKey() + "' (year " + yr + ") not found in glrptah/glrptab. Load the matching horizontal-table entry, or pick another in the screen.");
@@ -351,6 +359,21 @@ public class GlReportWriterService {
             columns.add(new ColumnDef(++colIdx, start, end));
         }
         return new HorizontalTable(dateTableCode, desc[0], yearNo, columns);
+    }
+
+    /**
+     * Translates a COBOL fiscal-year sequence ({@code gldates.yr_no}) to its
+     * 4-digit calendar {@code year_no}. Returns {@code null} when the year
+     * doesn't exist for the company so callers can fall back to a session default.
+     */
+    private Integer lookupCalendarYear(int companyNo, int yrNoSeq) {
+        try {
+            return jdbc.queryForObject(
+                "SELECT year_no FROM gldates WHERE company_no=? AND yr_no=?",
+                Integer.class, companyNo, yrNoSeq);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // ── Interpreter: aggregate one row's account range over the columns ──────
