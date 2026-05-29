@@ -224,6 +224,10 @@ public class GlReportWriterService {
             // account ranges — they leak through some glrpvel definitions.
             if ("V".equals(tt)) continue;
             if (r.startMain() > 999999) continue;
+            // seq_no >= 999000 is a COBOL end-of-format sentinel — e.g. a stray
+            // "CURRENT ASSETS" row on the end of a P&L vert format that belongs
+            // to a separate Balance Sheet format. Don't render it.
+            if (r.seqNo() >= 999000) continue;
 
             if (r.startMain() > 0) {
                 // ── Account row ─────────────────────────────────────────────
@@ -428,24 +432,20 @@ public class GlReportWriterService {
     // ── Column resolution (rundates → synth → glrptah) ───────────────────────
 
     /**
-     * Three-tier column resolver. Returns columns in display order; persists a
-     * synthesised set into {@code glrpwkc} when the run is tied to a saved
-     * selection so re-runs stay deterministic and the dates are inspectable.
+     * Column resolver. Always synthesises from the user's start/end date range
+     * + {@code horiz_format_no} (so a date change in the screen takes effect
+     * immediately, no stale cache). Persists the resolved columns into
+     * {@code glrpwkc} as an audit snapshot — equivalent to COBOL writing
+     * {@code GLRPSEL-REPORT-DATES-TABLE} at run time. Falls through to
+     * {@code glrptah}/{@code glrptab} only when synthesis returns empty
+     * (bespoke keys like {@code "Q"}).
      */
     private List<ColumnDef> resolveColumns(AppSession s, RunParams p) {
-        // 1. Persisted rundates from glrpwkc (populated on first run, or by a future admin UI).
-        if (p.selectionNo() > 0) {
-            List<ColumnDef> persisted = loadRunDates(s.getCompanyNo(), p.selectionNo());
-            if (!persisted.isEmpty()) return persisted;
-        }
-        // 2. Synthesise from horiz_format_no using the user's start/end date range.
         List<ColumnDef> synth = synthesizeColumns(s.getCompanyNo(), p);
         if (!synth.isEmpty()) {
             if (p.selectionNo() > 0) persistRunDates(s, p.selectionNo(), p.horizFormatKey(), synth);
             return synth;
         }
-        // 3. Fall through to glrptah / glrptab (handles bespoke keys like 'Q').
-        // For the legacy template path, look up by end-date's calendar year.
         int yr = p.endDate() != null ? p.endDate().getYear() : s.getYearNo();
         HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), yr);
         return horiz != null ? horiz.columns() : List.of();
@@ -598,11 +598,11 @@ public class GlReportWriterService {
         // Friendly descriptions for the synthesised conventions.
         String c = key == null ? "" : key.trim().toUpperCase(Locale.ROOT);
         return switch (c) {
-            case "1" -> "Monthly periods";
-            case "1B" -> "Monthly periods — prior year";
-            case "1A" -> "Monthly periods — current year";
-            case "2" -> "Year as-at";
-            case "2B" -> "Year as-at — prior year";
+            case "1"  -> "Actual PTD / Actual YTD / Prior YTD";
+            case "1A" -> "Actual PTD / Actual YTD / Prior YTD";
+            case "1B" -> "Actual PTD / Actual YTD / Prior YTD (prior year)";
+            case "2"  -> "Single period";
+            case "2B" -> "Single period (prior year)";
             default -> notBlank(key) ? key : "(no horizontal)";
         };
     }
