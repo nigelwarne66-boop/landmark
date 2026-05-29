@@ -178,15 +178,14 @@ public class ReportsHubController implements Initializable {
             "fth-file-text");
         acctTxns.setRunner(fmt -> comingSoon("Account Transactions"));
 
-        // GLRP40 — Report Writer dispatcher. The selection screen + engine port is
-        // on the migration backlog (cc-migration.md note #2), and glrphed (the
-        // report-writer definitions) is empty in the current extract. The runner
-        // pops a notice explaining both prerequisites until those land.
+        // GLRP40 — Report Writer dispatcher. FXML at /fxml/reports/gl/report-writer.fxml
+        // drives GlReportWriterController + GlReportWriterService (matrix evaluator);
+        // setRunner is only the fallback the hub falls through to if the FXML fails.
         ReportDef glReportWriter = ReportDef.withParams(
             "report-writer", "Report Writer Output",
             "Run user-defined report-writer reports — pick from the saved definitions",
             "fth-edit-3");
-        glReportWriter.setRunner(fmt -> reportWriterNotice());
+        glReportWriter.setRunner(fmt -> comingSoon("Report Writer Output"));
 
         /* Accounts Receivable */
         ReportDef debtorsAgeing = ReportDef.withParams(
@@ -1027,22 +1026,4 @@ public class ReportsHubController implements Initializable {
         a.showAndWait();
     }
 
-    /**
-     * GLRP40 (GL Report Writer) — explains both prerequisites until the engine
-     * lands and the report-writer definition tables are loaded.
-     */
-    private void reportWriterNotice() {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setTitle("Report Writer Output");
-        a.setHeaderText("GL Report Writer (GLRP40) — two prerequisites to wire up");
-        a.setContentText(
-            "1.  Report definitions: glrphed (report headers) is currently empty in " +
-            "the extract. Once your report-writer definitions are loaded, this card " +
-            "will list them for selection.\n\n" +
-            "2.  Engine: the report-writer engine port (GlReportWriterService) is on " +
-            "the migration backlog (cc-migration.md note #2). It interprets glrphed " +
-            "+ glrpveh / glrpvel / glrptah / glrptab to render the actual output.\n\n" +
-            "Tables already present: glrpveh (12), glrpvel (229), glrptah / glrptab (1 each).");
-        a.showAndWait();
-    }
 }

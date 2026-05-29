@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.GlReportWriterController"
+    styleClass="sel-root"
+    prefWidth="640" prefHeight="640">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Report Writer Output" styleClass="sel-title"/>
+            <Label text="GLRP40 — saved selection or pick vertical + horizontal formats directly" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <Label text="Saved selection" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Selection (glrpsel)" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="selectionCombo" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <Label fx:id="selectionStatus" styleClass="sel-hint"
+                       text="No saved selections loaded — fill the manual fields below."/>
+
+                <Label text="Or pick formats directly" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Vertical format" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="vertCombo" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Horizontal table" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="horizCombo" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Year" styleClass="sel-label" minWidth="160"/>
+                    <TextField fx:id="yearField" prefWidth="100"/>
+                </HBox>
+
+                <Label text="Options" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <CheckBox fx:id="zeroBalSuppress" text="Suppress zero-balance rows"/>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Cancel" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel"  styleClass="sel-btn-excel"  onAction="#onExcel"/>
+            <Button text="PDF"    styleClass="sel-btn-pdf"    onAction="#onPdf"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
