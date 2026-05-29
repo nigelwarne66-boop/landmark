@@ -60,12 +60,13 @@ public class GlReportWriterController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // ── Period defaults: today's date and the year-start before it ──────
+        // ── Period defaults: end-of-current-month and the fiscal year-start before it ──
         LocalDate today = LocalDate.now();
+        LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
         LocalDate guessYrStart = today.withDayOfMonth(1).withMonth(7); // Jul 1 of current calendar year
         if (today.isBefore(guessYrStart)) guessYrStart = guessYrStart.minusYears(1);
         startDate.setValue(guessYrStart);
-        endDate.setValue(today);
+        endDate.setValue(monthEnd);
 
         // ── Reports list ─────────────────────────────────────────────────────
         List<SelectionRow> selections = glRw.getSelections(session);
