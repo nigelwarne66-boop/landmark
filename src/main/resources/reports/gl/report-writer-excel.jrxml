@@ -56,7 +56,7 @@
   <title>
     <band height="40">
       <textField><reportElement x="0" y="0" width="600" height="18"/><textElement><font size="13" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{REPORT_TITLE}]]></textFieldExpression></textField>
-      <textField><reportElement x="0" y="20" width="1340" height="14"/><textElement><font size="10"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + ($P{VERT_DESC}==null?"":$P{VERT_DESC}) + "  •  " + $P{HORIZ_DESC} + "  •  " + $P{YEAR_DESC}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="20" width="1340" height="14"/><textElement><font size="10"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   " + $P{YEAR_DESC}]]></textFieldExpression></textField>
     </band>
   </title>
 
