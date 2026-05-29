@@ -267,6 +267,10 @@ public class GlReportWriterService {
                         for (int c = 0; c < colCount; c++) bk[c] = bk[c].subtract(sum[c]);
                     }
                 }
+            } else if (!notBlank(r.drCrInd()) && notBlank(r.lineDesc())) {
+                // ── Section header (CURRENT ASSETS / EQUITY / etc.) ─────────
+                // No dr_cr_ind = no value contribution; emit label with blank cells.
+                emit(outRows, labelOf(r), "header", new BigDecimal[colCount], colCount);
             } else if (("+".equals(tt) || "-".equals(tt)) && r.totalNo() > 0 && notBlank(r.lineDesc())) {
                 // ── Subtotal print (e.g. "Total Income" / "Total Expenses") ─
                 // Display the current running, sign-flipped by the row's dr_cr_ind:
@@ -470,9 +474,23 @@ public class GlReportWriterService {
 
         return switch (key) {
             case "1", "1A", "1B" -> ptdYtdPriorYtd(companyNo, start, end);
-            case "2", "2A", "2B" -> List.of(new ColumnDef(1, start, end, "As at " + fmt(end)));
+            case "2", "2A", "2B" -> currentYearVsPriorAsAt(end);
             default -> List.of();
         };
+    }
+
+    /**
+     * Balance-sheet horizontal layout: <b>Current Year</b> + <b>Prior Year</b>,
+     * each a cumulative as-at column with no lower date bound. Using a 1900-01-01
+     * sentinel start picks up open_bal-rolled history naturally, so the cell
+     * value = {@code SUM(dr_amt − cr_amt) WHERE jnl_date ≤ end} — exactly the
+     * cumulative balance the COBOL BS expects.
+     */
+    private List<ColumnDef> currentYearVsPriorAsAt(LocalDate end) {
+        LocalDate sentinel = LocalDate.of(1900, 1, 1);
+        return List.of(
+            new ColumnDef(1, sentinel, end,                "Current Year"),
+            new ColumnDef(2, sentinel, end.minusYears(1),  "Prior Year"));
     }
 
     /**
@@ -601,8 +619,8 @@ public class GlReportWriterService {
             case "1"  -> "Actual PTD / Actual YTD / Prior YTD";
             case "1A" -> "Actual PTD / Actual YTD / Prior YTD";
             case "1B" -> "Actual PTD / Actual YTD / Prior YTD (prior year)";
-            case "2"  -> "Single period";
-            case "2B" -> "Single period (prior year)";
+            case "2", "2A" -> "Current Year / Prior Year (as at)";
+            case "2B"      -> "Current Year / Prior Year (as at — prior year)";
             default -> notBlank(key) ? key : "(no horizontal)";
         };
     }
