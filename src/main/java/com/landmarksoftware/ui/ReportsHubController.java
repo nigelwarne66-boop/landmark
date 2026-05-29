@@ -178,6 +178,16 @@ public class ReportsHubController implements Initializable {
             "fth-file-text");
         acctTxns.setRunner(fmt -> comingSoon("Account Transactions"));
 
+        // GLRP40 — Report Writer dispatcher. The selection screen + engine port is
+        // on the migration backlog (cc-migration.md note #2), and glrphed (the
+        // report-writer definitions) is empty in the current extract. The runner
+        // pops a notice explaining both prerequisites until those land.
+        ReportDef glReportWriter = ReportDef.withParams(
+            "report-writer", "Report Writer Output",
+            "Run user-defined report-writer reports — pick from the saved definitions",
+            "fth-edit-3");
+        glReportWriter.setRunner(fmt -> reportWriterNotice());
+
         /* Accounts Receivable */
         ReportDef debtorsAgeing = ReportDef.withParams(
             "debtors-ageing", "Debtors Ageing",
@@ -551,7 +561,8 @@ public class ReportsHubController implements Initializable {
         // Payroll module only visible to users with MEUSERS.print_pa_from_pass='Y'.
         java.util.List<ModuleDef> mods = new java.util.ArrayList<>();
         mods.add(new ModuleDef("gl", "General Ledger",
-            List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns)));
+            List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns,
+                    glReportWriter)));
         mods.add(new ModuleDef("ar", "Accounts Receivable",
             List.of(debtorsAgeing, arTransactionListing, arAccountRecon, arUnbalancedRecon,
                     arDetailedTxn, arFcReval, arGlDistribution, arPeriodSummary,
@@ -1013,6 +1024,25 @@ public class ReportsHubController implements Initializable {
         a.setTitle("Coming soon");
         a.setHeaderText(name);
         a.setContentText("Selection screen for this report is being developed.");
+        a.showAndWait();
+    }
+
+    /**
+     * GLRP40 (GL Report Writer) — explains both prerequisites until the engine
+     * lands and the report-writer definition tables are loaded.
+     */
+    private void reportWriterNotice() {
+        Alert a = new Alert(Alert.AlertType.INFORMATION);
+        a.setTitle("Report Writer Output");
+        a.setHeaderText("GL Report Writer (GLRP40) — two prerequisites to wire up");
+        a.setContentText(
+            "1.  Report definitions: glrphed (report headers) is currently empty in " +
+            "the extract. Once your report-writer definitions are loaded, this card " +
+            "will list them for selection.\n\n" +
+            "2.  Engine: the report-writer engine port (GlReportWriterService) is on " +
+            "the migration backlog (cc-migration.md note #2). It interprets glrphed " +
+            "+ glrpveh / glrpvel / glrptah / glrptab to render the actual output.\n\n" +
+            "Tables already present: glrpveh (12), glrpvel (229), glrptah / glrptab (1 each).");
         a.showAndWait();
     }
 }
