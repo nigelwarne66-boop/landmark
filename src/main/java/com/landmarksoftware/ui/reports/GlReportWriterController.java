@@ -23,21 +23,23 @@ import org.springframework.stereotype.Component;
 
 import java.net.URL;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
- * GLRP40 Report Writer Output — two-section screen mirroring the COBOL flow:
+ * GLRP40 Report Writer Output — bulk selection screen mirroring the COBOL
+ * "Select reports to process" dispatcher:
  * <ol>
- *   <li>Enter the date period (start + end) once.</li>
- *   <li>List every saved selection in {@code glrpsel} with per-row
- *       <b>PDF</b> / <b>Excel</b> buttons. Each click runs that selection's
- *       vertical format against the entered period using its own
- *       horizontal-layout key (which the engine renders as PTD/YTD/Prior YTD
- *       for "1", single as-at column for "2", etc.). The screen stays open
- *       so a batch of reports can be fired off back-to-back.</li>
+ *   <li>Enter the date period (start + end) once at the top.</li>
+ *   <li>Tick the reports to run from the list of saved selections in
+ *       {@code glrpsel}. "Select all" toggles the lot.</li>
+ *   <li>Click <b>PDF</b> or <b>Excel</b> at the bottom — the engine runs every
+ *       ticked report against the entered period and renders each through
+ *       Jasper. A summary alert lists what was generated when the batch
+ *       finishes.</li>
  * </ol>
  */
 @Component
@@ -55,8 +57,13 @@ public class GlReportWriterController implements Initializable {
     @FXML private DatePicker                 endDate;
     @FXML private Label                      periodHint;
     @FXML private CheckBox                   zeroBalSuppress;
+    @FXML private CheckBox                   selectAllCheck;
     @FXML private Label                      reportsStatus;
     @FXML private VBox                       reportRows;
+
+    /** One row in the list — pairs the rendered checkbox with its selection. */
+    private record RowEntry(CheckBox check, SelectionRow sel) {}
+    private final List<RowEntry> rowEntries = new ArrayList<>();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -73,16 +80,25 @@ public class GlReportWriterController implements Initializable {
         if (selections.isEmpty()) {
             reportsStatus.setText("No saved selections in glrpsel for " + session.getCompanyName()
                 + " — load glrpsel entries to populate this list.");
+            selectAllCheck.setDisable(true);
         } else {
-            reportsStatus.setText(selections.size() + " saved selection(s) — click PDF or Excel to run.");
+            reportsStatus.setText(selections.size() + " saved selection(s) — tick reports, then PDF or Excel below.");
             for (SelectionRow sel : selections) {
                 reportRows.getChildren().add(buildReportRow(sel));
             }
         }
+
+        // Master "Select all" toggles every row checkbox.
+        selectAllCheck.selectedProperty().addListener((obs, old, val) -> {
+            for (RowEntry re : rowEntries) re.check().setSelected(val);
+        });
     }
 
-    /** Builds one row: # · description · vert/horiz hint · [PDF] [Excel]. */
+    /** Builds one row: ☐ · # · description · vert/horiz hint. */
     private HBox buildReportRow(SelectionRow sel) {
+        CheckBox check = new CheckBox();
+        check.getStyleClass().add("rw-row-check");
+
         Label num = new Label(String.valueOf(sel.selectionNo()));
         num.setMinWidth(36);
         num.getStyleClass().add("rw-row-num");
@@ -99,23 +115,32 @@ public class GlReportWriterController implements Initializable {
         Label hint = new Label("vert " + sel.vertFormatNo() + " · horiz " + horiz);
         hint.getStyleClass().add("rw-row-hint");
 
-        Button pdfBtn   = new Button("PDF");
-        Button excelBtn = new Button("Excel");
-        pdfBtn.getStyleClass().add("sel-btn-pdf");
-        excelBtn.getStyleClass().add("sel-btn-excel");
-        pdfBtn.setOnAction(e   -> runOne(sel, "pdf",   e));
-        excelBtn.setOnAction(e -> runOne(sel, "excel", e));
-
-        HBox row = new HBox(10, num, desc, hint, pdfBtn, excelBtn);
+        HBox row = new HBox(10, check, num, desc, hint);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("rw-row");
+        // Clicking anywhere on the row toggles the checkbox — friendlier target.
+        row.setOnMouseClicked(e -> {
+            if (!(e.getTarget() instanceof CheckBox)) check.setSelected(!check.isSelected());
+        });
+
+        rowEntries.add(new RowEntry(check, sel));
         return row;
     }
 
-    @FXML private void onCancel(ActionEvent e) { close(e); }
+    @FXML private void onPdfAll(ActionEvent e)    { runAll(e, "pdf");   }
+    @FXML private void onExcelAll(ActionEvent e)  { runAll(e, "excel"); }
+    @FXML private void onCancel(ActionEvent e)    { close(e); }
 
-    @SuppressWarnings("unchecked")
-    private void runOne(SelectionRow sel, String format, ActionEvent e) {
+    /** Runs every ticked report, collects successes/failures, summary alert. */
+    private void runAll(ActionEvent e, String format) {
+        List<SelectionRow> selected = new ArrayList<>();
+        for (RowEntry re : rowEntries) if (re.check().isSelected()) selected.add(re.sel());
+        if (selected.isEmpty()) {
+            alert(Alert.AlertType.WARNING, "No reports selected",
+                "Tick at least one report to run.");
+            return;
+        }
+
         LocalDate s = startDate.getValue();
         LocalDate t = endDate.getValue();
         if (s == null || t == null) {
@@ -129,12 +154,35 @@ public class GlReportWriterController implements Initializable {
             return;
         }
 
-        int vertFormatNo = sel.vertFormatNo();
-        if (vertFormatNo <= 0) {
-            alert(Alert.AlertType.WARNING, "Bad vertical format",
-                "Selection " + sel.selectionNo() + " has no usable vert_format_no.");
-            return;
+        Window owner = ((Node) e.getSource()).getScene().getWindow();
+        List<String> okSelections = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        for (SelectionRow sel : selected) {
+            String status = runOne(sel, format, s, t, owner);
+            if (status == null) okSelections.add(sel.selectionNo() + " — " + safeTitle(sel));
+            else                errors.add(sel.selectionNo() + " — " + safeTitle(sel) + ": " + status);
         }
+
+        StringBuilder msg = new StringBuilder();
+        if (!okSelections.isEmpty()) {
+            msg.append("Generated ").append(okSelections.size()).append(" report(s):\n");
+            for (String r : okSelections) msg.append("  • ").append(r).append('\n');
+        }
+        if (!errors.isEmpty()) {
+            if (msg.length() > 0) msg.append('\n');
+            msg.append(errors.size()).append(" skipped / failed:\n");
+            for (String r : errors) msg.append("  • ").append(r).append('\n');
+        }
+        Alert.AlertType type = errors.isEmpty() ? Alert.AlertType.INFORMATION : Alert.AlertType.WARNING;
+        alert(type, "Bulk run complete", msg.toString().trim());
+    }
+
+    /** Runs one selection; returns {@code null} on success or a short reason string. */
+    @SuppressWarnings("unchecked")
+    private String runOne(SelectionRow sel, String format, LocalDate s, LocalDate t, Window owner) {
+        int vertFormatNo = sel.vertFormatNo();
+        if (vertFormatNo <= 0) return "no vert_format_no";
+
         String horizKey = (sel.horizFormatKey() == null || sel.horizFormatKey().isBlank())
             ? "1" : sel.horizFormatKey();
 
@@ -147,23 +195,31 @@ public class GlReportWriterController implements Initializable {
             zeroBalSuppress.isSelected(),
             sel.roundingFlag() == null ? "" : sel.roundingFlag());
 
-        Map<String, Object> data = glRw.runMatrix(session, params);
-        if (data.get("warning") != null) {
-            alert(Alert.AlertType.WARNING, "Report Writer", (String) data.get("warning"));
-            return;
+        Map<String, Object> data;
+        try {
+            data = glRw.runMatrix(session, params);
+        } catch (Exception ex) {
+            return "engine error: " + ex.getMessage();
         }
+        if (data.get("warning") != null) return (String) data.get("warning");
         List<Map<String, Object>> rows = (List<Map<String, Object>>) data.get("rows");
-        if (rows == null || rows.isEmpty()) {
-            alert(Alert.AlertType.INFORMATION, "No data",
-                "Selection " + sel.selectionNo() + " produced no rows.");
-            return;
-        }
+        if (rows == null || rows.isEmpty()) return "no rows produced";
+
         Map<String, Object> jp = new HashMap<>((Map<String, Object>) data.get("params"));
         String reportPath = "excel".equals(format) ? EXCEL_PATH : PDF_PATH;
-        Window owner = ((Node) e.getSource()).getScene().getWindow();
-        hub.runJasperReportWithDataSource(reportPath, jp,
-            new JRBeanCollectionDataSource(rows), format, owner);
-        // Leave the screen open so the user can run the next report.
+        try {
+            hub.runJasperReportWithDataSource(reportPath, jp,
+                new JRBeanCollectionDataSource(rows), format, owner);
+        } catch (Exception ex) {
+            return "jasper error: " + ex.getMessage();
+        }
+        return null;
+    }
+
+    private static String safeTitle(SelectionRow sel) {
+        if (sel.rptTitle() != null && !sel.rptTitle().isBlank()) return sel.rptTitle();
+        if (sel.desc1()    != null && !sel.desc1().isBlank())    return sel.desc1();
+        return "Selection " + sel.selectionNo();
     }
 
     private void alert(Alert.AlertType type, String header, String msg) {
