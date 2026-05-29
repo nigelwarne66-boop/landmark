@@ -674,10 +674,14 @@ public class GlReportWriterService {
                     BigDecimal[] cells = perAcct.computeIfAbsent(key, k -> zeroes(colCount));
                     LocalDate d = dd.toLocalDate();
                     BigDecimal net = z(rs.getBigDecimal("dr_amt")).subtract(z(rs.getBigDecimal("cr_amt")));
+                    // Add to EVERY column whose date range contains this posting.
+                    // PTD and YTD often overlap (when start_date = fiscal year
+                    // start they're identical), so a single break here would
+                    // leak the posting out of YTD. Each column is an independent
+                    // aggregate; non-overlapping columns naturally match one.
                     for (int c = 0; c < colCount; c++) {
                         if (!d.isBefore(cols0[c]) && !d.isAfter(cols1[c])) {
                             cells[c] = cells[c].add(net);
-                            break;
                         }
                     }
                 },
