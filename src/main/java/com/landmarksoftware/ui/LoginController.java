@@ -112,14 +112,9 @@ public class LoginController {
         javafx.scene.Node pin = LandmarkLogo.fullLogo(110);
         HBox logoRow = new HBox(pin);
         logoRow.setAlignment(Pos.CENTER);
-        VBox.setMargin(logoRow, new Insets(0, 0, 18, 0));
-
-        // Title
-        Label title = new Label("Landmark");
-        title.setStyle("-fx-font-size:21px; -fx-font-weight:bold; -fx-text-fill:#1A1A2E;");
-        title.setAlignment(Pos.CENTER);
-        title.setMaxWidth(Double.MAX_VALUE);
-        VBox.setMargin(title, new Insets(0, 0, 26, 0));
+        // The full logo carries the LANDMARK wordmark, so a separate text title
+        // would be redundant. Bottom margin absorbs what the old title supplied.
+        VBox.setMargin(logoRow, new Insets(0, 0, 32, 0));
 
         // Fields
         TextField fUserId = field("User ID");
@@ -171,7 +166,7 @@ public class LoginController {
         lnkResetPwd.setOnAction(e   -> showResetPasswordDialog(card.getScene().getWindow()));
 
         card.getChildren().addAll(
-            logoRow, title,
+            logoRow,
             fUserId, fPassword,
             lblAttempts, lblMessage,
             btnLogin, links, footer);

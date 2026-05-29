@@ -74,12 +74,12 @@ public final class LandmarkLogo {
     // ── Shape builders (coordinates copied verbatim from source SVGs) ────
 
     /**
-     * From landmark-logo-icon.svg (viewBox 0 0 264 310).
-     * Pin: straight tangent lines from (66,102)→(132,254)→(198,102), arc back over.
+     * From landmark-logo-icon.svg (viewBox 0 0 264 248).
+     * Pin: straight tangent lines from (66,102)→(132,212)→(198,102), arc back over.
      */
     private static Group buildIconShapes() {
         SVGPath pin = new SVGPath();
-        pin.setContent("M 198,102 L 132,254 L 66,102 A 72,72 0 1,1 198,102 Z");
+        pin.setContent("M 198,102 L 132,212 L 66,102 A 72,72 0 1,1 198,102 Z");
         pin.setFill(NAVY);
 
         Circle aperture = new Circle(132, 72, 52, Color.WHITE);
@@ -93,13 +93,13 @@ public final class LandmarkLogo {
     }
 
     /**
-     * From landmark-logo.svg (viewBox 0 0 680 400). Same pin geometry as
+     * From landmark-logo.svg (viewBox 0 0 680 360). Same pin geometry as
      * the icon, translated to the wordmark's centre line (cx = 340), with
      * LANDMARK + SOFTWARE wordmarks beneath.
      */
     private static Group buildFullLogoShapes() {
         SVGPath pin = new SVGPath();
-        pin.setContent("M 406,120 L 340,272 L 274,120 A 72,72 0 1,1 406,120 Z");
+        pin.setContent("M 406,120 L 340,230 L 274,120 A 72,72 0 1,1 406,120 Z");
         pin.setFill(NAVY);
 
         Circle aperture = new Circle(340, 90, 52, Color.WHITE);
@@ -109,10 +109,10 @@ public final class LandmarkLogo {
         Polygon arrowL = new Polygon(362, 64, 319, 103, 296, 92);
         arrowL.setFill(BLUE_DARK);
 
-        // SVG: font-size 46, font-weight 300, letter-spacing 12, text-anchor middle, y=316
-        Node wordmark = spacedWordmark("LANDMARK", 340, 316, 46, 12, FontWeight.LIGHT);
-        // SVG: font-size 19, font-weight 300, letter-spacing 9, text-anchor middle, y=358
-        Node submark  = spacedWordmark("SOFTWARE", 340, 358, 19,  9, FontWeight.LIGHT);
+        // SVG: font-size 46, font-weight 300, letter-spacing 12, text-anchor middle, y=290
+        Node wordmark = spacedWordmark("LANDMARK", 340, 290, 46, 12, FontWeight.LIGHT);
+        // SVG: font-size 19, font-weight 300, letter-spacing 9, text-anchor middle, y=332
+        Node submark  = spacedWordmark("SOFTWARE", 340, 332, 19,  9, FontWeight.LIGHT);
 
         return new Group(pin, aperture, arrowR, arrowL, wordmark, submark);
     }
