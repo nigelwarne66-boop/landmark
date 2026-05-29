@@ -23,20 +23,15 @@
             <VBox styleClass="sel-body" spacing="10">
                 <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
 
-                <Label text="Date columns" styleClass="sel-section"/>
+                <Label text="Period" styleClass="sel-section"/>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Calendar year" styleClass="sel-label" minWidth="160"/>
-                    <TextField fx:id="yearField" prefWidth="100"/>
-                    <Label fx:id="yearHint" styleClass="sel-hint"/>
+                    <Label text="Start date" styleClass="sel-label" minWidth="160"/>
+                    <DatePicker fx:id="startDate" prefWidth="160"/>
+                    <Label text="end date" styleClass="sel-label"/>
+                    <DatePicker fx:id="endDate" prefWidth="160"/>
                 </HBox>
-                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Column structure" styleClass="sel-label" minWidth="160"/>
-                    <ComboBox fx:id="rangeModeCombo" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-                </HBox>
-                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Year-end basis" styleClass="sel-label" minWidth="160"/>
-                    <ComboBox fx:id="yearEndCombo" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-                </HBox>
+                <Label fx:id="periodHint" styleClass="sel-hint"
+                       text="Default = current fiscal year (start = year-start, end = today)."/>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
                     <Label text="Options" styleClass="sel-label" minWidth="160"/>
                     <CheckBox fx:id="zeroBalSuppress" text="Suppress zero-balance rows"/>

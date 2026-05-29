@@ -5,7 +5,6 @@ import com.landmarksoftware.service.gl.GlReportWriterService;
 import com.landmarksoftware.service.gl.GlReportWriterService.RunParams;
 import com.landmarksoftware.service.gl.GlReportWriterService.SelectionRow;
 import com.landmarksoftware.ui.ReportsHubController;
-import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -17,13 +16,13 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.stage.Window;
-import javafx.util.StringConverter;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.net.URL;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +31,13 @@ import java.util.ResourceBundle;
 /**
  * GLRP40 Report Writer Output — two-section screen mirroring the COBOL flow:
  * <ol>
- *   <li>Set the date columns once (calendar year + structure + year-end basis).</li>
+ *   <li>Enter the date period (start + end) once.</li>
  *   <li>List every saved selection in {@code glrpsel} with per-row
  *       <b>PDF</b> / <b>Excel</b> buttons. Each click runs that selection's
- *       vertical format against the date context, leaves the screen open so
- *       a batch of reports can be fired off quickly.</li>
+ *       vertical format against the entered period using its own
+ *       horizontal-layout key (which the engine renders as PTD/YTD/Prior YTD
+ *       for "1", single as-at column for "2", etc.). The screen stays open
+ *       so a batch of reports can be fired off back-to-back.</li>
  * </ol>
  */
 @Component
@@ -50,36 +51,21 @@ public class GlReportWriterController implements Initializable {
     @Autowired private AppSession            session;
     @Autowired private GlReportWriterService glRw;
 
-    @FXML private TextField                  yearField;
-    @FXML private Label                      yearHint;
-    @FXML private ComboBox<LabelValue>       rangeModeCombo;
-    @FXML private ComboBox<LabelValue>       yearEndCombo;
+    @FXML private DatePicker                 startDate;
+    @FXML private DatePicker                 endDate;
+    @FXML private Label                      periodHint;
     @FXML private CheckBox                   zeroBalSuppress;
     @FXML private Label                      reportsStatus;
     @FXML private VBox                       reportRows;
 
-    /** Pair for combos rendered by label, returned by value. */
-    public record LabelValue(String label, String value) {
-        @Override public String toString() { return label; }
-    }
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // ── Date-setup combos ────────────────────────────────────────────────
-        rangeModeCombo.setConverter(conv());
-        rangeModeCombo.setItems(FXCollections.observableArrayList(
-            new LabelValue("Monthly periods (12 columns)", "1"),
-            new LabelValue("Year as-at (1 column)",       "2")));
-        rangeModeCombo.getSelectionModel().selectFirst();
-
-        yearEndCombo.setConverter(conv());
-        yearEndCombo.setItems(FXCollections.observableArrayList(
-            new LabelValue("After year-end (this year)",   "A"),
-            new LabelValue("Before year-end (prior year)", "B")));
-        yearEndCombo.getSelectionModel().selectFirst();
-
-        yearField.setText(String.valueOf(session.getYearNo()));
-        yearHint.setText("Default = current session year");
+        // ── Period defaults: today's date and the year-start before it ──────
+        LocalDate today = LocalDate.now();
+        LocalDate guessYrStart = today.withDayOfMonth(1).withMonth(7); // Jul 1 of current calendar year
+        if (today.isBefore(guessYrStart)) guessYrStart = guessYrStart.minusYears(1);
+        startDate.setValue(guessYrStart);
+        endDate.setValue(today);
 
         // ── Reports list ─────────────────────────────────────────────────────
         List<SelectionRow> selections = glRw.getSelections(session);
@@ -108,7 +94,8 @@ public class GlReportWriterController implements Initializable {
         HBox.setHgrow(desc, Priority.ALWAYS);
         desc.setMaxWidth(Double.MAX_VALUE);
 
-        Label hint = new Label("vert " + sel.vertFormatNo());
+        String horiz = sel.horizFormatKey() == null || sel.horizFormatKey().isBlank() ? "?" : sel.horizFormatKey();
+        Label hint = new Label("vert " + sel.vertFormatNo() + " · horiz " + horiz);
         hint.getStyleClass().add("rw-row-hint");
 
         Button pdfBtn   = new Button("PDF");
@@ -128,10 +115,18 @@ public class GlReportWriterController implements Initializable {
 
     @SuppressWarnings("unchecked")
     private void runOne(SelectionRow sel, String format, ActionEvent e) {
-        int year = parseIntOr(yearField.getText(), session.getYearNo());
-        String range = valueOr(rangeModeCombo, "1");      // "1" or "2"
-        String basis = valueOr(yearEndCombo,   "A");      // "A" or "B"
-        String horizKey = "B".equals(basis) ? (range + "B") : range;
+        LocalDate s = startDate.getValue();
+        LocalDate t = endDate.getValue();
+        if (s == null || t == null) {
+            alert(Alert.AlertType.WARNING, "Period required",
+                "Enter both a start date and an end date for the report period.");
+            return;
+        }
+        if (t.isBefore(s)) {
+            alert(Alert.AlertType.WARNING, "Date order",
+                "End date must be on or after the start date.");
+            return;
+        }
 
         int vertFormatNo = sel.vertFormatNo();
         if (vertFormatNo <= 0) {
@@ -139,12 +134,15 @@ public class GlReportWriterController implements Initializable {
                 "Selection " + sel.selectionNo() + " has no usable vert_format_no.");
             return;
         }
+        String horizKey = (sel.horizFormatKey() == null || sel.horizFormatKey().isBlank())
+            ? "1" : sel.horizFormatKey();
 
         RunParams params = new RunParams(
             sel.selectionNo(),
             vertFormatNo,
             horizKey,
-            year,
+            s,
+            t,
             zeroBalSuppress.isSelected(),
             sel.roundingFlag() == null ? "" : sel.roundingFlag());
 
@@ -165,25 +163,6 @@ public class GlReportWriterController implements Initializable {
         hub.runJasperReportWithDataSource(reportPath, jp,
             new JRBeanCollectionDataSource(rows), format, owner);
         // Leave the screen open so the user can run the next report.
-    }
-
-    // ── helpers ──────────────────────────────────────────────────────────────
-
-    private StringConverter<LabelValue> conv() {
-        return new StringConverter<>() {
-            @Override public String toString(LabelValue o) { return o == null ? "" : o.label(); }
-            @Override public LabelValue fromString(String s) { return null; }
-        };
-    }
-
-    private static String valueOr(ComboBox<LabelValue> cb, String dflt) {
-        LabelValue v = cb.getSelectionModel().getSelectedItem();
-        return v == null ? dflt : v.value();
-    }
-
-    private static int parseIntOr(String s, int dflt) {
-        if (s == null) return dflt;
-        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException ex) { return dflt; }
     }
 
     private void alert(Alert.AlertType type, String header, String msg) {

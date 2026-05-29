@@ -166,12 +166,15 @@ public class GlReportWriterService {
     // ── Engine entry point ───────────────────────────────────────────────────
 
     /**
-     * Inputs for a one-shot matrix run (Selection picker resolves to this).
+     * Inputs for a one-shot matrix run. The user enters {@code startDate} and
+     * {@code endDate} on the screen; the engine derives the column layout (1
+     * PTD column, or PTD + YTD + Prior YTD, etc.) from {@code horizFormatKey}.
      * {@code selectionNo} is the glrpsel key when running a saved selection
      * (drives persistence to the glrpwkc rundates work table); 0 in manual mode.
      */
     public record RunParams(int selectionNo, int vertFormatNo, String horizFormatKey,
-                            int yearNo, boolean zeroBalSuppress, String roundingFlag) {}
+                            LocalDate startDate, LocalDate endDate,
+                            boolean zeroBalSuppress, String roundingFlag) {}
 
     /**
      * Resolve definitions and produce the matrix. Phase 1 emits row labels with
@@ -183,33 +186,24 @@ public class GlReportWriterService {
         if (vert == null) {
             return warn("Vertical format " + p.vertFormatNo() + " not found in glrpveh.");
         }
-        // yearNo > 1900 = 4-digit calendar year (from the new top-of-screen date
-        // setup) — use directly. 1..99 = COBOL fiscal sequence (legacy callers
-        // still passing glrpsel.yr_no) — translate via gldates. 0 = session default.
-        int yr;
-        if (p.yearNo() >= 1900) {
-            yr = p.yearNo();
-        } else if (p.yearNo() > 0) {
-            Integer calendar = lookupCalendarYear(s.getCompanyNo(), p.yearNo());
-            yr = (calendar != null) ? calendar : s.getYearNo();
-        } else {
-            yr = s.getYearNo();
-        }
         if (vert.rows().isEmpty()) {
             return warn("Vertical format " + p.vertFormatNo() + " has no lines in glrpvel.");
+        }
+        if (p.startDate() == null || p.endDate() == null) {
+            return warn("Enter a start and end date — the engine builds the columns from these.");
         }
 
         // Three-tier column resolution (mirrors how COBOL populates
         // GLRPSEL-REPORT-DATES-TABLE at run time): persisted rundates first,
-        // then synthesise from horiz_format_no + gldates conventions, finally
-        // fall through to the glrptah/glrptab template tables.
-        String horizDesc;
-        List<ColumnDef> columns = resolveColumns(s, p, yr);
+        // then synthesise from horiz_format_no using the entered date range
+        // (PTD / YTD / Prior YTD for "1", year as-at for "2", etc.), finally
+        // fall through to the glrptah/glrptab template tables for bespoke keys.
+        List<ColumnDef> columns = resolveColumns(s, p);
         if (columns.isEmpty()) {
             return warn("Could not resolve any columns for horizontal '" + p.horizFormatKey()
-                + "' (year " + yr + "). Load a glrptah/glrptab entry for this key, or pick a key the engine knows how to synthesise ('1', '2', '1B', '1A').");
+                + "'. The engine knows '1' (PTD/YTD/Prior YTD), '2' (single range), and falls back to glrptah/glrptab for bespoke keys.");
         }
-        horizDesc = describeHoriz(s.getCompanyNo(), p.horizFormatKey());
+        String horizDesc = describeHoriz(s.getCompanyNo(), p.horizFormatKey());
         int colCount = Math.min(columns.size(), MAX_COLUMNS);
         // Total accumulators keyed by total_no — running per column. Each "+" /
         // "-" row contributes; "U" (subtotal) prints the accumulator without
@@ -270,7 +264,7 @@ public class GlReportWriterService {
         params.put("REPORT_TITLE", notBlank(vert.desc1()) ? vert.desc1() : "Report Writer Output");
         params.put("VERT_DESC",  notBlank(vert.desc2()) ? vert.desc2() : "");
         params.put("HORIZ_DESC", horizDesc);
-        params.put("YEAR_DESC",  "Year " + yr);
+        params.put("YEAR_DESC",  "PERIOD   " + fmt(p.startDate()) + " to " + fmt(p.endDate()));
         params.put("COL_COUNT",  colCount);
         for (int c = 1; c <= MAX_COLUMNS; c++) {
             params.put(colHeadKey(c), c <= colCount ? headingOf(columns.get(c - 1)) : "");
@@ -347,8 +341,10 @@ public class GlReportWriterService {
     public record HorizontalTable(
             String dateTableCode, String desc1, int yearNo, List<ColumnDef> columns) {}
 
-    /** One column's period bounds. */
-    public record ColumnDef(int idx, LocalDate periodStart, LocalDate periodEnd) {}
+    /** One column's period bounds and (optional) explicit display label. */
+    public record ColumnDef(int idx, LocalDate periodStart, LocalDate periodEnd, String label) {
+        public ColumnDef(int idx, LocalDate s, LocalDate e) { this(idx, s, e, null); }
+    }
 
     /**
      * Loads {@code glrptah} header + the {@code glrptab} body row for the given
@@ -406,77 +402,119 @@ public class GlReportWriterService {
      * synthesised set into {@code glrpwkc} when the run is tied to a saved
      * selection so re-runs stay deterministic and the dates are inspectable.
      */
-    private List<ColumnDef> resolveColumns(AppSession s, RunParams p, int calendarYear) {
+    private List<ColumnDef> resolveColumns(AppSession s, RunParams p) {
         // 1. Persisted rundates from glrpwkc (populated on first run, or by a future admin UI).
         if (p.selectionNo() > 0) {
             List<ColumnDef> persisted = loadRunDates(s.getCompanyNo(), p.selectionNo());
             if (!persisted.isEmpty()) return persisted;
         }
-        // 2. Synthesise from horiz_format_no convention + gldates periods.
-        List<ColumnDef> synth = synthesizeColumns(s.getCompanyNo(), p.horizFormatKey(), calendarYear);
+        // 2. Synthesise from horiz_format_no using the user's start/end date range.
+        List<ColumnDef> synth = synthesizeColumns(s.getCompanyNo(), p);
         if (!synth.isEmpty()) {
             if (p.selectionNo() > 0) persistRunDates(s, p.selectionNo(), p.horizFormatKey(), synth);
             return synth;
         }
         // 3. Fall through to glrptah / glrptab (handles bespoke keys like 'Q').
-        HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), calendarYear);
+        // For the legacy template path, look up by end-date's calendar year.
+        int yr = p.endDate() != null ? p.endDate().getYear() : s.getYearNo();
+        HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), yr);
         return horiz != null ? horiz.columns() : List.of();
     }
 
     /**
-     * Synthesises columns from {@code gldates} for the conventional Landmark
-     * {@code horiz_format_no} codes. A trailing {@code B} = before year-end
-     * (prior year); trailing {@code A} = after year-end (current year). Unknown
-     * codes return empty so the resolver falls through to {@code glrptah}.
+     * Synthesises columns from {@code horiz_format_no} given the user's date
+     * range. The conventional Landmark codes verified against COBOL glrp output:
+     * <ul>
+     *   <li><b>"1"</b> — three columns: <b>Actual PTD</b> (start→end), <b>Actual YTD</b>
+     *       (fiscal year start of the end-date's year → end), <b>Prior YTD</b>
+     *       (same shape one fiscal year earlier).</li>
+     *   <li><b>"2"</b> — single column over the start→end range (Balance Sheet
+     *       "as at" — pass year-start / end-date pair).</li>
+     * </ul>
+     * Unknown codes return empty so the resolver falls through to {@code glrptah}.
      */
-    private List<ColumnDef> synthesizeColumns(int companyNo, String key, int calendarYear) {
-        String code = key == null ? "" : key.trim().toUpperCase(Locale.ROOT);
-        int year = calendarYear;
-        if (code.endsWith("B")) { year = year - 1; code = code.substring(0, code.length() - 1); }
-        else if (code.endsWith("A")) { code = code.substring(0, code.length() - 1); }
-        return switch (code) {
-            case "1" -> monthlyColumns(companyNo, year);
-            case "2" -> annualColumn(companyNo, year);
-            default  -> List.of();
+    private List<ColumnDef> synthesizeColumns(int companyNo, RunParams p) {
+        String key = p.horizFormatKey() == null ? "" : p.horizFormatKey().trim().toUpperCase(Locale.ROOT);
+        LocalDate start = p.startDate(), end = p.endDate();
+        if (start == null || end == null) return List.of();
+
+        return switch (key) {
+            case "1", "1A", "1B" -> ptdYtdPriorYtd(companyNo, start, end);
+            case "2", "2A", "2B" -> List.of(new ColumnDef(1, start, end, "As at " + fmt(end)));
+            default -> List.of();
         };
     }
 
-    /** 12 monthly columns derived from {@code gldates.period_end_01..12}. */
-    private List<ColumnDef> monthlyColumns(int companyNo, int calendarYear) {
-        Map<String, Object> row = loadGlDatesRow(companyNo, calendarYear);
-        if (row == null) return List.of();
-        LocalDate yrStart = sqlToLocal(row.get("yr_start_date"));
+    /**
+     * Builds the COBOL P&amp;L horizontal layout: Actual PTD, Actual YTD, Prior YTD.
+     * YTD = fiscal-year start of the end-date's year → end. Prior YTD = same
+     * window one fiscal year earlier. Falls back to a single PTD column if
+     * gldates can't be resolved for the relevant year.
+     */
+    private List<ColumnDef> ptdYtdPriorYtd(int companyNo, LocalDate start, LocalDate end) {
+        int endCalendarYear = end.getYear();
+        Integer fyYearNo = pickFiscalYearForDate(companyNo, end);
+        LocalDate yrStart = null;
+        if (fyYearNo != null) {
+            Map<String, Object> row = loadGlDatesRow(companyNo, fyYearNo);
+            if (row != null) yrStart = sqlToLocal(row.get("yr_start_date"));
+        }
+        // Prior fiscal year — for the "Prior YTD" column we want the same shape
+        // one fiscal year earlier; row picked by year_no = fyYearNo - 1.
+        LocalDate priorYrStart = null;
+        LocalDate priorEnd = end.minusYears(1);
+        if (fyYearNo != null) {
+            Map<String, Object> prior = loadGlDatesRow(companyNo, fyYearNo - 1);
+            if (prior != null) priorYrStart = sqlToLocal(prior.get("yr_start_date"));
+        }
+
         List<ColumnDef> cols = new ArrayList<>();
-        LocalDate prevEnd = null;
-        for (int i = 1; i <= 12; i++) {
-            LocalDate end = sqlToLocal(row.get(String.format("period_end_%02d", i)));
-            if (end == null || SENTINEL.equals(end) || end.equals(LocalDate.of(1899,12,30))) break;
-            LocalDate start = (prevEnd != null) ? prevEnd.plusDays(1) : (yrStart != null ? yrStart : end.withDayOfMonth(1));
-            cols.add(new ColumnDef(cols.size() + 1, start, end));
-            prevEnd = end;
+        cols.add(new ColumnDef(1, start, end, "Actual PTD"));
+        if (yrStart != null) {
+            cols.add(new ColumnDef(2, yrStart, end, "Actual YTD"));
+        }
+        if (priorYrStart != null) {
+            cols.add(new ColumnDef(3, priorYrStart, priorEnd, "Prior YTD"));
+        } else if (yrStart != null) {
+            // No prior gldates row — fabricate a same-shape window one year back
+            // so the column still renders (likely all zeros, matching glrp output).
+            cols.add(new ColumnDef(3, yrStart.minusYears(1), priorEnd, "Prior YTD"));
         }
         return cols;
     }
 
-    /** Single year-as-at column spanning {@code yr_start_date} to {@code yr_end_date}. */
-    private List<ColumnDef> annualColumn(int companyNo, int calendarYear) {
-        Map<String, Object> row = loadGlDatesRow(companyNo, calendarYear);
-        if (row == null) return List.of();
-        LocalDate start = sqlToLocal(row.get("yr_start_date"));
-        LocalDate end   = sqlToLocal(row.get("yr_end_date"));
-        if (end == null) end = sqlToLocal(row.get("period_end_12"));
-        if (start == null && end != null) start = end.withDayOfYear(1);
-        if (start == null || end == null) return List.of();
-        return List.of(new ColumnDef(1, start, end));
+    /**
+     * Picks the gldates row whose fiscal year contains {@code refDate}. Most
+     * Landmark companies have a single year_no per calendar year; pick that.
+     */
+    private Integer pickFiscalYearForDate(int companyNo, LocalDate refDate) {
+        try {
+            return jdbc.queryForObject(
+                "SELECT yr_no FROM gldates " +
+                "WHERE company_no=? AND yr_start_date <= ? AND yr_end_date >= ? " +
+                "ORDER BY yr_no DESC LIMIT 1",
+                Integer.class, companyNo, Date.valueOf(refDate), Date.valueOf(refDate));
+        } catch (Exception e) {
+            // Fallback: year_no equals the end-date's calendar year.
+            try {
+                return jdbc.queryForObject(
+                    "SELECT yr_no FROM gldates WHERE company_no=? AND year_no=? LIMIT 1",
+                    Integer.class, companyNo, refDate.getYear());
+            } catch (Exception e2) { return null; }
+        }
     }
 
-    private Map<String, Object> loadGlDatesRow(int companyNo, int calendarYear) {
+    private static String fmt(LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("d/MM/yy"));
+    }
+
+    private Map<String, Object> loadGlDatesRow(int companyNo, int yrNoSeq) {
         try {
             StringBuilder cols = new StringBuilder("yr_start_date, yr_end_date");
             for (int i = 1; i <= 13; i++) cols.append(String.format(", period_end_%02d", i));
             return jdbc.queryForMap(
-                "SELECT " + cols + " FROM gldates WHERE company_no=? AND year_no=?",
-                companyNo, calendarYear);
+                "SELECT " + cols + " FROM gldates WHERE company_no=? AND yr_no=?",
+                companyNo, yrNoSeq);
         } catch (Exception e) { return null; }
     }
 
@@ -657,11 +695,13 @@ public class GlReportWriterService {
     }
 
     /**
-     * Compact column heading that fits the 46-px PDF column. A ~one-month span
-     * collapses to "MMM yy"; a full year to "FY yy"; anything else to the end
-     * date "dd/MM/yy". Keeps the wide Excel template happy too (same expression).
+     * Column heading. An explicit {@link ColumnDef#label} wins (set by the
+     * PTD/YTD/Prior YTD synth); otherwise a compact date label fitting the
+     * 46-px PDF column — "MMM yy" for ~one-month spans, "FY yy" for full year,
+     * "dd/MM/yy" end-date for anything else.
      */
     private static String headingOf(ColumnDef c) {
+        if (c.label() != null && !c.label().isBlank()) return c.label();
         LocalDate s = c.periodStart(), e = c.periodEnd();
         long days = java.time.temporal.ChronoUnit.DAYS.between(s, e);
         if (days >= 27 && days <= 32)  return e.format(java.time.format.DateTimeFormatter.ofPattern("MMM yy"));
