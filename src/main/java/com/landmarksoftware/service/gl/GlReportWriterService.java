@@ -183,11 +183,13 @@ public class GlReportWriterService {
         if (vert == null) {
             return warn("Vertical format " + p.vertFormatNo() + " not found in glrpveh.");
         }
-        // glrpsel.yr_no is the COBOL fiscal-year sequence (gldates.yr_no),
-        // not the 4-digit calendar year. Translate via gldates; 0 means
-        // "current year" so fall back to the session calendar year.
+        // yearNo > 1900 = 4-digit calendar year (from the new top-of-screen date
+        // setup) — use directly. 1..99 = COBOL fiscal sequence (legacy callers
+        // still passing glrpsel.yr_no) — translate via gldates. 0 = session default.
         int yr;
-        if (p.yearNo() > 0) {
+        if (p.yearNo() >= 1900) {
+            yr = p.yearNo();
+        } else if (p.yearNo() > 0) {
             Integer calendar = lookupCalendarYear(s.getCompanyNo(), p.yearNo());
             yr = (calendar != null) ? calendar : s.getYearNo();
         } else {

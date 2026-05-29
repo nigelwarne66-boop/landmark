@@ -2,19 +2,22 @@ package com.landmarksoftware.ui.reports;
 
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.gl.GlReportWriterService;
-import com.landmarksoftware.service.gl.GlReportWriterService.HorizontalTableRow;
 import com.landmarksoftware.service.gl.GlReportWriterService.RunParams;
 import com.landmarksoftware.service.gl.GlReportWriterService.SelectionRow;
-import com.landmarksoftware.service.gl.GlReportWriterService.VerticalFormatRow;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.util.StringConverter;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -27,10 +30,14 @@ import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
- * GLRP40 Report Writer Output — selection screen. Lists saved selections from
- * {@code glrpsel} (auto-fill on pick) and lets the user override or pick
- * vertical / horizontal formats directly. Hands off to
- * {@link GlReportWriterService#runMatrix} and renders via Jasper.
+ * GLRP40 Report Writer Output — two-section screen mirroring the COBOL flow:
+ * <ol>
+ *   <li>Set the date columns once (calendar year + structure + year-end basis).</li>
+ *   <li>List every saved selection in {@code glrpsel} with per-row
+ *       <b>PDF</b> / <b>Excel</b> buttons. Each click runs that selection's
+ *       vertical format against the date context, leaves the screen open so
+ *       a batch of reports can be fired off quickly.</li>
+ * </ol>
  */
 @Component
 @Scope("prototype")
@@ -39,82 +46,107 @@ public class GlReportWriterController implements Initializable {
     private static final String PDF_PATH   = "gl/report-writer";
     private static final String EXCEL_PATH = "gl/report-writer-excel";
 
-    @Autowired private ReportsHubController     hub;
-    @Autowired private AppSession                session;
-    @Autowired private GlReportWriterService     glRw;
+    @Autowired private ReportsHubController hub;
+    @Autowired private AppSession            session;
+    @Autowired private GlReportWriterService glRw;
 
-    @FXML private ComboBox<SelectionRow>        selectionCombo;
-    @FXML private Label                         selectionStatus;
-    @FXML private ComboBox<VerticalFormatRow>   vertCombo;
-    @FXML private ComboBox<HorizontalTableRow>  horizCombo;
-    @FXML private TextField                     yearField;
-    @FXML private CheckBox                      zeroBalSuppress;
+    @FXML private TextField                  yearField;
+    @FXML private Label                      yearHint;
+    @FXML private ComboBox<LabelValue>       rangeModeCombo;
+    @FXML private ComboBox<LabelValue>       yearEndCombo;
+    @FXML private CheckBox                   zeroBalSuppress;
+    @FXML private Label                      reportsStatus;
+    @FXML private VBox                       reportRows;
+
+    /** Pair for combos rendered by label, returned by value. */
+    public record LabelValue(String label, String value) {
+        @Override public String toString() { return label; }
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Saved selections — empty until glrpsel is loaded.
-        List<SelectionRow> selections = glRw.getSelections(session);
-        selectionCombo.setItems(FXCollections.observableArrayList(selections));
-        if (selections.isEmpty()) {
-            selectionCombo.setDisable(true);
-            selectionStatus.setText("No saved selections loaded — pick a vertical + horizontal format below.");
-        } else {
-            selectionStatus.setText(selections.size() + " saved selection(s). Pick one to auto-fill the fields below, or override.");
-        }
+        // ── Date-setup combos ────────────────────────────────────────────────
+        rangeModeCombo.setConverter(conv());
+        rangeModeCombo.setItems(FXCollections.observableArrayList(
+            new LabelValue("Monthly periods (12 columns)", "1"),
+            new LabelValue("Year as-at (1 column)",       "2")));
+        rangeModeCombo.getSelectionModel().selectFirst();
 
-        // Vertical / horizontal formats — directly from glrpveh / glrptah.
-        vertCombo.setItems(FXCollections.observableArrayList(glRw.getVerticalFormats(session)));
-        if (!vertCombo.getItems().isEmpty()) vertCombo.getSelectionModel().selectFirst();
+        yearEndCombo.setConverter(conv());
+        yearEndCombo.setItems(FXCollections.observableArrayList(
+            new LabelValue("After year-end (this year)",   "A"),
+            new LabelValue("Before year-end (prior year)", "B")));
+        yearEndCombo.getSelectionModel().selectFirst();
 
-        horizCombo.setItems(FXCollections.observableArrayList(glRw.getHorizontalTables(session)));
-        if (!horizCombo.getItems().isEmpty()) horizCombo.getSelectionModel().selectFirst();
-
-        // Year defaults to the session year.
         yearField.setText(String.valueOf(session.getYearNo()));
+        yearHint.setText("Default = current session year");
 
-        // Picking a saved selection auto-fills the manual fields with its values.
-        selectionCombo.valueProperty().addListener((obs, oldV, sel) -> {
-            if (sel == null) return;
-            selectFromVerticals(sel.vertFormatNo());
-            boolean horizMatched = selectFromHorizontals(sel.horizFormatKey());
-            // yr_no=0 on a saved selection means "current year" (COBOL convention).
-            int yr = sel.yrNo() > 0 ? sel.yrNo() : session.getYearNo();
-            yearField.setText(String.valueOf(yr));
-            zeroBalSuppress.setSelected(sel.zeroBalSuppress());
-            // Tell the user when the picked selection references a horizontal-table
-            // key that hasn't been loaded yet — saves a confusing run-time warning.
-            if (!horizMatched) {
-                selectionStatus.setText("Selection " + sel.selectionNo()
-                    + " references horizontal '" + sel.horizFormatKey()
-                    + "' — not in glrptah for this company. Load that entry or pick another below.");
+        // ── Reports list ─────────────────────────────────────────────────────
+        List<SelectionRow> selections = glRw.getSelections(session);
+        if (selections.isEmpty()) {
+            reportsStatus.setText("No saved selections in glrpsel for " + session.getCompanyName()
+                + " — load glrpsel entries to populate this list.");
+        } else {
+            reportsStatus.setText(selections.size() + " saved selection(s) — click PDF or Excel to run.");
+            for (SelectionRow sel : selections) {
+                reportRows.getChildren().add(buildReportRow(sel));
             }
-        });
+        }
     }
 
-    @FXML private void onPdf(ActionEvent e)    { run(e, "pdf"); }
-    @FXML private void onExcel(ActionEvent e)  { run(e, "excel"); }
+    /** Builds one row: # · description · vert/horiz hint · [PDF] [Excel]. */
+    private HBox buildReportRow(SelectionRow sel) {
+        Label num = new Label(String.valueOf(sel.selectionNo()));
+        num.setMinWidth(36);
+        num.getStyleClass().add("rw-row-num");
+
+        String title = sel.rptTitle() != null && !sel.rptTitle().isBlank()
+            ? sel.rptTitle()
+            : (sel.desc1() != null && !sel.desc1().isBlank() ? sel.desc1() : "Selection " + sel.selectionNo());
+        Label desc = new Label(title);
+        desc.getStyleClass().add("rw-row-desc");
+        HBox.setHgrow(desc, Priority.ALWAYS);
+        desc.setMaxWidth(Double.MAX_VALUE);
+
+        Label hint = new Label("vert " + sel.vertFormatNo());
+        hint.getStyleClass().add("rw-row-hint");
+
+        Button pdfBtn   = new Button("PDF");
+        Button excelBtn = new Button("Excel");
+        pdfBtn.getStyleClass().add("sel-btn-pdf");
+        excelBtn.getStyleClass().add("sel-btn-excel");
+        pdfBtn.setOnAction(e   -> runOne(sel, "pdf",   e));
+        excelBtn.setOnAction(e -> runOne(sel, "excel", e));
+
+        HBox row = new HBox(10, num, desc, hint, pdfBtn, excelBtn);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("rw-row");
+        return row;
+    }
+
     @FXML private void onCancel(ActionEvent e) { close(e); }
 
     @SuppressWarnings("unchecked")
-    private void run(ActionEvent e, String format) {
-        VerticalFormatRow v = vertCombo.getValue();
-        HorizontalTableRow h = horizCombo.getValue();
-        if (v == null) { alert(Alert.AlertType.WARNING, "Pick a vertical format", "No vertical formats loaded in glrpveh for this company."); return; }
-        if (h == null) { alert(Alert.AlertType.WARNING, "Pick a horizontal table", "No horizontal tables loaded in glrptah for this company."); return; }
+    private void runOne(SelectionRow sel, String format, ActionEvent e) {
         int year = parseIntOr(yearField.getText(), session.getYearNo());
+        String range = valueOr(rangeModeCombo, "1");      // "1" or "2"
+        String basis = valueOr(yearEndCombo,   "A");      // "A" or "B"
+        String horizKey = "B".equals(basis) ? (range + "B") : range;
 
-        // Pass the saved-selection id when running one — drives persistence
-        // of resolved column dates into the glrpwkc rundates work table.
-        SelectionRow saved = selectionCombo.getValue();
-        int selectionNo = (saved != null) ? saved.selectionNo() : 0;
+        int vertFormatNo = sel.vertFormatNo();
+        if (vertFormatNo <= 0) {
+            alert(Alert.AlertType.WARNING, "Bad vertical format",
+                "Selection " + sel.selectionNo() + " has no usable vert_format_no.");
+            return;
+        }
 
         RunParams params = new RunParams(
-            selectionNo,
-            v.vertFormatNo(),
-            h.dateTableCode(),
+            sel.selectionNo(),
+            vertFormatNo,
+            horizKey,
             year,
             zeroBalSuppress.isSelected(),
-            ""); // rounding flag — Phase 3 will wire this from glrpsel
+            sel.roundingFlag() == null ? "" : sel.roundingFlag());
 
         Map<String, Object> data = glRw.runMatrix(session, params);
         if (data.get("warning") != null) {
@@ -123,7 +155,8 @@ public class GlReportWriterController implements Initializable {
         }
         List<Map<String, Object>> rows = (List<Map<String, Object>>) data.get("rows");
         if (rows == null || rows.isEmpty()) {
-            alert(Alert.AlertType.INFORMATION, "No data", "The report produced no rows.");
+            alert(Alert.AlertType.INFORMATION, "No data",
+                "Selection " + sel.selectionNo() + " produced no rows.");
             return;
         }
         Map<String, Object> jp = new HashMap<>((Map<String, Object>) data.get("params"));
@@ -131,22 +164,21 @@ public class GlReportWriterController implements Initializable {
         Window owner = ((Node) e.getSource()).getScene().getWindow();
         hub.runJasperReportWithDataSource(reportPath, jp,
             new JRBeanCollectionDataSource(rows), format, owner);
-        close(e);
+        // Leave the screen open so the user can run the next report.
     }
 
-    private void selectFromVerticals(int vertFormatNo) {
-        for (VerticalFormatRow vf : vertCombo.getItems()) {
-            if (vf.vertFormatNo() == vertFormatNo) { vertCombo.getSelectionModel().select(vf); return; }
-        }
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    private StringConverter<LabelValue> conv() {
+        return new StringConverter<>() {
+            @Override public String toString(LabelValue o) { return o == null ? "" : o.label(); }
+            @Override public LabelValue fromString(String s) { return null; }
+        };
     }
 
-    /** Returns true if a matching horizontal-table row was found and selected. */
-    private boolean selectFromHorizontals(String key) {
-        if (key == null || key.isBlank()) return false;
-        for (HorizontalTableRow hf : horizCombo.getItems()) {
-            if (key.equalsIgnoreCase(hf.dateTableCode())) { horizCombo.getSelectionModel().select(hf); return true; }
-        }
-        return false;
+    private static String valueOr(ComboBox<LabelValue> cb, String dflt) {
+        LabelValue v = cb.getSelectionModel().getSelectedItem();
+        return v == null ? dflt : v.value();
     }
 
     private static int parseIntOr(String s, int dflt) {
