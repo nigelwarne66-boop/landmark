@@ -205,92 +205,99 @@ public class GlReportWriterService {
         }
         String horizDesc = describeHoriz(s.getCompanyNo(), p.horizFormatKey());
         int colCount = Math.min(columns.size(), MAX_COLUMNS);
-        // Engine state: running tracks the credit-positive net since the last
-        // subtotal (income +, expense −); buckets accumulate the running into
-        // a totalled bucket on each subtotal print so the final calculation row
-        // (Net Profit Before Tax) can read the last-used bucket.
-        BigDecimal[] running = zeroes(colCount);
+        // Engine state per the COBOL report-writer convention:
+        //   buckets[N]   — accumulator per TOTAL-NO (credit-positive)
+        //   lastBucketNo — total_no of the most recently modified bucket; that
+        //                  bucket is the source for the next label row's value
         Map<Integer, BigDecimal[]> buckets = new HashMap<>();
-        int lastBucketNo = 0;
+        int[] lastBucketNo = { 0 };
 
-        // Preload account descriptions once for the company so expansion rows
+        // Preload account descriptions once for the company so M-expanded rows
         // can render their own desc1 instead of the row's range label.
         Map<String, String> acctDescs = loadAccountDescriptions(s.getCompanyNo());
 
         List<Map<String, Object>> outRows = new ArrayList<>();
         for (RowDef r : vert.rows()) {
             String tt = trim(r.totalType()).toUpperCase();
-            // Skip the 'V' (variance / special) and obviously out-of-range
-            // account ranges — they leak through some glrpvel definitions.
+            // Sentinel / junk filters.
             if ("V".equals(tt)) continue;
             if (r.startMain() > 999999) continue;
-            // seq_no >= 999000 is a COBOL end-of-format sentinel — e.g. a stray
-            // "CURRENT ASSETS" row on the end of a P&L vert format that belongs
-            // to a separate Balance Sheet format. Don't render it.
             if (r.seqNo() >= 999000) continue;
 
-            if (r.startMain() > 0) {
-                // ── Account row ─────────────────────────────────────────────
+            boolean hasLabel    = notBlank(r.lineDesc());
+            boolean hasDrCr     = notBlank(r.drCrInd());
+            boolean isAccount   = r.startMain() > 0;
+            boolean hasOperator = !tt.isEmpty();
+
+            // ── Account row ─────────────────────────────────────────────────
+            // Aggregate per account; M expansion emits one display row per
+            // active account (zero-suppressed). The row's value passed to the
+            // operator is the SUM across the account range — so the operator
+            // is applied exactly once even when the range has no activity (so
+            // lastBucketNo updates correctly for the next label row).
+            if (isAccount) {
                 Map<String, BigDecimal[]> perAcct = aggregatePerAccount(s.getCompanyNo(), r, columns, colCount);
                 boolean expand = "M".equalsIgnoreCase(r.printEachAcctFlag());
                 boolean credit = "C".equalsIgnoreCase(r.drCrInd());
 
-                if (expand) {
-                    for (Map.Entry<String, BigDecimal[]> en : perAcct.entrySet()) {
-                        BigDecimal[] net = en.getValue();  // dr-cr per column
-                        BigDecimal[] display = credit ? negate(net) : net.clone();
-                        if (p.zeroBalSuppress() && allZero(display)) continue;
+                BigDecimal[] sum = zeroes(colCount);
+                for (Map.Entry<String, BigDecimal[]> en : perAcct.entrySet()) {
+                    BigDecimal[] net   = en.getValue();        // dr - cr per column
+                    BigDecimal[] value = negate(net);          // credit-positive
+                    BigDecimal[] display = credit ? value.clone() : negate(value);
+
+                    if (expand && !(p.zeroBalSuppress() && allZero(display))) {
                         String desc = acctDescs.getOrDefault(en.getKey(), en.getKey());
                         emit(outRows, desc, "account", display, colCount);
-                        // running and bucket contribution = credit-positive net
-                        // contribution = −(dr−cr) regardless of dr_cr_ind so both
-                        // C and D rows feed the running net consistently.
-                        for (int c = 0; c < colCount; c++) running[c] = running[c].subtract(net[c]);
-                        if (r.totalNo() > 0) {
-                            BigDecimal[] bk = buckets.computeIfAbsent(r.totalNo(), k -> zeroes(colCount));
-                            for (int c = 0; c < colCount; c++) bk[c] = bk[c].subtract(net[c]);
-                        }
                     }
-                } else {
-                    // Collapsed: sum across all accounts in the range
-                    BigDecimal[] sum = zeroes(colCount);
-                    for (BigDecimal[] net : perAcct.values()) {
-                        for (int c = 0; c < colCount; c++) sum[c] = sum[c].add(net[c]);
-                    }
-                    BigDecimal[] display = credit ? negate(sum) : sum.clone();
-                    if (!(p.zeroBalSuppress() && allZero(display))) {
-                        emit(outRows, labelOf(r), "account", display, colCount);
-                    }
-                    for (int c = 0; c < colCount; c++) running[c] = running[c].subtract(sum[c]);
-                    if (r.totalNo() > 0) {
-                        BigDecimal[] bk = buckets.computeIfAbsent(r.totalNo(), k -> zeroes(colCount));
-                        for (int c = 0; c < colCount; c++) bk[c] = bk[c].subtract(sum[c]);
+                    for (int c = 0; c < colCount; c++) sum[c] = sum[c].add(value[c]);
+                }
+                if (!expand) {
+                    BigDecimal[] sumDisplay = credit ? sum.clone() : negate(sum);
+                    if (!(p.zeroBalSuppress() && allZero(sumDisplay))) {
+                        emit(outRows, labelOf(r), "account", sumDisplay, colCount);
                     }
                 }
-            } else if (!notBlank(r.drCrInd()) && notBlank(r.lineDesc())) {
-                // ── Section header (CURRENT ASSETS / EQUITY / etc.) ─────────
-                // No dr_cr_ind = no value contribution; emit label with blank cells.
-                emit(outRows, labelOf(r), "header", new BigDecimal[colCount], colCount);
-            } else if (("+".equals(tt) || "-".equals(tt)) && r.totalNo() > 0 && notBlank(r.lineDesc())) {
-                // ── Subtotal print (e.g. "Total Income" / "Total Expenses") ─
-                // Display the current running, sign-flipped by the row's dr_cr_ind:
-                //   C-row label (income): running directly (positive for income)
-                //   D-row label (expense): −running (positive for expense)
-                boolean credit = "C".equalsIgnoreCase(r.drCrInd());
-                BigDecimal[] display = credit ? running.clone() : negate(running);
-                emit(outRows, labelOf(r), "subtotal", display, colCount);
-                BigDecimal[] bk = buckets.computeIfAbsent(r.totalNo(), k -> zeroes(colCount));
-                for (int c = 0; c < colCount; c++) bk[c] = bk[c].add(running[c]);
-                lastBucketNo = r.totalNo();
-                Arrays.fill(running, BigDecimal.ZERO);
-            } else if (notBlank(r.lineDesc()) && r.totalNo() == 0 && tt.isEmpty()) {
-                // ── Final calculation row (Net Profit Before Tax) ───────────
-                // Display the last-used bucket — that's the running net of all
-                // subtotals (income − expense in the canonical P&L).
-                BigDecimal[] netBucket = buckets.getOrDefault(lastBucketNo > 0 ? lastBucketNo : 2, zeroes(colCount));
-                emit(outRows, labelOf(r), "total", netBucket.clone(), colCount);
+                applyOperator(buckets, r.totalNo(), tt, sum, colCount, lastBucketNo);
+                continue;
             }
-            // else: blank separator / non-actionable row — skip
+
+            // ── Section header ──────────────────────────────────────────────
+            // Blank dr_cr_ind + label = pure header (CURRENT ASSETS, EQUITY).
+            if (!hasDrCr && hasLabel) {
+                emit(outRows, labelOf(r), "header", new BigDecimal[colCount], colCount);
+                continue;
+            }
+
+            // ── Label row with operator (subtotals, totals, hierarchy promotions) ─
+            // Value = bucket[lastBucketNo]. Apply this row's operator with that
+            // value to bucket[total_no]. Display sign-flips per dr_cr_ind.
+            if (hasOperator && r.totalNo() > 0 && hasDrCr) {
+                BigDecimal[] value = lastBucketNo[0] > 0
+                    ? buckets.getOrDefault(lastBucketNo[0], zeroes(colCount)).clone()
+                    : zeroes(colCount);
+                boolean credit = "C".equalsIgnoreCase(r.drCrInd());
+                BigDecimal[] display = credit ? value.clone() : negate(value);
+                if (hasLabel) {
+                    emit(outRows, labelOf(r), "subtotal", display, colCount);
+                }
+                applyOperator(buckets, r.totalNo(), tt, value, colCount, lastBucketNo);
+                continue;
+            }
+
+            // ── Final-calculation row (no operator, no total_no) ────────────
+            // Print bucket[lastBucketNo] sign-flipped per dr_cr_ind. Doesn't
+            // modify any bucket. Net Profit Before Tax / System Calculated.
+            if (!hasOperator && r.totalNo() == 0 && hasDrCr && hasLabel) {
+                BigDecimal[] value = lastBucketNo[0] > 0
+                    ? buckets.getOrDefault(lastBucketNo[0], zeroes(colCount)).clone()
+                    : zeroes(colCount);
+                boolean credit = "C".equalsIgnoreCase(r.drCrInd());
+                BigDecimal[] display = credit ? value.clone() : negate(value);
+                emit(outRows, labelOf(r), "total", display, colCount);
+                continue;
+            }
+            // Everything else: separator / unused — skip.
         }
 
         Map<String, Object> params = new LinkedHashMap<>();
@@ -722,6 +729,43 @@ public class GlReportWriterService {
                 companyNo);
         } catch (Exception e) { log.warn("loadAccountDescriptions: {}", e.getMessage()); }
         return map;
+    }
+
+    /**
+     * Applies one of the six COBOL TOTAL-TYPE operators to {@code bucket[totalNo]}
+     * with {@code value}, per the convention confirmed by the user:
+     * <pre>
+     *   '+'  bucket += value
+     *   '-'  bucket -= value
+     *   '='  bucket  = value   (move result into the bucket)
+     *   '*'  bucket *= value
+     *   '/'  bucket /= value   (zero in value → skip column)
+     *   '%'  bucket = (bucket / value) * 100  (zero → skip)
+     * </pre>
+     * After application, {@code lastBucketNo} is set to {@code totalNo} so the
+     * next label row reads from this bucket. Operators below assume per-column
+     * arithmetic; columns are independent.
+     */
+    private static void applyOperator(Map<Integer, BigDecimal[]> buckets,
+                                      int totalNo, String op,
+                                      BigDecimal[] value, int colCount,
+                                      int[] lastBucketNo) {
+        if (totalNo <= 0 || op == null || op.isEmpty()) return;
+        BigDecimal[] bk = buckets.computeIfAbsent(totalNo, k -> zeroes(colCount));
+        switch (op) {
+            case "+" -> { for (int c = 0; c < colCount; c++) bk[c] = bk[c].add(value[c]); }
+            case "-" -> { for (int c = 0; c < colCount; c++) bk[c] = bk[c].subtract(value[c]); }
+            case "=" -> { for (int c = 0; c < colCount; c++) bk[c] = value[c]; }
+            case "*" -> { for (int c = 0; c < colCount; c++) bk[c] = bk[c].multiply(value[c]); }
+            case "/" -> { for (int c = 0; c < colCount; c++)
+                          if (value[c].signum() != 0) bk[c] = bk[c].divide(value[c], 4, java.math.RoundingMode.HALF_UP); }
+            case "%" -> { for (int c = 0; c < colCount; c++)
+                          if (value[c].signum() != 0)
+                              bk[c] = bk[c].divide(value[c], 4, java.math.RoundingMode.HALF_UP)
+                                            .multiply(BigDecimal.valueOf(100)); }
+            default  -> { /* unknown operator — ignore */ }
+        }
+        lastBucketNo[0] = totalNo;
     }
 
     private static BigDecimal[] negate(BigDecimal[] a) {
