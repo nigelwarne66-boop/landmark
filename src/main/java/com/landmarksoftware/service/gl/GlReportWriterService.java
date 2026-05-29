@@ -153,9 +153,11 @@ public class GlReportWriterService {
         if (vert == null) {
             return warn("Vertical format " + p.vertFormatNo() + " not found in glrpveh.");
         }
-        HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), p.yearNo());
+        // COBOL convention: yr_no=0 on a saved selection means "current year".
+        int yr = p.yearNo() > 0 ? p.yearNo() : s.getYearNo();
+        HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), yr);
         if (horiz == null) {
-            return warn("Horizontal table '" + p.horizFormatKey() + "' (year " + p.yearNo() + ") not found in glrptah/glrptab.");
+            return warn("Horizontal table '" + p.horizFormatKey() + "' (year " + yr + ") not found in glrptah/glrptab. Load the matching horizontal-table entry, or pick another in the screen.");
         }
         if (vert.rows().isEmpty()) {
             return warn("Vertical format " + p.vertFormatNo() + " has no lines in glrpvel.");
@@ -222,7 +224,7 @@ public class GlReportWriterService {
         params.put("REPORT_TITLE", notBlank(vert.desc1()) ? vert.desc1() : "Report Writer Output");
         params.put("VERT_DESC",  notBlank(vert.desc2()) ? vert.desc2() : "");
         params.put("HORIZ_DESC", notBlank(horiz.desc1()) ? horiz.desc1() : horiz.dateTableCode());
-        params.put("YEAR_DESC",  "Year " + p.yearNo());
+        params.put("YEAR_DESC",  "Year " + yr);
         params.put("COL_COUNT",  colCount);
         for (int c = 1; c <= MAX_COLUMNS; c++) {
             params.put(colHeadKey(c), c <= colCount ? headingOf(horiz.columns().get(c - 1)) : "");

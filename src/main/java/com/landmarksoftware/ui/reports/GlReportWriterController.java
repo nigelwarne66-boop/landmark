@@ -76,9 +76,18 @@ public class GlReportWriterController implements Initializable {
         selectionCombo.valueProperty().addListener((obs, oldV, sel) -> {
             if (sel == null) return;
             selectFromVerticals(sel.vertFormatNo());
-            selectFromHorizontals(sel.horizFormatKey());
-            yearField.setText(String.valueOf(sel.yrNo()));
+            boolean horizMatched = selectFromHorizontals(sel.horizFormatKey());
+            // yr_no=0 on a saved selection means "current year" (COBOL convention).
+            int yr = sel.yrNo() > 0 ? sel.yrNo() : session.getYearNo();
+            yearField.setText(String.valueOf(yr));
             zeroBalSuppress.setSelected(sel.zeroBalSuppress());
+            // Tell the user when the picked selection references a horizontal-table
+            // key that hasn't been loaded yet — saves a confusing run-time warning.
+            if (!horizMatched) {
+                selectionStatus.setText("Selection " + sel.selectionNo()
+                    + " references horizontal '" + sel.horizFormatKey()
+                    + "' — not in glrptah for this company. Load that entry or pick another below.");
+            }
         });
     }
 
@@ -125,11 +134,13 @@ public class GlReportWriterController implements Initializable {
         }
     }
 
-    private void selectFromHorizontals(String key) {
-        if (key == null || key.isBlank()) return;
+    /** Returns true if a matching horizontal-table row was found and selected. */
+    private boolean selectFromHorizontals(String key) {
+        if (key == null || key.isBlank()) return false;
         for (HorizontalTableRow hf : horizCombo.getItems()) {
-            if (key.equalsIgnoreCase(hf.dateTableCode())) { horizCombo.getSelectionModel().select(hf); return; }
+            if (key.equalsIgnoreCase(hf.dateTableCode())) { horizCombo.getSelectionModel().select(hf); return true; }
         }
+        return false;
     }
 
     private static int parseIntOr(String s, int dflt) {
