@@ -103,7 +103,13 @@ public class GlReportWriterController implements Initializable {
         if (h == null) { alert(Alert.AlertType.WARNING, "Pick a horizontal table", "No horizontal tables loaded in glrptah for this company."); return; }
         int year = parseIntOr(yearField.getText(), session.getYearNo());
 
+        // Pass the saved-selection id when running one — drives persistence
+        // of resolved column dates into the glrpwkc rundates work table.
+        SelectionRow saved = selectionCombo.getValue();
+        int selectionNo = (saved != null) ? saved.selectionNo() : 0;
+
         RunParams params = new RunParams(
+            selectionNo,
             v.vertFormatNo(),
             h.dateTableCode(),
             year,

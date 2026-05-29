@@ -1,6 +1,7 @@
 package com.landmarksoftware.service.gl;
 
 import com.landmarksoftware.model.AppSession;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -48,6 +49,31 @@ public class GlReportWriterService {
     private final JdbcTemplate jdbc;
 
     public GlReportWriterService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+
+    /**
+     * Self-creates the {@code glrpwkc} runtime work table — the engine's
+     * equivalent of COBOL's {@code GLRPSEL-REPORT-DATES-TABLE OCCURS 5 group}.
+     * Per CLAUDE.md's work-file rule, tables whose name contains {@code wk}
+     * are owned by the Java side and bootstrap themselves; no extract pipeline.
+     */
+    @PostConstruct
+    public void ensureTables() {
+        try {
+            jdbc.execute(
+                "CREATE TABLE IF NOT EXISTS glrpwkc (" +
+                "  company_no INT NOT NULL," +
+                "  selection_no INT NOT NULL," +
+                "  seq_no INT NOT NULL," +
+                "  date_table VARCHAR(4)," +
+                "  start_date DATE," +
+                "  end_date DATE," +
+                "  open_bal_date DATE," +
+                "  audit_user_id VARCHAR(15)," +
+                "  audit_date DATE," +
+                "  PRIMARY KEY (company_no, selection_no, seq_no)" +
+                ") ENGINE=InnoDB");
+        } catch (Exception e) { log.warn("ensureTables glrpwkc: {}", e.getMessage()); }
+    }
 
     // ── Public records (the user-visible shape of a definition) ──────────────
 
@@ -139,9 +165,13 @@ public class GlReportWriterService {
 
     // ── Engine entry point ───────────────────────────────────────────────────
 
-    /** Inputs for a one-shot matrix run (Selection picker resolves to this). */
-    public record RunParams(int vertFormatNo, String horizFormatKey, int yearNo,
-                            boolean zeroBalSuppress, String roundingFlag) {}
+    /**
+     * Inputs for a one-shot matrix run (Selection picker resolves to this).
+     * {@code selectionNo} is the glrpsel key when running a saved selection
+     * (drives persistence to the glrpwkc rundates work table); 0 in manual mode.
+     */
+    public record RunParams(int selectionNo, int vertFormatNo, String horizFormatKey,
+                            int yearNo, boolean zeroBalSuppress, String roundingFlag) {}
 
     /**
      * Resolve definitions and produce the matrix. Phase 1 emits row labels with
@@ -163,15 +193,21 @@ public class GlReportWriterService {
         } else {
             yr = s.getYearNo();
         }
-        HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), yr);
-        if (horiz == null) {
-            return warn("Horizontal table '" + p.horizFormatKey() + "' (year " + yr + ") not found in glrptah/glrptab. Load the matching horizontal-table entry, or pick another in the screen.");
-        }
         if (vert.rows().isEmpty()) {
             return warn("Vertical format " + p.vertFormatNo() + " has no lines in glrpvel.");
         }
 
-        List<ColumnDef> columns = horiz.columns();
+        // Three-tier column resolution (mirrors how COBOL populates
+        // GLRPSEL-REPORT-DATES-TABLE at run time): persisted rundates first,
+        // then synthesise from horiz_format_no + gldates conventions, finally
+        // fall through to the glrptah/glrptab template tables.
+        String horizDesc;
+        List<ColumnDef> columns = resolveColumns(s, p, yr);
+        if (columns.isEmpty()) {
+            return warn("Could not resolve any columns for horizontal '" + p.horizFormatKey()
+                + "' (year " + yr + "). Load a glrptah/glrptab entry for this key, or pick a key the engine knows how to synthesise ('1', '2', '1B', '1A').");
+        }
+        horizDesc = describeHoriz(s.getCompanyNo(), p.horizFormatKey());
         int colCount = Math.min(columns.size(), MAX_COLUMNS);
         // Total accumulators keyed by total_no — running per column. Each "+" /
         // "-" row contributes; "U" (subtotal) prints the accumulator without
@@ -231,11 +267,11 @@ public class GlReportWriterService {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("REPORT_TITLE", notBlank(vert.desc1()) ? vert.desc1() : "Report Writer Output");
         params.put("VERT_DESC",  notBlank(vert.desc2()) ? vert.desc2() : "");
-        params.put("HORIZ_DESC", notBlank(horiz.desc1()) ? horiz.desc1() : horiz.dateTableCode());
+        params.put("HORIZ_DESC", horizDesc);
         params.put("YEAR_DESC",  "Year " + yr);
         params.put("COL_COUNT",  colCount);
         for (int c = 1; c <= MAX_COLUMNS; c++) {
-            params.put(colHeadKey(c), c <= colCount ? headingOf(horiz.columns().get(c - 1)) : "");
+            params.put(colHeadKey(c), c <= colCount ? headingOf(columns.get(c - 1)) : "");
         }
         params.put("ROW_COUNT", outRows.size());
         return result(outRows, params);
@@ -361,6 +397,146 @@ public class GlReportWriterService {
         return new HorizontalTable(dateTableCode, desc[0], yearNo, columns);
     }
 
+    // ── Column resolution (rundates → synth → glrptah) ───────────────────────
+
+    /**
+     * Three-tier column resolver. Returns columns in display order; persists a
+     * synthesised set into {@code glrpwkc} when the run is tied to a saved
+     * selection so re-runs stay deterministic and the dates are inspectable.
+     */
+    private List<ColumnDef> resolveColumns(AppSession s, RunParams p, int calendarYear) {
+        // 1. Persisted rundates from glrpwkc (populated on first run, or by a future admin UI).
+        if (p.selectionNo() > 0) {
+            List<ColumnDef> persisted = loadRunDates(s.getCompanyNo(), p.selectionNo());
+            if (!persisted.isEmpty()) return persisted;
+        }
+        // 2. Synthesise from horiz_format_no convention + gldates periods.
+        List<ColumnDef> synth = synthesizeColumns(s.getCompanyNo(), p.horizFormatKey(), calendarYear);
+        if (!synth.isEmpty()) {
+            if (p.selectionNo() > 0) persistRunDates(s, p.selectionNo(), p.horizFormatKey(), synth);
+            return synth;
+        }
+        // 3. Fall through to glrptah / glrptab (handles bespoke keys like 'Q').
+        HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), calendarYear);
+        return horiz != null ? horiz.columns() : List.of();
+    }
+
+    /**
+     * Synthesises columns from {@code gldates} for the conventional Landmark
+     * {@code horiz_format_no} codes. A trailing {@code B} = before year-end
+     * (prior year); trailing {@code A} = after year-end (current year). Unknown
+     * codes return empty so the resolver falls through to {@code glrptah}.
+     */
+    private List<ColumnDef> synthesizeColumns(int companyNo, String key, int calendarYear) {
+        String code = key == null ? "" : key.trim().toUpperCase(Locale.ROOT);
+        int year = calendarYear;
+        if (code.endsWith("B")) { year = year - 1; code = code.substring(0, code.length() - 1); }
+        else if (code.endsWith("A")) { code = code.substring(0, code.length() - 1); }
+        return switch (code) {
+            case "1" -> monthlyColumns(companyNo, year);
+            case "2" -> annualColumn(companyNo, year);
+            default  -> List.of();
+        };
+    }
+
+    /** 12 monthly columns derived from {@code gldates.period_end_01..12}. */
+    private List<ColumnDef> monthlyColumns(int companyNo, int calendarYear) {
+        Map<String, Object> row = loadGlDatesRow(companyNo, calendarYear);
+        if (row == null) return List.of();
+        LocalDate yrStart = sqlToLocal(row.get("yr_start_date"));
+        List<ColumnDef> cols = new ArrayList<>();
+        LocalDate prevEnd = null;
+        for (int i = 1; i <= 12; i++) {
+            LocalDate end = sqlToLocal(row.get(String.format("period_end_%02d", i)));
+            if (end == null || SENTINEL.equals(end) || end.equals(LocalDate.of(1899,12,30))) break;
+            LocalDate start = (prevEnd != null) ? prevEnd.plusDays(1) : (yrStart != null ? yrStart : end.withDayOfMonth(1));
+            cols.add(new ColumnDef(cols.size() + 1, start, end));
+            prevEnd = end;
+        }
+        return cols;
+    }
+
+    /** Single year-as-at column spanning {@code yr_start_date} to {@code yr_end_date}. */
+    private List<ColumnDef> annualColumn(int companyNo, int calendarYear) {
+        Map<String, Object> row = loadGlDatesRow(companyNo, calendarYear);
+        if (row == null) return List.of();
+        LocalDate start = sqlToLocal(row.get("yr_start_date"));
+        LocalDate end   = sqlToLocal(row.get("yr_end_date"));
+        if (end == null) end = sqlToLocal(row.get("period_end_12"));
+        if (start == null && end != null) start = end.withDayOfYear(1);
+        if (start == null || end == null) return List.of();
+        return List.of(new ColumnDef(1, start, end));
+    }
+
+    private Map<String, Object> loadGlDatesRow(int companyNo, int calendarYear) {
+        try {
+            StringBuilder cols = new StringBuilder("yr_start_date, yr_end_date");
+            for (int i = 1; i <= 13; i++) cols.append(String.format(", period_end_%02d", i));
+            return jdbc.queryForMap(
+                "SELECT " + cols + " FROM gldates WHERE company_no=? AND year_no=?",
+                companyNo, calendarYear);
+        } catch (Exception e) { return null; }
+    }
+
+    private static LocalDate sqlToLocal(Object v) {
+        if (v instanceof java.sql.Date d) return d.toLocalDate();
+        if (v instanceof LocalDate d)     return d;
+        return null;
+    }
+
+    /** Loads persisted rundates for one selection from {@code glrpwkc}. */
+    private List<ColumnDef> loadRunDates(int companyNo, int selectionNo) {
+        List<ColumnDef> out = new ArrayList<>();
+        try {
+            jdbc.query(
+                "SELECT seq_no, start_date, end_date FROM glrpwkc " +
+                "WHERE company_no=? AND selection_no=? ORDER BY seq_no",
+                rs -> {
+                    java.sql.Date sd = rs.getDate("start_date"), ed = rs.getDate("end_date");
+                    if (sd != null && ed != null) {
+                        out.add(new ColumnDef(rs.getInt("seq_no"), sd.toLocalDate(), ed.toLocalDate()));
+                    }
+                }, companyNo, selectionNo);
+        } catch (Exception e) { log.warn("loadRunDates: {}", e.getMessage()); }
+        return out;
+    }
+
+    /** Replaces persisted rundates for a selection (delete + insert in one tx). */
+    private void persistRunDates(AppSession s, int selectionNo, String dateTable, List<ColumnDef> cols) {
+        try {
+            jdbc.update("DELETE FROM glrpwkc WHERE company_no=? AND selection_no=?",
+                s.getCompanyNo(), selectionNo);
+            for (ColumnDef c : cols) {
+                jdbc.update(
+                    "INSERT INTO glrpwkc (company_no, selection_no, seq_no, date_table, " +
+                    "start_date, end_date, audit_user_id, audit_date) VALUES (?,?,?,?,?,?,?,?)",
+                    s.getCompanyNo(), selectionNo, c.idx(), trim(dateTable),
+                    Date.valueOf(c.periodStart()), Date.valueOf(c.periodEnd()),
+                    s.getUserId(), Date.valueOf(LocalDate.now()));
+            }
+        } catch (Exception e) { log.warn("persistRunDates: {}", e.getMessage()); }
+    }
+
+    /** Title-bar caption for the horizontal — glrptah desc if known, else the key. */
+    private String describeHoriz(int companyNo, String key) {
+        try {
+            String d = jdbc.queryForObject(
+                "SELECT desc1 FROM glrptah WHERE company_no=? AND date_table=?",
+                String.class, companyNo, key);
+            if (notBlank(d)) return d;
+        } catch (Exception ignored) {}
+        // Friendly descriptions for the synthesised conventions.
+        String c = key == null ? "" : key.trim().toUpperCase(Locale.ROOT);
+        return switch (c) {
+            case "1" -> "Monthly periods";
+            case "1B" -> "Monthly periods — prior year";
+            case "1A" -> "Monthly periods — current year";
+            case "2" -> "Year as-at";
+            case "2B" -> "Year as-at — prior year";
+            default -> notBlank(key) ? key : "(no horizontal)";
+        };
+    }
+
     /**
      * Translates a COBOL fiscal-year sequence ({@code gldates.yr_no}) to its
      * 4-digit calendar {@code year_no}. Returns {@code null} when the year
@@ -478,9 +654,17 @@ public class GlReportWriterService {
         return "other";
     }
 
+    /**
+     * Compact column heading that fits the 46-px PDF column. A ~one-month span
+     * collapses to "MMM yy"; a full year to "FY yy"; anything else to the end
+     * date "dd/MM/yy". Keeps the wide Excel template happy too (same expression).
+     */
     private static String headingOf(ColumnDef c) {
-        if (c.periodStart().equals(c.periodEnd())) return c.periodEnd().toString();
-        return c.periodStart() + " to " + c.periodEnd();
+        LocalDate s = c.periodStart(), e = c.periodEnd();
+        long days = java.time.temporal.ChronoUnit.DAYS.between(s, e);
+        if (days >= 27 && days <= 32)  return e.format(java.time.format.DateTimeFormatter.ofPattern("MMM yy"));
+        if (days >= 360 && days <= 370) return "FY " + String.format("%02d", e.getYear() % 100);
+        return e.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"));
     }
 
     private Map<String, Object> result(List<Map<String, Object>> rows, Map<String, Object> params) {
