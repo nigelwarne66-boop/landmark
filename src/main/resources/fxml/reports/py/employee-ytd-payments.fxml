@@ -8,7 +8,7 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.landmarksoftware.ui.reports.PaEmployeeYtdPaymentsController"
     styleClass="sel-root"
-    prefWidth="580" prefHeight="420">
+    prefWidth="640" prefHeight="400">
 
     <top>
         <VBox styleClass="sel-header">
@@ -25,30 +25,30 @@
 
                 <Label text="Tax year" styleClass="sel-section"/>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Year" styleClass="sel-label" minWidth="140"/>
-                    <ComboBox fx:id="yearNo" HBox.hgrow="ALWAYS" maxWidth="220"/>
+                    <Label text="Year" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="yearNo" prefWidth="200"/>
                 </HBox>
 
-                <Label text="Ranges (blank = all)" styleClass="sel-section"/>
+                <Label text="Ranges (All = no filter)" styleClass="sel-section"/>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Paygroup from / to" styleClass="sel-label" minWidth="140"/>
-                    <TextField fx:id="startPaygroup" prefWidth="80" maxWidth="80"/>
-                    <TextField fx:id="endPaygroup"   prefWidth="80" maxWidth="80"/>
+                    <Label text="Employee from / to" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="startEmployee" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endEmployee"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                 </HBox>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Department from / to" styleClass="sel-label" minWidth="140"/>
-                    <TextField fx:id="startDept" prefWidth="80" maxWidth="80"/>
-                    <TextField fx:id="endDept"   prefWidth="80" maxWidth="80"/>
+                    <Label text="Paygroup from / to" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="startPaygroup" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endPaygroup"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                 </HBox>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Employee no from / to" styleClass="sel-label" minWidth="140"/>
-                    <TextField fx:id="startEmployee" prefWidth="80" maxWidth="80"/>
-                    <TextField fx:id="endEmployee"   prefWidth="80" maxWidth="80"/>
+                    <Label text="Department from / to" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="startDept" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endDept"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                 </HBox>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Pay code from / to" styleClass="sel-label" minWidth="140"/>
-                    <TextField fx:id="startCode" prefWidth="100" maxWidth="100"/>
-                    <TextField fx:id="endCode"   prefWidth="100" maxWidth="100"/>
+                    <Label text="Pay code from / to" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="startCode" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endCode"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                 </HBox>
 
             </VBox>

@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -36,6 +37,9 @@ public class PayReportDataService {
             String  startCode,     String  endCode,
             int     yearNo) {}
 
+    /** "(All)" sentinel used as the first item in every lookup combo. */
+    public static final CodeName ALL = new CodeName("", "(All)");
+
     /** Distinct tax years present in paytd for this company, descending. */
     public List<CodeName> getYtdYears(AppSession s) {
         List<CodeName> list = new ArrayList<>();
@@ -48,6 +52,63 @@ public class PayReportDataService {
                 },
                 s.getCompanyNo());
         } catch (Exception e) { log.warn("getYtdYears: {}", e.getMessage()); }
+        return list;
+    }
+
+    /** Paygroups for this company: "(All)" + each paygroup. */
+    public List<CodeName> getPaygroups(AppSession s) {
+        List<CodeName> list = new ArrayList<>();
+        list.add(ALL);
+        try {
+            jdbc.query("SELECT paygroup, desc1 FROM pagroup WHERE company_no=? ORDER BY paygroup",
+                (RowCallbackHandler) rs -> list.add(new CodeName(trim(rs.getString("paygroup")),
+                    trim(rs.getString("paygroup")) + "  —  " + trim(rs.getString("desc1")))),
+                s.getCompanyNo());
+        } catch (Exception e) { log.warn("getPaygroups: {}", e.getMessage()); }
+        return list;
+    }
+
+    /** Distinct departments for this company: "(All)" + each dept. */
+    public List<CodeName> getDepts(AppSession s) {
+        List<CodeName> list = new ArrayList<>();
+        list.add(ALL);
+        try {
+            jdbc.query("SELECT dept, MIN(desc1) d FROM padepts WHERE company_no=? GROUP BY dept ORDER BY dept",
+                (RowCallbackHandler) rs -> list.add(new CodeName(trim(rs.getString("dept")),
+                    trim(rs.getString("dept")) + "  —  " + trim(rs.getString("d")))),
+                s.getCompanyNo());
+        } catch (Exception e) { log.warn("getDepts: {}", e.getMessage()); }
+        return list;
+    }
+
+    /** Active employees for this company: "(All)" + each employee. */
+    public List<CodeName> getEmployees(AppSession s) {
+        List<CodeName> list = new ArrayList<>();
+        list.add(ALL);
+        try {
+            jdbc.query(
+                "SELECT employee_no, surname, first_name FROM pastaff " +
+                "WHERE company_no=? AND employee_status <> 'T' ORDER BY surname, first_name, employee_no",
+                rs -> {
+                    int no = rs.getInt("employee_no");
+                    list.add(new CodeName(String.valueOf(no),
+                        no + "  —  " + trim(rs.getString("surname")) + ", " + trim(rs.getString("first_name"))));
+                },
+                s.getCompanyNo());
+        } catch (Exception e) { log.warn("getEmployees: {}", e.getMessage()); }
+        return list;
+    }
+
+    /** Pay codes for this company: "(All)" + each code. */
+    public List<CodeName> getPayCodes(AppSession s) {
+        List<CodeName> list = new ArrayList<>();
+        list.add(ALL);
+        try {
+            jdbc.query("SELECT pay_code, desc1 FROM pacodes WHERE company_no=? ORDER BY pay_code",
+                (RowCallbackHandler) rs -> list.add(new CodeName(trim(rs.getString("pay_code")),
+                    trim(rs.getString("pay_code")) + "  —  " + trim(rs.getString("desc1")))),
+                s.getCompanyNo());
+        } catch (Exception e) { log.warn("getPayCodes: {}", e.getMessage()); }
         return list;
     }
 
