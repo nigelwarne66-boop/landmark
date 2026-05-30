@@ -64,7 +64,7 @@
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="2" width="70" height="10"><printWhenExpression><![CDATA["detail".equals($F{rowKind})]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payAmt}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="2" width="70" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"><printWhenExpression><![CDATA["total".equals($F{rowKind})]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{payAmt}]]></textFieldExpression></textField>
       <!-- unconditional literal — if this doesn't show, a stale jasper is still cached -->
-      <textField><reportElement x="604" y="2" width="100" height="10"/><textElement textAlignment="Right"><font size="8" forecolor="#ff0000" isBold="true"/></textElement><textFieldExpression><![CDATA["ALWAYS"]]></textFieldExpression></textField>
+      <textField><reportElement x="604" y="2" width="100" height="10" forecolor="#ff0000"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["ALWAYS"]]></textFieldExpression></textField>
     </band>
   </detail>
 
