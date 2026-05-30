@@ -19,7 +19,7 @@
 
   <properties>
     <java.version>21</java.version>
-    <javafx.version>23.0.1</javafx.version>
+    <javafx.version>21.0.11</javafx.version>
     <poi.version>5.2.5</poi.version>
   </properties>
 
@@ -200,6 +200,107 @@
   </build>
 
   <profiles>
+    <!-- Distribution build:  mvn package -Preporting,dist
+         Requires Liberica Full JDK 21 as JAVA_HOME (bundles JavaFX jmods).
+         Produces target/installer/Landmark Reporting-1.0.0.exe (needs WiX 3.x).
+         For a folder-only output (no WiX needed), change type to app-image. -->
+    <profile>
+      <id>dist</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.3.0</version>
+            <executions>
+
+              <!-- Step 1: jlink — create minimal bundled JRE with JavaFX -->
+              <execution>
+                <id>jlink</id>
+                <phase>package</phase>
+                <goals><goal>exec</goal></goals>
+                <configuration>
+                  <executable>jlink</executable>
+                  <arguments>
+                    <argument>--module-path</argument>
+                    <argument>${java.home}/jmods</argument>
+                    <argument>--add-modules</argument>
+                    <argument>java.base,java.sql,java.naming,java.management,java.logging,java.desktop,java.net.http,java.xml,java.security.jgss,java.instrument,javafx.controls,javafx.fxml,javafx.graphics,javafx.base</argument>
+                    <argument>--output</argument>
+                    <argument>${project.build.directory}/runtime</argument>
+                    <argument>--compress=2</argument>
+                    <argument>--no-header-files</argument>
+                    <argument>--no-man-pages</argument>
+                    <argument>--strip-debug</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+
+              <!-- Step 2: jpackage — wrap JAR + runtime into Windows installer -->
+              <execution>
+                <id>jpackage</id>
+                <phase>package</phase>
+                <goals><goal>exec</goal></goals>
+                <configuration>
+                  <executable>jpackage</executable>
+                  <arguments>
+                    <argument>--name</argument>
+                    <argument>Landmark Reporting</argument>
+                    <argument>--app-version</argument>
+                    <argument>1.0.0</argument>
+                    <argument>--input</argument>
+                    <argument>${project.build.directory}/dist-input</argument>
+                    <argument>--main-jar</argument>
+                    <argument>${project.build.finalName}.jar</argument>
+                    <argument>--main-class</argument>
+                    <argument>com.landmarksoftware.desktop.ReportingApplication</argument>
+                    <argument>--runtime-image</argument>
+                    <argument>${project.build.directory}/runtime</argument>
+                    <argument>--java-options</argument>
+                    <argument>--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</argument>
+                    <argument>--java-options</argument>
+                    <argument>--add-opens=java.base/java.lang=ALL-UNNAMED</argument>
+                    <argument>--type</argument>
+                    <argument>exe</argument>
+                    <argument>--icon</argument>
+                    <argument>${project.basedir}/deploy/landmark.ico</argument>
+                    <argument>--win-dir-chooser</argument>
+                    <argument>--win-menu</argument>
+                    <argument>--win-shortcut</argument>
+                    <argument>--dest</argument>
+                    <argument>${project.build.directory}/installer</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+
+            </executions>
+          </plugin>
+
+          <!-- Copy fat JAR + per-client config template into dist-input staging dir -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-dist-inputs</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-resources</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/dist-input</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/deploy</directory>
+                      <filtering>false</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!-- Reporting-only build:  mvn javafx:run -Preporting
          Boots the same Spring context + login, then branches on AppMode
          to load /fxml/reports-hub.fxml instead of MainMenuController. -->

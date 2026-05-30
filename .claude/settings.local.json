@@ -1,6 +1,9 @@
 {
+  "model": "sonnet",
+  "enabledMcpjsonServers": ["dbhub-mysql"],
   "permissions": {
     "allow": [
+      "Bash(npx -y @bytebase/dbhub *)",
       "PowerShell(mvn *)",
       "PowerShell(java *)",
       "PowerShell(Test-Path *)",

@@ -40,6 +40,11 @@ Captured iteratively during Wave 3 — small COBOL details that bit us once and 
   2. `pagroup.paid_thru_to_X > 0` (has history). Then `next = paid_thru_to_X + period` (1mth / 28d / 15d / 14d / 7d).
 - **Bootstrap path for a brand-new company / paygroup with no history:** validate=Y in the Select Paygroups dialog now prompts to attach with `payrun.end_date` defaults for all 5 frequencies. validate=N still skips (COBOL-accurate).
 - **PAEM01 read-only state columns** — `paid_thru_to_date`, `timesheets_to_date`, `last_payrun_no`, `current_payrun_no`, retainer/commission running totals on pastaff are **owned by PAPP01 / PAPP28**. PAEM01 must NOT include them in UPDATE — round-trip them in memory only. (The 2026-05-22 backfill respects this.)
+- **LandmarkVision OCCURS depth cap — verified 2026-05-29:**
+  - **Works**: OCCURS on an elementary field directly (e.g. `glrptab`: `07 GLRPTAB-REPORT-DATE PIC 9(6) COMP-3 OCCURS 366 TIMES`). Reference as `<table>-<field>-001`.
+  - **Works**: OCCURS on a level-07 group containing level-09 elementary fields (e.g. `glrphed`: `07 GLRPHED-COLUMN-HEADINGS OCCURS 100 TIMES` → `09 GLRPHED-COLUMN-HEADING-1`). Reference as `<table>-<field>-001`.
+  - **Fails silently**: OCCURS on a level-09 group nested inside a level-07 non-OCCURS group, with level-11 elementary fields (e.g. `glrpsel`: `07 GLRPSEL-REPORT-DATES-GRP` → `09 GLRPSEL-REPORT-DATES-TABLE OCCURS 5 TIMES` → `11 GLRPSEL-DATE-TABLE`). LandmarkVision returns no values for those fields — they produce "No value specified for parameter N" on INSERT. Strip them from the extract SQL; don't attempt to load them.
+  - **Expansion order** (multi-field OCCURS): field-first, not occurrence-first. All occurrences of field 1 (`_001..N`), then all of field 2, etc. Confirmed from `glrphed_select.sql`.
 - **ABA employer-side fields come from `cmbanks`**, not session.companyName. Pick the row where `eft_pa_flag='Y'` and not inactive. `user_no` (6-digit APCA), `eft_bank_code` (3-char abbreviation), `eft_name` (26-char), `branch_no`+`bank_acct_no` (trace), `pay_serv_remitter_name` (16-char). See `CmBanksService.findPayrollBank`.
 
 ## Working style
@@ -61,9 +66,10 @@ Captured iteratively during Wave 3 — small COBOL details that bit us once and 
 
 MySQL, schema `lmextract`, port 3306. Main payroll table: `pastaff` (PK: `company_no, employee_no INT`).
 
-The MySQL schema is generated from the COBOL extract pipeline at `C:\landmark_extract\` — `sql/create/<table>_create.sql`. **Extract is intentionally lossy in two places:**
+The MySQL schema is generated from the COBOL extract pipeline at `C:\landmark_extract\` — `sql/create/<table>_create.sql`. **Extract is intentionally lossy in three places:**
 - `pataxfl` drops the OCCURS bracket columns (engine cap on OCCURS extraction).
 - `pasumry` is permanently dropped (engine produces garbage from nested COMP-3 OCCURS).
+- `glrpsel` drops the `GLRPSEL-REPORT-DATES-TABLE OCCURS 5 TIMES` group (level-09 OCCURS inside a level-07 non-OCCURS group — LandmarkVision silently returns no values for level-11 fields at that depth). Java only uses the 9 non-OCCURS scalar columns from glrpsel so the drop is safe.
 
 The COBOL canonical source for `.fd`/`.ws` is `C:\landmark\compile\` (with rare exceptions falling back to `C:\landmark\cobol\pa2\`).
 
@@ -221,10 +227,11 @@ The `pa_audit` table (option B from the chat — batch-level metadata only) sits
 
 ## Build + run
 
-- JDK 25 (compile), JRE 1.8.0_421 (legacy Hibernate at runtime).
+- **JDK**: BellSoft Liberica Full JDK 21 (`C:\Program Files\BellSoft\LibericaJDK-21-Full`) — bundles JavaFX 21 jmods, used for both dev and packaging. Set `JAVA_HOME` to that path.
+- JRE 1.8.0_421 is referenced only by the ProGuard plugin as a library jar (workaround for ProGuard 7.7.0 class-file version cap) — it is not the runtime.
 - `mvn -q compile` to build, `mvn javafx:run` to launch.
 - **Reporting-only build**: `mvn javafx:run -Preporting` — same Spring context + login, swaps MENU01 for the Reports Hub (see "Reporting build" section below).
-- Maven picks up `JAVA_HOME` from env — set to `C:\Program Files\Java\latest\jdk-25` before running.
+- **Distribution build**: `mvn package -Preporting,dist` — runs ProGuard, jlink (bundled JRE), jpackage (Windows EXE installer). Requires WiX Toolset 3.x for the EXE; use `--type app-image` in pom dist profile to skip WiX and produce a plain folder instead. Output: `target/installer/`.
 - ProGuard runs at `package` phase (rules in `src/main/proguard/rules.pro`) — not in normal dev cycle.
 
 ---
