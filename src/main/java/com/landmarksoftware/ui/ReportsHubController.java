@@ -151,7 +151,7 @@ public class ReportsHubController implements Initializable {
             "employee-ytd-payments", "Employee YTD Payments",
             "Year-to-date payment amounts by pay code per employee",
             "fth-dollar-sign");
-        openSelectionScreen(ytdPayments, "pa");
+        ytdPayments.setRunner(fmt -> comingSoon("Employee YTD Payments"));
 
         /* General Ledger */
         ReportDef trialBalance = ReportDef.withParams(
