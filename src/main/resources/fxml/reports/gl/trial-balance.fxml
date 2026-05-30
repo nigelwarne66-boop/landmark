@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Trial Balance" styleClass="sel-title"/>
-            <Label text="GLTL01 — account closing balances as at end of period" styleClass="sel-sub"/>
+            <Label text="Account closing balances as at end of period" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

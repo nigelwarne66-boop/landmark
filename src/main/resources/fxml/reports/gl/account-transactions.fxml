@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Account Transactions" styleClass="sel-title"/>
-            <Label text="GLTL14/15 — GL transactions with running balance per account" styleClass="sel-sub"/>
+            <Label text="GL transactions with running balance per account" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

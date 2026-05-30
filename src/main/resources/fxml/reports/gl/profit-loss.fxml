@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Profit &amp; Loss" styleClass="sel-title"/>
-            <Label text="GLTL12 — income vs expenses for a period range" styleClass="sel-sub"/>
+            <Label text="Income vs expenses for a period range" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

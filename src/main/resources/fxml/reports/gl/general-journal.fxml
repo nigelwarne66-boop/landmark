@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="General Journal" styleClass="sel-title"/>
-            <Label text="GLTL06 — all posted GL journal entries" styleClass="sel-sub"/>
+            <Label text="All posted GL journal entries" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

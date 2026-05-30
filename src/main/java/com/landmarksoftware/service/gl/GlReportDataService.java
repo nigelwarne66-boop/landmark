@@ -121,7 +121,8 @@ public class GlReportDataService {
                 BigDecimal credit = bal.signum() < 0 ? bal.negate() : BigDecimal.ZERO;
                 tot[0] = tot[0].add(debit); tot[1] = tot[1].add(credit);
                 Map<String, Object> r = new LinkedHashMap<>();
-                r.put("account", acct(rs.getInt("acct_main_no"), rs.getInt("acct_sub_no")));
+                r.put("acctMain", acctMain(rs.getInt("acct_main_no")));
+                r.put("acctSub",  acctSub(rs.getInt("acct_sub_no")));
                 r.put("description", rs.getString("desc1"));
                 r.put("section", "P".equals(trim(rs.getString("pl_bs_ind"))) ? "P&L" : "Balance Sheet");
                 r.put("debit", debit);
@@ -131,7 +132,9 @@ public class GlReportDataService {
         } catch (Exception e) { log.error("getTrialBalance: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         if (rows.isEmpty()) return warn("No account balances matched the selection.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("AS_AT_DESC", "As at period " + n);
+        LocalDate ped = periodEndDate(s.getCompanyNo(), s.getYearNo(), n);
+        String pedStr = ped != null ? ped.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : ("Period " + n);
+        params.put("AS_AT_DESC", "As at " + pedStr);
         params.put("ACCT_RANGE", acctRangeDesc(p.startAcct(), p.endAcct()));
         params.put("ZERO_DESC", p.includeZero() ? "Including zero balances" : "Non-zero balances only");
         params.put("SUM_DEBIT", tot[0]); params.put("SUM_CREDIT", tot[1]); params.put("ROW_COUNT", rows.size());
@@ -170,7 +173,8 @@ public class GlReportDataService {
                 if (income) tot[0] = tot[0].add(amt); else tot[1] = tot[1].add(amt);
                 Map<String, Object> r = new LinkedHashMap<>();
                 r.put("section", income ? "Income" : "Expense");
-                r.put("account", acct(rs.getInt("acct_main_no"), rs.getInt("acct_sub_no")));
+                r.put("acctMain", acctMain(rs.getInt("acct_main_no")));
+                r.put("acctSub",  acctSub(rs.getInt("acct_sub_no")));
                 r.put("description", rs.getString("desc1"));
                 r.put("amount", amt);
                 rows.add(r);
@@ -178,7 +182,12 @@ public class GlReportDataService {
         } catch (Exception e) { log.error("getProfitLoss: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         if (rows.isEmpty()) return warn("No P&L account movements matched the selection.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PERIOD_RANGE", "Periods " + from + " to " + to);
+        LocalDate d1 = periodEndDate(s.getCompanyNo(), s.getYearNo(), from);
+        LocalDate d2 = periodEndDate(s.getCompanyNo(), s.getYearNo(), to);
+        java.time.format.DateTimeFormatter df = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String p1 = d1 != null ? d1.format(df) : ("period " + from);
+        String p2 = d2 != null ? d2.format(df) : ("period " + to);
+        params.put("PERIOD_RANGE", p1 + " to " + p2);
         params.put("ACCT_RANGE", acctRangeDesc(p.startAcct(), p.endAcct()));
         params.put("SUM_INCOME", tot[0]); params.put("SUM_EXPENSE", tot[1]);
         params.put("NET_PROFIT", tot[0].subtract(tot[1])); params.put("ROW_COUNT", rows.size());
@@ -216,7 +225,8 @@ public class GlReportDataService {
                 if (asset) tot[0] = tot[0].add(shown); else tot[1] = tot[1].add(shown);
                 Map<String, Object> r = new LinkedHashMap<>();
                 r.put("section", asset ? "1-Assets" : "2-Liabilities & Equity");
-                r.put("account", acct(rs.getInt("acct_main_no"), rs.getInt("acct_sub_no")));
+                r.put("acctMain", acctMain(rs.getInt("acct_main_no")));
+                r.put("acctSub",  acctSub(rs.getInt("acct_sub_no")));
                 r.put("description", rs.getString("desc1"));
                 r.put("balance", shown);
                 rows.add(r);
@@ -224,9 +234,12 @@ public class GlReportDataService {
         } catch (Exception e) { log.error("getBalanceSheet: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         if (rows.isEmpty()) return warn("No balance-sheet account balances matched the selection.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("AS_AT_DESC", "As at period " + n);
+        LocalDate ped2 = periodEndDate(s.getCompanyNo(), s.getYearNo(), n);
+        String pedStr2 = ped2 != null ? ped2.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : ("Period " + n);
+        params.put("AS_AT_DESC", "As at " + pedStr2);
         params.put("ACCT_RANGE", acctRangeDesc(p.startAcct(), p.endAcct()));
         params.put("SUM_ASSETS", tot[0]); params.put("SUM_LIAB_EQUITY", tot[1]);
+        params.put("NET_ASSETS", tot[0].subtract(tot[1]));
         params.put("ROW_COUNT", rows.size());
         return result(rows, params);
     }
@@ -261,7 +274,8 @@ public class GlReportDataService {
                 r.put("source", trim(rs.getString("source")));
                 r.put("journal", trim(rs.getString("source")) + "-" + rs.getInt("jnl_no"));
                 r.put("jnlDate", sqlDate(rs.getDate("jnl_date")));
-                r.put("account", acct(rs.getInt("acct_main_no"), rs.getInt("acct_sub_no")));
+                r.put("acctMain", acctMain(rs.getInt("acct_main_no")));
+                r.put("acctSub",  acctSub(rs.getInt("acct_sub_no")));
                 r.put("description", rs.getString("acct_desc"));
                 r.put("reference", trim(rs.getString("ref")));
                 r.put("debit", dr); r.put("credit", cr);
@@ -298,7 +312,7 @@ public class GlReportDataService {
                 r.put("reference", "");
                 r.put("lineCount", rs.getInt("line_count"));
                 r.put("debit", dr); r.put("credit", cr);
-                r.put("account", ""); r.put("user", "");
+                r.put("acctMain", ""); r.put("acctSub", ""); r.put("user", "");
                 rows.add(r);
             }, args.toArray());
         } catch (Exception e) { log.error("generalJournalSummary: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
@@ -346,6 +360,8 @@ public class GlReportDataService {
                 tot[0] = tot[0].add(dr); tot[1] = tot[1].add(cr);
                 Map<String, Object> r = new LinkedHashMap<>();
                 r.put("account", acct(main, sub));
+                r.put("acctMain", acctMain(main));
+                r.put("acctSub",  acctSub(sub));
                 r.put("description", rs.getString("acct_desc"));
                 r.put("jnlDate", sqlDate(rs.getDate("jnl_date")));
                 r.put("source", trim(rs.getString("source")));
@@ -421,6 +437,18 @@ public class GlReportDataService {
     private static int clampPeriod(int p) { return p < 1 ? 1 : Math.min(p, 13); }
 
     private static String acct(int main, int sub) { return sub == 0 ? String.valueOf(main) : main + "." + sub; }
+    private static String acctMain(int main) { return String.valueOf(main); }
+    private static String acctSub(int sub)   { return sub > 0 ? String.valueOf(sub) : "0"; }
+
+    private LocalDate periodEndDate(int companyNo, int yearNo, int periodNo) {
+        String col = "period_end_" + String.format("%02d", periodNo);
+        try {
+            java.sql.Date d = jdbc.queryForObject(
+                "SELECT " + col + " FROM gldates WHERE company_no=? AND year_no=? LIMIT 1",
+                java.sql.Date.class, companyNo, yearNo);
+            return d != null ? d.toLocalDate() : null;
+        } catch (Exception e) { return null; }
+    }
 
     private static String acctRangeDesc(Integer start, Integer end) {
         if (start != null && start > 0) return start + " to " + (end != null && end > 0 ? end : "end");

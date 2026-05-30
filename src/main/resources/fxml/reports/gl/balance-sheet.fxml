@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Balance Sheet" styleClass="sel-title"/>
-            <Label text="GLTL12 — assets, liabilities and equity as at end of period" styleClass="sel-sub"/>
+            <Label text="Assets, liabilities and equity as at end of period" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>
