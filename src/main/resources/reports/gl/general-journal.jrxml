@@ -32,6 +32,17 @@
   <field name="credit"      class="java.math.BigDecimal"/>
   <field name="user"        class="java.lang.String"/>
 
+  <variable name="JNL_DEBIT" class="java.math.BigDecimal"
+            resetType="Group" resetGroup="JournalGroup" calculation="Sum">
+    <variableExpression><![CDATA[$F{debit}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+  <variable name="JNL_CREDIT" class="java.math.BigDecimal"
+            resetType="Group" resetGroup="JournalGroup" calculation="Sum">
+    <variableExpression><![CDATA[$F{credit}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+
   <group name="JournalGroup">
     <groupExpression><![CDATA[$F{journal}]]></groupExpression>
     <groupHeader>
@@ -49,7 +60,14 @@
         </textField>
       </band>
     </groupHeader>
-    <groupFooter><band height="4"/></groupFooter>
+    <groupFooter>
+      <band height="16">
+        <rectangle><reportElement x="0" y="2" width="782" height="13" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <staticText><reportElement x="430" y="4" width="112" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Journal Total:]]></text></staticText>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="546" y="4" width="100" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{JNL_DEBIT}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="650" y="4" width="100" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{JNL_CREDIT}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
   </group>
 
   <title>

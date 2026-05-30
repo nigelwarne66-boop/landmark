@@ -35,6 +35,22 @@
   <field name="balance"      class="java.math.BigDecimal"/>
   <field name="user"         class="java.lang.String"/>
 
+  <variable name="ACCT_DEBIT" class="java.math.BigDecimal"
+            resetType="Group" resetGroup="AccountGroup" calculation="Sum">
+    <variableExpression><![CDATA[$F{debit}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+  <variable name="ACCT_CREDIT" class="java.math.BigDecimal"
+            resetType="Group" resetGroup="AccountGroup" calculation="Sum">
+    <variableExpression><![CDATA[$F{credit}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+  <variable name="ACCT_CLOSING_BAL" class="java.math.BigDecimal"
+            resetType="Group" resetGroup="AccountGroup" calculation="Last">
+    <variableExpression><![CDATA[$F{balance}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+
   <group name="AccountGroup">
     <groupExpression><![CDATA[$F{account}]]></groupExpression>
     <groupHeader>
@@ -47,7 +63,15 @@
         </textField>
       </band>
     </groupHeader>
-    <groupFooter><band height="4"/></groupFooter>
+    <groupFooter>
+      <band height="16">
+        <rectangle><reportElement x="0" y="2" width="782" height="13" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <staticText><reportElement x="258" y="4" width="116" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Account Total:]]></text></staticText>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="378" y="4" width="116" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{ACCT_DEBIT}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="498" y="4" width="116" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{ACCT_CREDIT}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="618" y="4" width="116" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{ACCT_CLOSING_BAL}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
   </group>
 
   <title>
