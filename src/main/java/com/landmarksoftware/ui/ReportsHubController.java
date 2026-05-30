@@ -147,6 +147,12 @@ public class ReportsHubController implements Initializable {
             "fth-user");
         employeeList.setRunner(fmt -> comingSoon("Employee List"));
 
+        ReportDef ytdPayments = ReportDef.withParams(
+            "employee-ytd-payments", "Employee YTD Payments",
+            "Year-to-date payment amounts by pay code per employee",
+            "fth-dollar-sign");
+        openSelectionScreen(ytdPayments, "pa");
+
         /* General Ledger */
         ReportDef trialBalance = ReportDef.withParams(
             "trial-balance", "Trial Balance",
@@ -590,7 +596,7 @@ public class ReportsHubController implements Initializable {
             List.of(assetRegister, depreciation, acquiredRetired, txnList)));
         if (session.isPayrollAccess()) {
             mods.add(new ModuleDef("py", "Payroll",
-                List.of(payrollSummary, employeeList)));
+                List.of(payrollSummary, employeeList, ytdPayments)));
         }
         mods.add(new ModuleDef("bas", "Business Activity Statement",
             List.of(basStatement, detailedBas, basTransactions, basByGl)));
