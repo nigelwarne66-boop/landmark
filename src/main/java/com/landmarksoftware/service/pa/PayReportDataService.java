@@ -151,7 +151,9 @@ public class PayReportDataService {
                 r.put("codeDesc",  trim(rs.getString("code_desc")));
                 int mins = rs.getInt("hrs");
                 r.put("hours",  mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                r.put("amount", z(rs.getBigDecimal("amt")));
+                BigDecimal amt0 = z(rs.getBigDecimal("amt"));
+                r.put("payAmt", amt0);
+                r.put("amtStr", fmtAmt(amt0));
                 rawRows.add(r);
             }, s.getCompanyNo(), p.yearNo(), pg1, pg2, d1, d2, c1, c2, e1, e2);
         } catch (Exception e) {
@@ -165,7 +167,7 @@ public class PayReportDataService {
         BigDecimal grandTotal = BigDecimal.ZERO;
         for (Map<String, Object> r : rawRows) {
             int emp = (Integer) r.get("empNo");
-            BigDecimal amt = (BigDecimal) r.get("amount");
+            BigDecimal amt = (BigDecimal) r.get("payAmt");
             empTotals.merge(emp, amt, BigDecimal::add);
             grandTotal = grandTotal.add(amt);
         }
@@ -223,11 +225,13 @@ public class PayReportDataService {
             raw.get("empNo"), raw.get("surname"), raw.get("firstName"),
             raw.get("dept"), raw.get("paygroup")));
         r.put("hours",  null);
-        r.put("amount", null);
+        r.put("payAmt", BigDecimal.ZERO);
+        r.put("amtStr", "");
         return r;
     }
 
     private static Map<String, Object> totalRow(int empNo, BigDecimal total) {
+        BigDecimal t = total == null ? BigDecimal.ZERO : total;
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("rowKind",   "total");
         r.put("empNo",     empNo);
@@ -239,8 +243,15 @@ public class PayReportDataService {
         r.put("payCode",   "");
         r.put("codeDesc",  "Employee Total");
         r.put("hours",  null);
-        r.put("amount", total == null ? BigDecimal.ZERO : total);
+        r.put("payAmt", t);
+        r.put("amtStr", fmtAmt(t));
         return r;
+    }
+
+    private static String fmtAmt(BigDecimal b) {
+        if (b == null || b.signum() == 0) return "";
+        if (b.signum() < 0) return "(" + String.format("%,.2f", b.negate()) + ")";
+        return String.format("%,.2f", b);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
