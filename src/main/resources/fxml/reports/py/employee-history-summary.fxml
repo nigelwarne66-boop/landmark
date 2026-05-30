@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.PaEmployeeHistorySummaryController"
+    styleClass="sel-root"
+    prefWidth="640" prefHeight="450">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Employee History Summary" styleClass="sel-title"/>
+            <Label text="Summarised payroll history with sort option (PATL17/30/55)" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <Label text="Ranges (All = no filter)" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Employee from / to" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="startEmployee" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endEmployee"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Paygroup from / to" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="startPaygroup" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endPaygroup"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Department from / to" styleClass="sel-label" minWidth="160"/>
+                    <ComboBox fx:id="startDept" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endDept"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <Label text="Date range" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Payrun date from / to" styleClass="sel-label" minWidth="160"/>
+                    <DatePicker fx:id="startDate" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="endDate"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <Label text="Sort by" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="16">
+                    <Label text="Order" styleClass="sel-label" minWidth="160"/>
+                    <RadioButton fx:id="sortEmployee" text="Employee"/>
+                    <RadioButton fx:id="sortPaygroup" text="Paygroup"/>
+                    <RadioButton fx:id="sortPayrun"   text="Payrun date"/>
+                </HBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Cancel" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel"  styleClass="sel-btn-excel"  onAction="#onExcel"/>
+            <Button text="PDF"    styleClass="sel-btn-pdf"    onAction="#onPdf"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

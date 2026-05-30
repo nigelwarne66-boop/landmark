@@ -153,6 +153,66 @@ public class ReportsHubController implements Initializable {
             "fth-dollar-sign");
         ytdPayments.setRunner(fmt -> comingSoon("Employee YTD Payments"));
 
+        ReportDef histDetail = ReportDef.withParams(
+            "employee-history-detail", "Employee History Detail",
+            "Full posted payroll history per employee (PATL14)",
+            "fth-file-text");
+        histDetail.setRunner(fmt -> comingSoon("Employee History Detail"));
+
+        ReportDef histSummary = ReportDef.withParams(
+            "employee-history-summary", "Employee History Summary",
+            "Summarised payroll history with sort option (PATL17/30/55)",
+            "fth-bar-chart-2");
+        histSummary.setRunner(fmt -> comingSoon("Employee History Summary"));
+
+        ReportDef dednSuper = ReportDef.withParams(
+            "deductions-super", "Deductions & Superannuation",
+            "YTD deductions and super by pay code or fund (PATL05/09)",
+            "fth-dollar-sign");
+        dednSuper.setRunner(fmt -> comingSoon("Deductions & Superannuation"));
+
+        ReportDef deptExpenses = ReportDef.withParams(
+            "dept-expenses", "Department Expenses",
+            "Payroll cost distribution by department for a period (PATL16)",
+            "fth-bar-chart-2");
+        deptExpenses.setRunner(fmt -> comingSoon("Department Expenses"));
+
+        ReportDef payPeriodSummary = ReportDef.withParams(
+            "period-summary", "Period Summary",
+            "Payroll totals by type for each pay run (PATL07)",
+            "fth-bar-chart-2");
+        payPeriodSummary.setRunner(fmt -> comingSoon("Period Summary"));
+
+        ReportDef payrunGlDetail = ReportDef.withParams(
+            "payrun-gl-detail", "Payrun GL Detail",
+            "Full GL line detail for a single posted payrun (PATL60)",
+            "fth-file-text");
+        payrunGlDetail.setRunner(fmt -> comingSoon("Payrun GL Detail"));
+
+        ReportDef timesheetHist = ReportDef.withParams(
+            "timesheet-history", "Timesheet History",
+            "Payroll history by paygroup and employee (PATL28)",
+            "fth-file-text");
+        timesheetHist.setRunner(fmt -> comingSoon("Timesheet History"));
+
+        ReportDef dednStatus = ReportDef.withParams(
+            "super-deductions-status", "Super/Deductions Status",
+            "Deduction and super payment status by pay code (PATL40)",
+            "fth-dollar-sign");
+        dednStatus.setRunner(fmt -> comingSoon("Super/Deductions Status"));
+
+        ReportDef superByFund = ReportDef.withParams(
+            "super-by-fund", "Super by Fund",
+            "YTD super contributions grouped by fund (PASP10)",
+            "fth-dollar-sign");
+        superByFund.setRunner(fmt -> comingSoon("Super by Fund"));
+
+        ReportDef extendedSuper = ReportDef.withParams(
+            "extended-super", "Extended Superannuation",
+            "Detailed super history with fund details and masked TFN (PATL26)",
+            "fth-dollar-sign");
+        extendedSuper.setRunner(fmt -> comingSoon("Extended Superannuation"));
+
         /* General Ledger */
         ReportDef trialBalance = ReportDef.withParams(
             "trial-balance", "Trial Balance",
@@ -596,7 +656,10 @@ public class ReportsHubController implements Initializable {
             List.of(assetRegister, depreciation, acquiredRetired, txnList)));
         if (session.isPayrollAccess()) {
             mods.add(new ModuleDef("py", "Payroll",
-                List.of(payrollSummary, employeeList, ytdPayments)));
+                List.of(payrollSummary, employeeList, ytdPayments,
+                        histDetail, histSummary, dednSuper, deptExpenses,
+                        payPeriodSummary, payrunGlDetail, timesheetHist,
+                        dednStatus, superByFund, extendedSuper)));
         }
         mods.add(new ModuleDef("bas", "Business Activity Statement",
             List.of(basStatement, detailedBas, basTransactions, basByGl)));
