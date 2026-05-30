@@ -34,12 +34,12 @@
 
   <variable name="JNL_DEBIT" class="java.math.BigDecimal"
             resetType="Group" resetGroup="JournalGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{debit}]]></variableExpression>
+    <variableExpression><![CDATA[$F{debit} == null ? java.math.BigDecimal.ZERO : $F{debit}]]></variableExpression>
     <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
   </variable>
   <variable name="JNL_CREDIT" class="java.math.BigDecimal"
             resetType="Group" resetGroup="JournalGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{credit}]]></variableExpression>
+    <variableExpression><![CDATA[$F{credit} == null ? java.math.BigDecimal.ZERO : $F{credit}]]></variableExpression>
     <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
   </variable>
 
