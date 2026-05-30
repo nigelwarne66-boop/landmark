@@ -13,7 +13,8 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import javafx.stage.Window;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JRField;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -113,9 +114,26 @@ public class PaEmployeeYtdPaymentsController implements Initializable {
         jp.put("COMPANY_NAME", session.getCompanyName());
         String reportPath = "excel".equals(format) ? EXCEL_PATH : PDF_PATH;
         Window owner = ((Node) e.getSource()).getScene().getWindow();
+        // Use a direct Map-access DataSource instead of JRBeanCollectionDataSource
+        // to bypass Apache BeanUtils, which silently returns null for BigDecimal fields
+        // on Map beans in some class-loader contexts.
         hub.runJasperReportWithDataSource(reportPath, jp,
-            new JRBeanCollectionDataSource(rows), format, owner);
+            mapDataSource(rows), format, owner);
         close(e);
+    }
+
+    /** Direct map-get DataSource — bypasses BeanUtils which silently drops BigDecimal values. */
+    private static JRDataSource mapDataSource(List<Map<String, Object>> rows) {
+        return new JRDataSource() {
+            private final java.util.Iterator<Map<String, Object>> it = rows.iterator();
+            private Map<String, Object> current;
+            @Override public boolean next() {
+                if (!it.hasNext()) return false;
+                current = it.next();
+                return true;
+            }
+            @Override public Object getFieldValue(JRField f) { return current.get(f.getName()); }
+        };
     }
 
     private static String code(ComboBox<CodeName> cb) {
