@@ -28,8 +28,8 @@ import java.util.ResourceBundle;
 @Scope("prototype")
 public class PaEmployeeYtdPaymentsController implements Initializable {
 
-    private static final String PDF_PATH   = "pa/employee-ytd-payments";
-    private static final String EXCEL_PATH = "pa/employee-ytd-payments-excel";
+    private static final String PDF_PATH   = "py/employee-ytd-payments";
+    private static final String EXCEL_PATH = "py/employee-ytd-payments-excel";
 
     @Autowired private ReportsHubController   hub;
     @Autowired private AppSession             session;

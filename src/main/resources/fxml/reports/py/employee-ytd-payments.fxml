@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.PaEmployeeYtdPaymentsController"
+    styleClass="sel-root"
+    prefWidth="580" prefHeight="420">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Employee YTD Payments" styleClass="sel-title"/>
+            <Label text="Year-to-date payment amounts by pay code per employee" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <Label text="Tax year" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Year" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="yearNo" HBox.hgrow="ALWAYS" maxWidth="220"/>
+                </HBox>
+
+                <Label text="Ranges (blank = all)" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Paygroup from / to" styleClass="sel-label" minWidth="140"/>
+                    <TextField fx:id="startPaygroup" prefWidth="80" maxWidth="80"/>
+                    <TextField fx:id="endPaygroup"   prefWidth="80" maxWidth="80"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Department from / to" styleClass="sel-label" minWidth="140"/>
+                    <TextField fx:id="startDept" prefWidth="80" maxWidth="80"/>
+                    <TextField fx:id="endDept"   prefWidth="80" maxWidth="80"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Employee no from / to" styleClass="sel-label" minWidth="140"/>
+                    <TextField fx:id="startEmployee" prefWidth="80" maxWidth="80"/>
+                    <TextField fx:id="endEmployee"   prefWidth="80" maxWidth="80"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Pay code from / to" styleClass="sel-label" minWidth="140"/>
+                    <TextField fx:id="startCode" prefWidth="100" maxWidth="100"/>
+                    <TextField fx:id="endCode"   prefWidth="100" maxWidth="100"/>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Cancel" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel"  styleClass="sel-btn-excel"  onAction="#onExcel"/>
+            <Button text="PDF"    styleClass="sel-btn-pdf"    onAction="#onPdf"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
