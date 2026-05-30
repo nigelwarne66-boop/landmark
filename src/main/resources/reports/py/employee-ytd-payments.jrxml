@@ -14,6 +14,10 @@
   <!-- rowKind: "header"=employee name bar, "detail"=pay code line, "total"=employee subtotal -->
   <style name="rowLabel" isBlankWhenNull="true">
     <conditionalStyle>
+      <conditionExpression><![CDATA["detail".equals($F{rowKind})]]></conditionExpression>
+      <style mode="Transparent" forecolor="#000000"/>
+    </conditionalStyle>
+    <conditionalStyle>
       <conditionExpression><![CDATA["header".equals($F{rowKind})]]></conditionExpression>
       <style mode="Opaque" backcolor="#506680" forecolor="#ffffff" isBold="true"/>
     </conditionalStyle>
@@ -23,6 +27,10 @@
     </conditionalStyle>
   </style>
   <style name="rowNum" isBlankWhenNull="true">
+    <conditionalStyle>
+      <conditionExpression><![CDATA["detail".equals($F{rowKind})]]></conditionExpression>
+      <style mode="Transparent" forecolor="#000000"/>
+    </conditionalStyle>
     <conditionalStyle>
       <conditionExpression><![CDATA["header".equals($F{rowKind})]]></conditionExpression>
       <style mode="Opaque" backcolor="#506680" forecolor="#506680"/>
