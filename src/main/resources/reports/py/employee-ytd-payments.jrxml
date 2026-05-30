@@ -63,9 +63,9 @@
       <!-- payAmt (BigDecimal) detail + total -->
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="2" width="70" height="10"><printWhenExpression><![CDATA["detail".equals($F{rowKind})]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payAmt}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="2" width="70" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"><printWhenExpression><![CDATA["total".equals($F{rowKind})]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{payAmt}]]></textFieldExpression></textField>
-      <!-- amtStr (String) detail + total — diagnostic: if this shows but payAmt doesn't, BigDecimal field type is the issue -->
-      <textField><reportElement x="604" y="2" width="100" height="10"><printWhenExpression><![CDATA["detail".equals($F{rowKind})]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtStr}]]></textFieldExpression></textField>
-      <textField><reportElement x="604" y="2" width="100" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"><printWhenExpression><![CDATA["total".equals($F{rowKind})]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{amtStr}]]></textFieldExpression></textField>
+      <!-- literal constant — if this shows, printWhenExpression works but field access fails -->
+      <textField><reportElement x="604" y="2" width="100" height="10"><printWhenExpression><![CDATA["detail".equals($F{rowKind})]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA["DETAIL_OK"]]></textFieldExpression></textField>
+      <textField><reportElement x="604" y="2" width="100" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"><printWhenExpression><![CDATA["total".equals($F{rowKind})]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["TOTAL_OK"]]></textFieldExpression></textField>
     </band>
   </detail>
 
