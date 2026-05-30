@@ -50,8 +50,8 @@
     <groupFooter>
       <band height="16">
         <rectangle><reportElement x="0" y="2" width="782" height="13" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-        <staticText><reportElement x="4" y="4" width="500" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Employee Total:]]></text></staticText>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="508" y="4" width="140" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{EMP_TOTAL}]]></textFieldExpression></textField>
+        <staticText><reportElement x="4" y="4" width="522" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Employee Total:]]></text></staticText>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="4" width="140" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{EMP_TOTAL}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>

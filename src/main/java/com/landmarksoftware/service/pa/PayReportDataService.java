@@ -88,7 +88,7 @@ public class PayReportDataService {
         try {
             jdbc.query(
                 "SELECT employee_no, surname, first_name FROM pastaff " +
-                "WHERE company_no=? AND employee_status <> 'T' ORDER BY surname, first_name, employee_no",
+                "WHERE company_no=? AND employee_status <> 'T' ORDER BY employee_no",
                 rs -> {
                     int no = rs.getInt("employee_no");
                     list.add(new CodeName(String.valueOf(no),

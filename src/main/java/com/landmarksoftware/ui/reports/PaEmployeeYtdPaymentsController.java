@@ -56,25 +56,25 @@ public class PaEmployeeYtdPaymentsController implements Initializable {
         startPaygroup.setItems(FXCollections.observableArrayList(paygroups));
         endPaygroup.setItems(FXCollections.observableArrayList(paygroups));
         startPaygroup.getSelectionModel().selectFirst();
-        endPaygroup.getSelectionModel().selectLast();
+        endPaygroup.getSelectionModel().selectFirst();
 
         List<CodeName> depts = paReports.getDepts(session);
         startDept.setItems(FXCollections.observableArrayList(depts));
         endDept.setItems(FXCollections.observableArrayList(depts));
         startDept.getSelectionModel().selectFirst();
-        endDept.getSelectionModel().selectLast();
+        endDept.getSelectionModel().selectFirst();
 
         List<CodeName> emps = paReports.getEmployees(session);
         startEmployee.setItems(FXCollections.observableArrayList(emps));
         endEmployee.setItems(FXCollections.observableArrayList(emps));
         startEmployee.getSelectionModel().selectFirst();
-        endEmployee.getSelectionModel().selectLast();
+        endEmployee.getSelectionModel().selectFirst();
 
         List<CodeName> codes = paReports.getPayCodes(session);
         startCode.setItems(FXCollections.observableArrayList(codes));
         endCode.setItems(FXCollections.observableArrayList(codes));
         startCode.getSelectionModel().selectFirst();
-        endCode.getSelectionModel().selectLast();
+        endCode.getSelectionModel().selectFirst();
     }
 
     @FXML private void onPdf(ActionEvent e)    { run(e, "pdf"); }
