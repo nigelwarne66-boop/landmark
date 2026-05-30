@@ -11,12 +11,35 @@
 
   <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
+  <!-- rowKind: "header"=employee name bar, "detail"=pay code line, "total"=employee subtotal -->
+  <style name="rowLabel" isBlankWhenNull="true">
+    <conditionalStyle>
+      <conditionExpression><![CDATA["header".equals($F{rowKind})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#506680" forecolor="#ffffff" isBold="true"/>
+    </conditionalStyle>
+    <conditionalStyle>
+      <conditionExpression><![CDATA["total".equals($F{rowKind})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#1e2d45" forecolor="#ffffff" isBold="true"/>
+    </conditionalStyle>
+  </style>
+  <style name="rowNum" isBlankWhenNull="true">
+    <conditionalStyle>
+      <conditionExpression><![CDATA["header".equals($F{rowKind})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#506680" forecolor="#506680"/>
+    </conditionalStyle>
+    <conditionalStyle>
+      <conditionExpression><![CDATA["total".equals($F{rowKind})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#1e2d45" forecolor="#ffffff" isBold="true"/>
+    </conditionalStyle>
+  </style>
+
   <parameter name="COMPANY_NAME" class="java.lang.String" isForPrompting="false"/>
   <parameter name="YEAR_DESC"    class="java.lang.String" isForPrompting="false"/>
   <parameter name="ACCT_RANGE"   class="java.lang.String" isForPrompting="false"/>
   <parameter name="GRAND_TOTAL"  class="java.math.BigDecimal" isForPrompting="false"/>
   <parameter name="ROW_COUNT"    class="java.lang.Integer"    isForPrompting="false"/>
 
+  <field name="rowKind"   class="java.lang.String"/>
   <field name="empNo"     class="java.lang.Integer"/>
   <field name="surname"   class="java.lang.String"/>
   <field name="firstName" class="java.lang.String"/>
@@ -27,29 +50,6 @@
   <field name="codeDesc"  class="java.lang.String"/>
   <field name="hours"     class="java.math.BigDecimal"/>
   <field name="amount"    class="java.math.BigDecimal"/>
-  <field name="empTotal"  class="java.math.BigDecimal"/>
-
-  <group name="EmployeeGroup">
-    <groupExpression><![CDATA[$F{empNo}]]></groupExpression>
-    <groupHeader>
-      <band height="18">
-        <rectangle><reportElement x="0" y="0" width="782" height="16" backcolor="#506680"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-        <textField>
-          <reportElement x="4" y="2" width="600" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#506680"/>
-          <textElement><font size="9" isBold="true"/></textElement>
-          <textFieldExpression><![CDATA[String.format("%d  —  %s, %s   Dept: %s   Paygroup: %s",
-            $F{empNo}, $F{surname}, $F{firstName}, $F{dept}, $F{paygroup})]]></textFieldExpression>
-        </textField>
-      </band>
-    </groupHeader>
-    <groupFooter>
-      <band height="16">
-        <rectangle><reportElement x="0" y="2" width="782" height="13" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-        <staticText><reportElement x="4" y="4" width="522" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Employee Total:]]></text></staticText>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="4" width="140" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{empTotal}]]></textFieldExpression></textField>
-      </band>
-    </groupFooter>
-  </group>
 
   <title>
     <band height="52">
@@ -71,11 +71,12 @@
   </columnHeader>
 
   <detail>
-    <band height="13">
-      <textField><reportElement x="4"   y="1" width="76"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payCode}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true"><reportElement x="84" y="1" width="360" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{codeDesc}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00"><reportElement x="448" y="1" width="78" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{hours}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="1" width="140" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
+    <band height="14">
+      <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#506680" forecolor="#506680"><printWhenExpression><![CDATA["header".equals($F{rowKind})]]></printWhenExpression></reportElement><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45" forecolor="#1e2d45"><printWhenExpression><![CDATA["total".equals($F{rowKind})]]></printWhenExpression></reportElement><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement style="rowLabel" x="4" y="2" width="440" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{codeDesc}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement style="rowNum" x="448" y="2" width="78" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{hours}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement style="rowNum" x="530" y="2" width="140" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
     </band>
   </detail>
 

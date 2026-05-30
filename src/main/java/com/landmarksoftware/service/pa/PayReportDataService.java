@@ -136,44 +136,61 @@ public class PayReportDataService {
             "  AND t.employee_no BETWEEN ? AND ? " +
             "ORDER BY s.surname, s.first_name, t.employee_no, t.pay_type, t.pay_code";
 
-        List<Map<String, Object>> rows = new ArrayList<>();
-        BigDecimal grandTotal = BigDecimal.ZERO; // accumulated in the post-query pass below
+        // Collect raw query rows first so we can compute per-employee totals.
+        List<Map<String, Object>> rawRows = new ArrayList<>();
         try {
             jdbc.query(sql, rs -> {
                 Map<String, Object> r = new LinkedHashMap<>();
-                r.put("empNo",      rs.getInt("employee_no"));
-                r.put("surname",    trim(rs.getString("surname")));
-                r.put("firstName",  trim(rs.getString("first_name")));
-                r.put("paygroup",   trim(rs.getString("paygroup")));
-                r.put("dept",       trim(rs.getString("dept")));
-                r.put("payType",    rs.getInt("pay_type"));
-                r.put("payCode",    trim(rs.getString("pay_code")));
-                r.put("codeDesc",   trim(rs.getString("code_desc")));
-                // hrs is stored as minutes — convert to decimal hours (BigDecimal, 2dp)
+                r.put("empNo",     rs.getInt("employee_no"));
+                r.put("surname",   trim(rs.getString("surname")));
+                r.put("firstName", trim(rs.getString("first_name")));
+                r.put("paygroup",  trim(rs.getString("paygroup")));
+                r.put("dept",      trim(rs.getString("dept")));
+                r.put("payType",   rs.getInt("pay_type"));
+                r.put("payCode",   trim(rs.getString("pay_code")));
+                r.put("codeDesc",  trim(rs.getString("code_desc")));
                 int mins = rs.getInt("hrs");
                 r.put("hours",  mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
                 r.put("amount", z(rs.getBigDecimal("amt")));
-                rows.add(r);
+                rawRows.add(r);
             }, s.getCompanyNo(), p.yearNo(), pg1, pg2, d1, d2, c1, c2, e1, e2);
         } catch (Exception e) {
             log.error("getYtdPayments: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
+        if (rawRows.isEmpty()) return warn("No YTD data found for the selection.");
 
-        if (rows.isEmpty()) return warn("No YTD data found for the selection.");
-
-        // Pre-compute per-employee totals and stamp onto every row so the
-        // jrxml group footer can read $F{empTotal} from the last row of each group
-        // (avoids unreliable Sum variable calculation with JRBeanCollectionDataSource).
+        // Per-employee totals.
         Map<Integer, BigDecimal> empTotals = new LinkedHashMap<>();
-        for (Map<String, Object> r : rows) {
+        BigDecimal grandTotal = BigDecimal.ZERO;
+        for (Map<String, Object> r : rawRows) {
             int emp = (Integer) r.get("empNo");
             BigDecimal amt = (BigDecimal) r.get("amount");
             empTotals.merge(emp, amt, BigDecimal::add);
             grandTotal = grandTotal.add(amt);
         }
-        for (Map<String, Object> r : rows) {
-            r.put("empTotal", empTotals.get((Integer) r.get("empNo")));
+
+        // Build output rows: header → detail lines → total, per employee.
+        // rowKind drives conditional styles in the PDF jrxml (GLRP40 pattern).
+        // Excel jrxml filters to "detail" rows only via printWhenExpression.
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Integer prevEmp = null;
+        for (Map<String, Object> raw : rawRows) {
+            int emp = (Integer) raw.get("empNo");
+            if (!Integer.valueOf(emp).equals(prevEmp)) {
+                // Close previous employee with a total row.
+                if (prevEmp != null) {
+                    rows.add(totalRow(prevEmp, empTotals.get(prevEmp)));
+                }
+                // Open new employee with a header row.
+                rows.add(headerRow(raw));
+                prevEmp = emp;
+            }
+            raw.put("rowKind", "detail");
+            rows.add(raw);
+        }
+        if (prevEmp != null) {
+            rows.add(totalRow(prevEmp, empTotals.get(prevEmp)));
         }
 
         int y = p.yearNo();
@@ -188,6 +205,42 @@ public class PayReportDataService {
         params.put("GRAND_TOTAL", grandTotal);
         params.put("ROW_COUNT",   rows.size());
         return result(rows, params);
+    }
+
+    // ── Row builders ─────────────────────────────────────────────────────────
+
+    private static Map<String, Object> headerRow(Map<String, Object> raw) {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("rowKind",   "header");
+        r.put("empNo",     raw.get("empNo"));
+        r.put("surname",   raw.get("surname"));
+        r.put("firstName", raw.get("firstName"));
+        r.put("paygroup",  raw.get("paygroup"));
+        r.put("dept",      raw.get("dept"));
+        r.put("payType",   0);
+        r.put("payCode",   "");
+        r.put("codeDesc",  String.format("%d  —  %s, %s   Dept: %s   Paygroup: %s",
+            raw.get("empNo"), raw.get("surname"), raw.get("firstName"),
+            raw.get("dept"), raw.get("paygroup")));
+        r.put("hours",  null);
+        r.put("amount", null);
+        return r;
+    }
+
+    private static Map<String, Object> totalRow(int empNo, BigDecimal total) {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("rowKind",   "total");
+        r.put("empNo",     empNo);
+        r.put("surname",   "");
+        r.put("firstName", "");
+        r.put("paygroup",  "");
+        r.put("dept",      "");
+        r.put("payType",   0);
+        r.put("payCode",   "");
+        r.put("codeDesc",  "Employee Total");
+        r.put("hours",  null);
+        r.put("amount", total == null ? BigDecimal.ZERO : total);
+        return r;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
