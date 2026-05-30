@@ -14,11 +14,9 @@
   <parameter name="COMPANY_NAME"   class="java.lang.String" isForPrompting="false"/>
   <parameter name="AS_AT_DESC"     class="java.lang.String" isForPrompting="false"/>
   <parameter name="ACCT_RANGE"     class="java.lang.String" isForPrompting="false"/>
-  <parameter name="SUM_ASSETS"  class="java.math.BigDecimal" isForPrompting="false"/>
-  <parameter name="SUM_LIAB"    class="java.math.BigDecimal" isForPrompting="false"/>
-  <parameter name="SUM_EQUITY"  class="java.math.BigDecimal" isForPrompting="false"/>
-  <parameter name="NET_ASSETS"  class="java.math.BigDecimal" isForPrompting="false"/>
-  <parameter name="ROW_COUNT"   class="java.lang.Integer"    isForPrompting="false"/>
+  <parameter name="SUM_ASSETS"      class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_LIAB_EQUITY" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"       class="java.lang.Integer"    isForPrompting="false"/>
 
   <field name="section"     class="java.lang.String"/>
   <field name="acctMain"    class="java.lang.String"/>
@@ -88,17 +86,12 @@
   </pageFooter>
 
   <summary>
-    <band height="80">
-      <rectangle><reportElement x="0" y="0" width="782" height="80" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+    <band height="46">
+      <rectangle><reportElement x="0" y="0" width="782" height="46" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
       <staticText><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Assets:]]></text></staticText>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="562" y="8" width="216" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_ASSETS}]]></textFieldExpression></textField>
-      <staticText><reportElement x="4" y="24" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Liabilities:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="562" y="24" width="216" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_LIAB}]]></textFieldExpression></textField>
-      <staticText><reportElement x="4" y="40" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Equity:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="562" y="40" width="216" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_EQUITY}]]></textFieldExpression></textField>
-      <line><reportElement x="0" y="56" width="782" height="1" forecolor="#8aabbf"/><graphicElement><pen lineWidth="0.5"/></graphicElement></line>
-      <staticText><reportElement x="4" y="60" width="300" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Net Assets (Assets − Liabilities):]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="562" y="60" width="216" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="10" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{NET_ASSETS}]]></textFieldExpression></textField>
+      <staticText><reportElement x="4" y="26" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Liabilities & Equity:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="562" y="26" width="216" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_LIAB_EQUITY}]]></textFieldExpression></textField>
     </band>
   </summary>
 

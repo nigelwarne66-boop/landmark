@@ -199,12 +199,10 @@ public class GlReportDataService {
     // ════════════════════════════════════════════════════════════════════════
 
     public record BalanceSheetParams(
-            int asAtPeriod, Integer startAcct, Integer endAcct, boolean includeZero,
-            int equityStartAcct) {}
+            int asAtPeriod, Integer startAcct, Integer endAcct, boolean includeZero) {}
 
     public Map<String, Object> getBalanceSheet(AppSession s, BalanceSheetParams p) {
         int n = clampPeriod(p.asAtPeriod());
-        int eqStart = p.equityStartAcct() > 0 ? p.equityStartAcct() : 920;
         String balExpr = "(COALESCE(b.open_bal,0) + " + rangeSum(1, n, "b") + ")";
         StringBuilder sql = new StringBuilder(
             "SELECT c.acct_main_no, c.acct_sub_no, c.desc1, c.dr_cr_ind, " +
@@ -218,20 +216,16 @@ public class GlReportDataService {
         sql.append(" ORDER BY c.dr_cr_ind, c.acct_main_no, c.acct_sub_no ");
 
         List<Map<String, Object>> rows = new ArrayList<>();
-        BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO };  // assets, liab, equity
+        BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };  // assets, liab+equity
         try {
             jdbc.query(sql.toString(), rs -> {
                 BigDecimal bal = z(rs.getBigDecimal("bal"));
-                boolean asset  = "D".equals(trim(rs.getString("dr_cr_ind")));
-                int main = rs.getInt("acct_main_no");
-                boolean equity = !asset && main >= eqStart;
+                boolean asset = "D".equals(trim(rs.getString("dr_cr_ind")));
                 BigDecimal shown = asset ? bal : bal.negate();
-                if (asset)       tot[0] = tot[0].add(shown);
-                else if (equity) tot[2] = tot[2].add(shown);
-                else             tot[1] = tot[1].add(shown);
+                if (asset) tot[0] = tot[0].add(shown); else tot[1] = tot[1].add(shown);
                 Map<String, Object> r = new LinkedHashMap<>();
-                r.put("section", asset ? "1-Assets" : equity ? "3-Equity" : "2-Liabilities");
-                r.put("acctMain", acctMain(main));
+                r.put("section", asset ? "1-Assets" : "2-Liabilities & Equity");
+                r.put("acctMain", acctMain(rs.getInt("acct_main_no")));
                 r.put("acctSub",  acctSub(rs.getInt("acct_sub_no")));
                 r.put("description", rs.getString("desc1"));
                 r.put("balance", shown);
@@ -244,8 +238,7 @@ public class GlReportDataService {
         String pedStr2 = ped2 != null ? ped2.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : ("Period " + n);
         params.put("AS_AT_DESC", "As at " + pedStr2);
         params.put("ACCT_RANGE", acctRangeDesc(p.startAcct(), p.endAcct()));
-        params.put("SUM_ASSETS", tot[0]); params.put("SUM_LIAB", tot[1]); params.put("SUM_EQUITY", tot[2]);
-        params.put("NET_ASSETS", tot[0].subtract(tot[1]));
+        params.put("SUM_ASSETS", tot[0]); params.put("SUM_LIAB_EQUITY", tot[1]);
         params.put("ROW_COUNT", rows.size());
         return result(rows, params);
     }
