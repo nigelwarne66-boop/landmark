@@ -137,7 +137,7 @@ public class PayReportDataService {
             "ORDER BY s.surname, s.first_name, t.employee_no, t.pay_type, t.pay_code";
 
         List<Map<String, Object>> rows = new ArrayList<>();
-        BigDecimal grandTotal = BigDecimal.ZERO;
+        BigDecimal grandTotal = BigDecimal.ZERO; // accumulated in the post-query pass below
         try {
             jdbc.query(sql, rs -> {
                 Map<String, Object> r = new LinkedHashMap<>();
@@ -162,7 +162,19 @@ public class PayReportDataService {
 
         if (rows.isEmpty()) return warn("No YTD data found for the selection.");
 
-        for (Map<String, Object> r : rows) grandTotal = grandTotal.add((BigDecimal) r.get("amount"));
+        // Pre-compute per-employee totals and stamp onto every row so the
+        // jrxml group footer can read $F{empTotal} from the last row of each group
+        // (avoids unreliable Sum variable calculation with JRBeanCollectionDataSource).
+        Map<Integer, BigDecimal> empTotals = new LinkedHashMap<>();
+        for (Map<String, Object> r : rows) {
+            int emp = (Integer) r.get("empNo");
+            BigDecimal amt = (BigDecimal) r.get("amount");
+            empTotals.merge(emp, amt, BigDecimal::add);
+            grandTotal = grandTotal.add(amt);
+        }
+        for (Map<String, Object> r : rows) {
+            r.put("empTotal", empTotals.get((Integer) r.get("empNo")));
+        }
 
         int y = p.yearNo();
         String yearDesc = "FY " + (y - 1) + "-" + String.valueOf(y).substring(2);

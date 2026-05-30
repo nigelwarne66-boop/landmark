@@ -33,34 +33,7 @@
   <field name="codeDesc"  class="java.lang.String"/>
   <field name="hours"     class="java.math.BigDecimal"/>
   <field name="amount"    class="java.math.BigDecimal"/>
-
-  <variable name="EMP_TOTAL" class="java.math.BigDecimal"
-            resetType="Group" resetGroup="EmployeeGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{amount} == null ? java.math.BigDecimal.ZERO : $F{amount}]]></variableExpression>
-    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
-  </variable>
-
-  <group name="EmployeeGroup">
-    <groupExpression><![CDATA[$F{empNo}]]></groupExpression>
-    <groupHeader>
-      <band height="18">
-        <rectangle><reportElement x="0" y="0" width="1400" height="18" backcolor="#506680"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-        <textField>
-          <reportElement x="0" y="2" width="800" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#506680"/>
-          <textElement><font size="9" isBold="true"/></textElement>
-          <textFieldExpression><![CDATA[String.format("%d  —  %s, %s   Dept: %s   Paygroup: %s",
-            $F{empNo}, $F{surname}, $F{firstName}, $F{dept}, $F{paygroup})]]></textFieldExpression>
-        </textField>
-      </band>
-    </groupHeader>
-    <groupFooter>
-      <band height="18">
-        <rectangle><reportElement x="0" y="2" width="1400" height="15" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-        <staticText><reportElement x="0" y="4" width="1020" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Employee Total:]]></text></staticText>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1022" y="4" width="200" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{EMP_TOTAL}]]></textFieldExpression></textField>
-      </band>
-    </groupFooter>
-  </group>
+  <field name="empTotal"  class="java.math.BigDecimal"/>
 
   <title>
     <band height="30">

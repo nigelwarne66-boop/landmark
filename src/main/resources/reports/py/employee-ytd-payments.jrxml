@@ -27,12 +27,7 @@
   <field name="codeDesc"  class="java.lang.String"/>
   <field name="hours"     class="java.math.BigDecimal"/>
   <field name="amount"    class="java.math.BigDecimal"/>
-
-  <variable name="EMP_TOTAL" class="java.math.BigDecimal"
-            resetType="Group" resetGroup="EmployeeGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{amount} == null ? java.math.BigDecimal.ZERO : $F{amount}]]></variableExpression>
-    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
-  </variable>
+  <field name="empTotal"  class="java.math.BigDecimal"/>
 
   <group name="EmployeeGroup">
     <groupExpression><![CDATA[$F{empNo}]]></groupExpression>
@@ -51,7 +46,7 @@
       <band height="16">
         <rectangle><reportElement x="0" y="2" width="782" height="13" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
         <staticText><reportElement x="4" y="4" width="522" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Employee Total:]]></text></staticText>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="4" width="140" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{EMP_TOTAL}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="530" y="4" width="140" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{empTotal}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
