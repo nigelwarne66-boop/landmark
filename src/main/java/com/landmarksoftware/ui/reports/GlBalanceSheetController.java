@@ -14,6 +14,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
@@ -52,6 +53,7 @@ public class GlBalanceSheetController implements Initializable {
     @FXML private ComboBox<CodeName>     startAcct;
     @FXML private ComboBox<CodeName>     endAcct;
     @FXML private CheckBox               includeZero;
+    @FXML private TextField              equityStartAcct;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -80,11 +82,15 @@ public class GlBalanceSheetController implements Initializable {
         PeriodOption sel = asAtPeriod.getSelectionModel().getSelectedItem();
         int periodNo = sel == null ? 0 : sel.periodNo();
 
+        int eqStart = 920;
+        try { eqStart = Integer.parseInt(equityStartAcct.getText().trim()); } catch (NumberFormatException ignored) {}
+
         BalanceSheetParams params = new BalanceSheetParams(
                 periodNo,
                 acctInt(startAcct),
                 acctInt(endAcct),
-                includeZero.isSelected());
+                includeZero.isSelected(),
+                eqStart);
 
         Map<String, Object> data = glReports.getBalanceSheet(session, params);
         if (data.get("warning") != null) {

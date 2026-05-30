@@ -36,6 +36,13 @@
                     <ComboBox fx:id="endAcct" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                 </HBox>
 
+                <Label text="Sections" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Equity from account" styleClass="sel-label" minWidth="160"/>
+                    <TextField fx:id="equityStartAcct" text="920" prefWidth="100"/>
+                    <Label text="(accounts ≥ this number are shown as Equity)" styleClass="sel-hint"/>
+                </HBox>
+
                 <Label text="Options" styleClass="sel-section"/>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
                     <Label styleClass="sel-label" minWidth="160"/>
