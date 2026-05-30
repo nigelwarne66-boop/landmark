@@ -177,29 +177,34 @@ public class JasperReportService {
 
     /**
      * Compile .jrxml → .jasper, caching compiled file in temp dir.
-     * Thread-safe: synchronized on the report path.
+     * Recompiles automatically when the source .jrxml is newer than the cache.
      */
     private JasperReport compile(String reportPath) throws Exception {
         String jrxmlClasspath = "reports/" + reportPath + ".jrxml";
         String cacheKey       = reportPath.replace("/", "_");
         Path   cachedFile     = Path.of(compileDir, cacheKey + ".jasper");
 
-        // Check cache first
-        if (Files.exists(cachedFile)) {
-            log.debug("Using cached compiled report: {}", cachedFile);
-            try (ObjectInputStream ois = new ObjectInputStream(
-                    Files.newInputStream(cachedFile))) {
-                return (JasperReport) ois.readObject();
-            }
-        }
-
-        // Compile from classpath .jrxml
-        log.info("Compiling report: {}", jrxmlClasspath);
         ClassPathResource resource = new ClassPathResource(jrxmlClasspath);
         if (!resource.exists()) {
             throw new FileNotFoundException("Report not found on classpath: " + jrxmlClasspath);
         }
 
+        // Use cache only if it is at least as new as the source .jrxml.
+        if (Files.exists(cachedFile)) {
+            long jrxmlMtime  = resource.lastModified();
+            long jasperMtime = Files.getLastModifiedTime(cachedFile).toMillis();
+            if (jrxmlMtime > 0 && jrxmlMtime <= jasperMtime) {
+                log.debug("Using cached compiled report: {}", cachedFile);
+                try (ObjectInputStream ois = new ObjectInputStream(
+                        Files.newInputStream(cachedFile))) {
+                    return (JasperReport) ois.readObject();
+                }
+            }
+            log.info("Source newer than cache — recompiling: {}", jrxmlClasspath);
+        }
+
+        // Compile from classpath .jrxml
+        log.info("Compiling report: {}", jrxmlClasspath);
         Files.createDirectories(Path.of(compileDir));
 
         JasperReport compiled;
@@ -207,9 +212,11 @@ public class JasperReportService {
             compiled = JasperCompileManager.compileReport(in);
         }
 
-        // Write to cache
+        // Write to cache (overwrite if exists)
         try (ObjectOutputStream oos = new ObjectOutputStream(
-                Files.newOutputStream(cachedFile))) {
+                Files.newOutputStream(cachedFile,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.TRUNCATE_EXISTING))) {
             oos.writeObject(compiled);
         }
         log.info("Compiled and cached: {}", cachedFile);
