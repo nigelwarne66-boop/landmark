@@ -234,6 +234,32 @@ The `pa_audit` table (option B from the chat — batch-level metadata only) sits
 - **Distribution build**: `mvn package -Preporting,dist` — runs ProGuard, jlink (bundled JRE), jpackage (Windows EXE installer). Requires WiX Toolset 3.x for the EXE; use `--type app-image` in pom dist profile to skip WiX and produce a plain folder instead. Output: `target/installer/`.
 - ProGuard runs at `package` phase (rules in `src/main/proguard/rules.pro`) — not in normal dev cycle.
 
+## Per-client database configuration
+
+Client DB credentials are **never** baked into the JAR. Spring Boot's external config override path handles it:
+
+- Dev defaults live in `src/main/resources/application.properties` (MySQL localhost, `root`/`another`)
+- Production installs get `<install-dir>\config\application.properties` (created from `deploy/config/application.properties` template) with the real server/credentials
+- `spring.jooq.sql-dialect` must match the driver — `MYSQL`, `MARIADB`, or (Pro edition) `SQLSERVER`
+- **Supported databases**: MySQL and MariaDB only with the current open-source jOOQ edition. SQL Server requires upgrading to `org.jooq.pro` (commercial) — see jOOQ section below.
+
+## jOOQ — type-safe SQL + multi-dialect support
+
+jOOQ 3.21.4 open-source is wired in (`org.jooq` groupId, installed to local Maven repo from `jOOQ-3.21.4/maven-install.bat`). Spring Boot auto-configures a `DSLContext` bean — services can inject it alongside existing `JdbcTemplate` for gradual migration.
+
+**Generated DSL classes**: `src/main/generated/com/landmarksoftware/db/` — one class per table in `lmextract`, committed to VCS so builds need no live DB. Regenerate when schema changes:
+```
+mvn generate-sources -Pjooq-codegen
+```
+
+**Migration approach**: `JdbcTemplate` and `DSLContext` coexist. Migrate service by service. New services should use `DSLContext`; existing services can stay on `JdbcTemplate` until touched.
+
+**SQL Server upgrade path** (when the commercial client is onboarded):
+1. Replace `spring-boot-starter-jooq` in pom with the `org.jooq.pro` equivalent (same version 3.21.4 — version is already aligned)
+2. Set `spring.jooq.sql-dialect=SQLSERVER` in the client's `config/application.properties`
+3. Run `mvn generate-sources -Pjooq-codegen` pointed at the SQL Server schema (update jdbc block in the `jooq-codegen` pom profile)
+4. Migrate services — jOOQ renders `LIMIT`→`TOP`, `NOW()`→`GETDATE()`, `ON DUPLICATE KEY`→`MERGE INTO` etc. automatically
+
 ---
 
 ## Reporting build (-Preporting)
