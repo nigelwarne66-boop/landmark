@@ -21,6 +21,8 @@
     <java.version>21</java.version>
     <javafx.version>21.0.11</javafx.version>
     <poi.version>5.2.5</poi.version>
+    <!-- Override Spring Boot's managed 3.19.8 — local install matches Pro edition version -->
+    <jooq.version>3.21.4</jooq.version>
   </properties>
 
   <dependencies>
@@ -111,6 +113,14 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- jOOQ — type-safe SQL DSL with multi-dialect support.
+         Open-source edition covers MySQL + MariaDB.
+         Upgrade groupId to org.jooq.pro for SQL Server (commercial licence). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jooq</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -141,6 +151,26 @@
             <option>java.base/java.lang=ALL-UNNAMED</option>
           </options>
         </configuration>
+      </plugin>
+
+      <!-- src/main/generated holds jOOQ-generated table/column DSL classes.
+           Always registered as a source root so normal builds compile without
+           needing a live DB. Re-generate with: mvn generate-sources -Pjooq-codegen -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-jooq-sources</id>
+            <phase>generate-sources</phase>
+            <goals><goal>add-source</goal></goals>
+            <configuration>
+              <sources>
+                <source>src/main/generated</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- ProGuard obfuscation — runs in the package phase after maven-jar-plugin.
@@ -200,6 +230,63 @@
   </build>
 
   <profiles>
+    <!-- jOOQ code generation:  mvn generate-sources -Pjooq-codegen
+         Connects to the local MySQL dev DB and regenerates the type-safe
+         table/column DSL classes into src/main/generated/.
+         Re-run whenever the lmextract schema changes.
+         To upgrade to SQL Server (commercial): change the jdbc block to point
+         at the SQL Server DB, change database name to
+         org.jooq.meta.sqlserver.SQLServerDatabase, and change groupId of
+         spring-boot-starter-jooq dependency to org.jooq.pro edition. -->
+    <profile>
+      <id>jooq-codegen</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq-codegen-maven</artifactId>
+            <version>${jooq.version}</version>
+            <executions>
+              <execution>
+                <goals><goal>generate</goal></goals>
+              </execution>
+            </executions>
+            <configuration>
+              <jdbc>
+                <driver>com.mysql.cj.jdbc.Driver</driver>
+                <url>jdbc:mysql://localhost:3306/lmextract?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Australia/Perth</url>
+                <user>root</user>
+                <password>another</password>
+              </jdbc>
+              <generator>
+                <database>
+                  <name>org.jooq.meta.mysql.MySQLDatabase</name>
+                  <inputSchema>lmextract</inputSchema>
+                  <includes>.*</includes>
+                </database>
+                <generate>
+                  <records>true</records>
+                  <pojos>false</pojos>
+                  <daos>false</daos>
+                </generate>
+                <target>
+                  <packageName>com.landmarksoftware.db</packageName>
+                  <directory>src/main/generated</directory>
+                </target>
+              </generator>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
+                <version>8.3.0</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!-- Distribution build:  mvn package -Preporting,dist
          Requires Liberica Full JDK 21 as JAVA_HOME (bundles JavaFX jmods).
          Produces target/installer/Landmark Reporting-1.0.0.exe (needs WiX 3.x).

@@ -8,6 +8,9 @@ application-local.properties
 # Build/IDE outputs
 *.zip
 
+# jOOQ vendor download folder — JARs installed to local Maven repo via maven-install.bat
+jOOQ-*/
+
 # ATO source files (live in ops directory, not source) and load outputs
 *.xlsx
 TAXSCALES.csv
