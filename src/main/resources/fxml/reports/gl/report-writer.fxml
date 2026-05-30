@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Report Writer Output" styleClass="sel-title"/>
-            <Label text="GLRP40 — set the date columns once, then run any of the saved reports" styleClass="sel-sub"/>
+            <Label text="Set the date columns once, then run any of the saved reports" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>
