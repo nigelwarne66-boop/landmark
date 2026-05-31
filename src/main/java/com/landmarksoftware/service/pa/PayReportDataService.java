@@ -1,26 +1,48 @@
 package com.landmarksoftware.service.pa;
 
 import com.landmarksoftware.model.AppSession;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
+
+import static com.landmarksoftware.db.tables.Glchart.GLCHART;
+import static com.landmarksoftware.db.tables.Pacodes.PACODES;
+import static com.landmarksoftware.db.tables.Pacosts.PACOSTS;
+import static com.landmarksoftware.db.tables.Padepts.PADEPTS;
+import static com.landmarksoftware.db.tables.Paehist.PAEHIST;
+import static com.landmarksoftware.db.tables.Pagroup.PAGROUP;
+import static com.landmarksoftware.db.tables.Parunhd.PARUNHD;
+import static com.landmarksoftware.db.tables.Pastaff.PASTAFF;
+import static com.landmarksoftware.db.tables.Paytd.PAYTD;
 
 /**
  * Data service for PA (Payroll) reporting module.
  * All SQL here; controllers contain only JavaFX.
+ *
+ * <p>Migrated from JdbcTemplate to jOOQ DSLContext.
+ *
+ * <p><b>Inline-SQL notes:</b> {@link #getHistorySummary} uses
+ * {@code DSL.field(String, Class, Object...)} for the dynamic GROUP BY / ORDER BY
+ * columns because the sort key is a runtime parameter and cannot be expressed with
+ * jOOQ's typed API without duplicating the entire select. All other queries use the
+ * fully-typed jOOQ API.
  */
 @Service
 public class PayReportDataService {
 
     private static final Logger log = LoggerFactory.getLogger(PayReportDataService.class);
 
-    @Autowired private JdbcTemplate jdbc;
+    private final DSLContext dsl;
+
+    public PayReportDataService(DSLContext dsl) { this.dsl = dsl; }
 
     // ── Shared lookup types ──────────────────────────────────────────────────
 
@@ -34,16 +56,19 @@ public class PayReportDataService {
     public List<CodeName> getPostedPayruns(AppSession s) {
         List<CodeName> list = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT payrun_no, payrun_date, payrun_status FROM parunhd " +
-                "WHERE company_no=? AND payrun_status IN('F','P') ORDER BY payrun_no DESC",
-                (RowCallbackHandler) rs -> {
-                    int no = rs.getInt("payrun_no");
-                    String status = "F".equals(rs.getString("payrun_status")) ? "Completed" : "Posted";
-                    java.sql.Date d = rs.getDate("payrun_date");
-                    list.add(new CodeName(String.valueOf(no),
-                        no + "  —  " + (d != null ? d.toString() : "?") + "  (" + status + ")"));
-                }, s.getCompanyNo());
+            dsl.select(PARUNHD.PAYRUN_NO, PARUNHD.PAYRUN_DATE, PARUNHD.PAYRUN_STATUS)
+               .from(PARUNHD)
+               .where(PARUNHD.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(PARUNHD.PAYRUN_STATUS.in("F", "P")))
+               .orderBy(PARUNHD.PAYRUN_NO.desc())
+               .fetch()
+               .forEach(r -> {
+                   int no = r.get(PARUNHD.PAYRUN_NO);
+                   String status = "F".equals(r.get(PARUNHD.PAYRUN_STATUS)) ? "Completed" : "Posted";
+                   LocalDate d = r.get(PARUNHD.PAYRUN_DATE);
+                   list.add(new CodeName(String.valueOf(no),
+                       no + "  —  " + (d != null ? d.toString() : "?") + "  (" + status + ")"));
+               });
         } catch (Exception e) { log.warn("getPostedPayruns: {}", e.getMessage()); }
         return list;
     }
@@ -52,15 +77,18 @@ public class PayReportDataService {
     public List<CodeName> getDistinctCostPeriods(AppSession s) {
         List<CodeName> list = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT DISTINCT period_end_date FROM pacosts WHERE company_no=? ORDER BY period_end_date DESC",
-                (RowCallbackHandler) rs -> {
-                    java.sql.Date d = rs.getDate("period_end_date");
-                    if (d != null) {
-                        String ds = d.toString();
-                        list.add(new CodeName(ds, ds));
-                    }
-                }, s.getCompanyNo());
+            dsl.selectDistinct(PACOSTS.PERIOD_END_DATE)
+               .from(PACOSTS)
+               .where(PACOSTS.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(PACOSTS.PERIOD_END_DATE.desc())
+               .fetch()
+               .forEach(r -> {
+                   LocalDate d = r.get(PACOSTS.PERIOD_END_DATE);
+                   if (d != null) {
+                       String ds = d.toString();
+                       list.add(new CodeName(ds, ds));
+                   }
+               });
         } catch (Exception e) { log.warn("getDistinctCostPeriods: {}", e.getMessage()); }
         return list;
     }
@@ -81,13 +109,15 @@ public class PayReportDataService {
     public List<CodeName> getYtdYears(AppSession s) {
         List<CodeName> list = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT DISTINCT year_no FROM paytd WHERE company_no=? ORDER BY year_no DESC",
-                rs -> {
-                    int y = rs.getInt("year_no");
-                    list.add(new CodeName(String.valueOf(y), "FY " + (y - 1) + "-" + String.valueOf(y).substring(2)));
-                },
-                s.getCompanyNo());
+            dsl.selectDistinct(PAYTD.YEAR_NO)
+               .from(PAYTD)
+               .where(PAYTD.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(PAYTD.YEAR_NO.desc())
+               .fetch()
+               .forEach(r -> {
+                   int y = r.get(PAYTD.YEAR_NO);
+                   list.add(new CodeName(String.valueOf(y), "FY " + (y - 1) + "-" + String.valueOf(y).substring(2)));
+               });
         } catch (Exception e) { log.warn("getYtdYears: {}", e.getMessage()); }
         return list;
     }
@@ -97,10 +127,13 @@ public class PayReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(ALL);
         try {
-            jdbc.query("SELECT paygroup, desc1 FROM pagroup WHERE company_no=? ORDER BY paygroup",
-                (RowCallbackHandler) rs -> list.add(new CodeName(trim(rs.getString("paygroup")),
-                    trim(rs.getString("paygroup")) + "  —  " + trim(rs.getString("desc1")))),
-                s.getCompanyNo());
+            dsl.select(PAGROUP.PAYGROUP, PAGROUP.DESC1)
+               .from(PAGROUP)
+               .where(PAGROUP.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(PAGROUP.PAYGROUP)
+               .fetch()
+               .forEach(r -> list.add(new CodeName(trim(r.get(PAGROUP.PAYGROUP)),
+                   trim(r.get(PAGROUP.PAYGROUP)) + "  —  " + trim(r.get(PAGROUP.DESC1)))));
         } catch (Exception e) { log.warn("getPaygroups: {}", e.getMessage()); }
         return list;
     }
@@ -110,10 +143,14 @@ public class PayReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(ALL);
         try {
-            jdbc.query("SELECT dept, MIN(desc1) d FROM padepts WHERE company_no=? GROUP BY dept ORDER BY dept",
-                (RowCallbackHandler) rs -> list.add(new CodeName(trim(rs.getString("dept")),
-                    trim(rs.getString("dept")) + "  —  " + trim(rs.getString("d")))),
-                s.getCompanyNo());
+            dsl.select(PADEPTS.DEPT, DSL.min(PADEPTS.DESC1).as("d"))
+               .from(PADEPTS)
+               .where(PADEPTS.COMPANY_NO.eq(s.getCompanyNo()))
+               .groupBy(PADEPTS.DEPT)
+               .orderBy(PADEPTS.DEPT)
+               .fetch()
+               .forEach(r -> list.add(new CodeName(trim(r.get(PADEPTS.DEPT)),
+                   trim(r.get(PADEPTS.DEPT)) + "  —  " + trim(r.get("d", String.class)))));
         } catch (Exception e) { log.warn("getDepts: {}", e.getMessage()); }
         return list;
     }
@@ -123,15 +160,17 @@ public class PayReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(ALL);
         try {
-            jdbc.query(
-                "SELECT employee_no, surname, first_name FROM pastaff " +
-                "WHERE company_no=? AND employee_status <> 'T' ORDER BY employee_no",
-                rs -> {
-                    int no = rs.getInt("employee_no");
-                    list.add(new CodeName(String.valueOf(no),
-                        no + "  —  " + trim(rs.getString("surname")) + ", " + trim(rs.getString("first_name"))));
-                },
-                s.getCompanyNo());
+            dsl.select(PASTAFF.EMPLOYEE_NO, PASTAFF.SURNAME, PASTAFF.FIRST_NAME)
+               .from(PASTAFF)
+               .where(PASTAFF.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(PASTAFF.EMPLOYEE_STATUS.ne("T")))
+               .orderBy(PASTAFF.EMPLOYEE_NO)
+               .fetch()
+               .forEach(r -> {
+                   int no = r.get(PASTAFF.EMPLOYEE_NO);
+                   list.add(new CodeName(String.valueOf(no),
+                       no + "  —  " + trim(r.get(PASTAFF.SURNAME)) + ", " + trim(r.get(PASTAFF.FIRST_NAME))));
+               });
         } catch (Exception e) { log.warn("getEmployees: {}", e.getMessage()); }
         return list;
     }
@@ -141,10 +180,13 @@ public class PayReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(ALL);
         try {
-            jdbc.query("SELECT pay_code, desc1 FROM pacodes WHERE company_no=? ORDER BY pay_code",
-                (RowCallbackHandler) rs -> list.add(new CodeName(trim(rs.getString("pay_code")),
-                    trim(rs.getString("pay_code")) + "  —  " + trim(rs.getString("desc1")))),
-                s.getCompanyNo());
+            dsl.select(PACODES.PAY_CODE, PACODES.DESC1)
+               .from(PACODES)
+               .where(PACODES.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(PACODES.PAY_CODE)
+               .fetch()
+               .forEach(r -> list.add(new CodeName(trim(r.get(PACODES.PAY_CODE)),
+                   trim(r.get(PACODES.PAY_CODE)) + "  —  " + trim(r.get(PACODES.DESC1)))));
         } catch (Exception e) { log.warn("getPayCodes: {}", e.getMessage()); }
         return list;
     }
@@ -159,40 +201,58 @@ public class PayReportDataService {
         int    e1  = p.startEmployee() == null || p.startEmployee() <= 0 ? 0      : p.startEmployee();
         int    e2  = p.endEmployee()   == null || p.endEmployee()   <= 0 ? 999999 : p.endEmployee();
 
-        String sql =
-            "SELECT t.employee_no, s.surname, s.first_name, s.paygroup, s.dept, " +
-            "       t.pay_type, t.pay_code, COALESCE(c.desc1, t.pay_code) code_desc, " +
-            "       t.amt, t.hrs " +
-            "FROM paytd t " +
-            "JOIN pastaff s ON s.company_no=t.company_no AND s.employee_no=t.employee_no " +
-            "LEFT JOIN pacodes c ON c.company_no=t.company_no AND c.pay_code=t.pay_code " +
-            "WHERE t.company_no=? AND t.year_no=? " +
-            "  AND s.paygroup BETWEEN ? AND ? " +
-            "  AND s.dept BETWEEN ? AND ? " +
-            "  AND t.pay_code BETWEEN ? AND ? " +
-            "  AND t.employee_no BETWEEN ? AND ? " +
-            "ORDER BY s.surname, s.first_name, t.employee_no, t.pay_type, t.pay_code";
+        // Table aliases for the multi-table join
+        var t = PAYTD.as("t");
+        var s2 = PASTAFF.as("s");
+        var c = PACODES.as("c");
+
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), t.field(PAYTD.PAY_CODE)).as("code_desc");
 
         // Collect raw query rows first so we can compute per-employee totals.
         List<Map<String, Object>> rawRows = new ArrayList<>();
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("empNo",     rs.getInt("employee_no"));
-                r.put("surname",   trim(rs.getString("surname")));
-                r.put("firstName", trim(rs.getString("first_name")));
-                r.put("paygroup",  trim(rs.getString("paygroup")));
-                r.put("dept",      trim(rs.getString("dept")));
-                r.put("payType",   rs.getInt("pay_type"));
-                r.put("payCode",   trim(rs.getString("pay_code")));
-                r.put("codeDesc",  trim(rs.getString("code_desc")));
-                int mins = rs.getInt("hrs");
-                r.put("hours",  mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                BigDecimal amt0 = z(rs.getBigDecimal("amt"));
-                r.put("payAmt", amt0);
-                r.put("amtStr", fmtAmt(amt0));
-                rawRows.add(r);
-            }, s.getCompanyNo(), p.yearNo(), pg1, pg2, d1, d2, c1, c2, e1, e2);
+            dsl.select(
+                   t.field(PAYTD.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   s2.field(PASTAFF.PAYGROUP),
+                   s2.field(PASTAFF.DEPT),
+                   t.field(PAYTD.PAY_TYPE),
+                   t.field(PAYTD.PAY_CODE),
+                   codeDesc,
+                   t.field(PAYTD.AMT),
+                   t.field(PAYTD.HRS))
+               .from(t)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(t.field(PAYTD.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(t.field(PAYTD.EMPLOYEE_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(t.field(PAYTD.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(t.field(PAYTD.PAY_CODE))))
+               .where(t.field(PAYTD.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(t.field(PAYTD.YEAR_NO).eq(p.yearNo()))
+                   .and(s2.field(PASTAFF.PAYGROUP).between(pg1, pg2))
+                   .and(s2.field(PASTAFF.DEPT).between(d1, d2))
+                   .and(t.field(PAYTD.PAY_CODE).between(c1, c2))
+                   .and(t.field(PAYTD.EMPLOYEE_NO).between(e1, e2)))
+               .orderBy(s2.field(PASTAFF.SURNAME), s2.field(PASTAFF.FIRST_NAME),
+                        t.field(PAYTD.EMPLOYEE_NO), t.field(PAYTD.PAY_TYPE), t.field(PAYTD.PAY_CODE))
+               .fetch()
+               .forEach(r -> {
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("empNo",     r.get(t.field(PAYTD.EMPLOYEE_NO)));
+                   row.put("surname",   trim(r.get(s2.field(PASTAFF.SURNAME))));
+                   row.put("firstName", trim(r.get(s2.field(PASTAFF.FIRST_NAME))));
+                   row.put("paygroup",  trim(r.get(s2.field(PASTAFF.PAYGROUP))));
+                   row.put("dept",      trim(r.get(s2.field(PASTAFF.DEPT))));
+                   row.put("payType",   r.get(t.field(PAYTD.PAY_TYPE)));
+                   row.put("payCode",   trim(r.get(t.field(PAYTD.PAY_CODE))));
+                   row.put("codeDesc",  trim(r.get("code_desc", String.class)));
+                   int mins = r.get(t.field(PAYTD.HRS));
+                   row.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
+                   BigDecimal amt0 = z(r.get(t.field(PAYTD.AMT)));
+                   row.put("payAmt", amt0);
+                   row.put("amtStr", fmtAmt(amt0));
+                   rawRows.add(row);
+               });
         } catch (Exception e) {
             log.error("getYtdPayments: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -327,56 +387,81 @@ public class PayReportDataService {
     public record HistoryDetailParams(
             Integer startEmp, Integer endEmp,
             String startPg, String endPg,
-            java.time.LocalDate startDate, java.time.LocalDate endDate) {}
+            LocalDate startDate, LocalDate endDate) {}
 
     public Map<String, Object> getHistoryDetail(AppSession s, HistoryDetailParams p) {
         int e1 = p.startEmp() == null || p.startEmp() <= 0 ? 0      : p.startEmp();
         int e2 = p.endEmp()   == null || p.endEmp()   <= 0 ? 999999 : p.endEmp();
         String pg1 = blank(p.startPg()) ? "    " : p.startPg();
         String pg2 = blank(p.endPg())   ? "zzzz" : p.endPg();
-        java.sql.Date d1 = p.startDate() != null ? java.sql.Date.valueOf(p.startDate()) : java.sql.Date.valueOf("1900-01-01");
-        java.sql.Date d2 = p.endDate()   != null ? java.sql.Date.valueOf(p.endDate())   : java.sql.Date.valueOf("2999-12-31");
+        LocalDate d1 = p.startDate() != null ? p.startDate() : LocalDate.of(1900, 1, 1);
+        LocalDate d2 = p.endDate()   != null ? p.endDate()   : LocalDate.of(2999, 12, 31);
 
-        String sql =
-            "SELECT h.employee_no, s.surname, s.first_name, s.paygroup, s.dept, " +
-            "       h.payrun_no, h.payrun_date, r.start_date, r.end_date, " +
-            "       h.pay_type, h.pay_code, COALESCE(c.desc1, h.pay_code) code_desc, " +
-            "       h.hrs, h.ext_amt, h.ref " +
-            "FROM paehist h " +
-            "JOIN pastaff s ON s.company_no=h.company_no AND s.employee_no=h.employee_no " +
-            "LEFT JOIN pacodes c ON c.company_no=h.company_no AND c.pay_code=h.pay_code " +
-            "JOIN parunhd r ON r.company_no=h.company_no AND r.payrun_no=h.payrun_no " +
-            "WHERE h.company_no=? AND h.employee_no BETWEEN ? AND ? " +
-            "  AND s.paygroup BETWEEN ? AND ? AND h.payrun_date BETWEEN ? AND ? " +
-            "ORDER BY s.surname, s.first_name, h.employee_no, h.payrun_date, h.payrun_no, h.pay_type, h.line_no";
+        var h = PAEHIST.as("h");
+        var s2 = PASTAFF.as("s");
+        var c = PACODES.as("c");
+        var r2 = PARUNHD.as("r");
+
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), h.field(PAEHIST.PAY_CODE)).as("code_desc");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("empNo",      rs.getInt("employee_no"));
-                r2.put("surname",    trim(rs.getString("surname")));
-                r2.put("firstName",  trim(rs.getString("first_name")));
-                r2.put("paygroup",   trim(rs.getString("paygroup")));
-                r2.put("dept",       trim(rs.getString("dept")));
-                r2.put("payrunNo",   rs.getInt("payrun_no"));
-                r2.put("payrunDate", rs.getDate("payrun_date"));
-                r2.put("payCode",    trim(rs.getString("pay_code")));
-                r2.put("codeDesc",   trim(rs.getString("code_desc")));
-                int mins = rs.getInt("hrs");
-                r2.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                r2.put("amount",     z(rs.getBigDecimal("ext_amt")));
-                r2.put("ref",        trim(rs.getString("ref")));
-                rows.add(r2);
-            }, s.getCompanyNo(), e1, e2, pg1, pg2, d1, d2);
+            dsl.select(
+                   h.field(PAEHIST.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   s2.field(PASTAFF.PAYGROUP),
+                   s2.field(PASTAFF.DEPT),
+                   h.field(PAEHIST.PAYRUN_NO),
+                   h.field(PAEHIST.PAYRUN_DATE),
+                   r2.field(PARUNHD.START_DATE),
+                   r2.field(PARUNHD.END_DATE),
+                   h.field(PAEHIST.PAY_TYPE),
+                   h.field(PAEHIST.PAY_CODE),
+                   codeDesc,
+                   h.field(PAEHIST.HRS),
+                   h.field(PAEHIST.EXT_AMT),
+                   h.field(PAEHIST.REF))
+               .from(h)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(h.field(PAEHIST.EMPLOYEE_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(h.field(PAEHIST.PAY_CODE))))
+               .join(r2).on(r2.field(PARUNHD.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(r2.field(PARUNHD.PAYRUN_NO).eq(h.field(PAEHIST.PAYRUN_NO))))
+               .where(h.field(PAEHIST.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(h.field(PAEHIST.EMPLOYEE_NO).between(e1, e2))
+                   .and(s2.field(PASTAFF.PAYGROUP).between(pg1, pg2))
+                   .and(h.field(PAEHIST.PAYRUN_DATE).between(d1, d2)))
+               .orderBy(s2.field(PASTAFF.SURNAME), s2.field(PASTAFF.FIRST_NAME),
+                        h.field(PAEHIST.EMPLOYEE_NO), h.field(PAEHIST.PAYRUN_DATE),
+                        h.field(PAEHIST.PAYRUN_NO), h.field(PAEHIST.PAY_TYPE), h.field(PAEHIST.LINE_NO))
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("empNo",      row.get(h.field(PAEHIST.EMPLOYEE_NO)));
+                   rowMap.put("surname",    trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("firstName",  trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
+                   rowMap.put("paygroup",   trim(row.get(s2.field(PASTAFF.PAYGROUP))));
+                   rowMap.put("dept",       trim(row.get(s2.field(PASTAFF.DEPT))));
+                   rowMap.put("payrunNo",   row.get(h.field(PAEHIST.PAYRUN_NO)));
+                   rowMap.put("payrunDate", row.get(h.field(PAEHIST.PAYRUN_DATE)));
+                   rowMap.put("payCode",    trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
+                   int mins = row.get(h.field(PAEHIST.HRS));
+                   rowMap.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
+                   rowMap.put("amount",     z(row.get(h.field(PAEHIST.EXT_AMT))));
+                   rowMap.put("ref",        trim(row.get(h.field(PAEHIST.REF))));
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getHistoryDetail: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No history data matched the selection.");
 
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -392,7 +477,7 @@ public class PayReportDataService {
             Integer startEmp, Integer endEmp,
             String startPg, String endPg,
             String startDept, String endDept,
-            java.time.LocalDate startDate, java.time.LocalDate endDate,
+            LocalDate startDate, LocalDate endDate,
             String sortBy) {} // "Employee", "Paygroup", "Payrun date"
 
     public Map<String, Object> getHistorySummary(AppSession s, HistorySummaryParams p) {
@@ -402,65 +487,108 @@ public class PayReportDataService {
         String pg2 = blank(p.endPg())     ? "zzzz" : p.endPg();
         String d1s = blank(p.startDept()) ? "    " : p.startDept();
         String d2s = blank(p.endDept())   ? "zzzz" : p.endDept();
-        java.sql.Date dt1 = p.startDate() != null ? java.sql.Date.valueOf(p.startDate()) : java.sql.Date.valueOf("1900-01-01");
-        java.sql.Date dt2 = p.endDate()   != null ? java.sql.Date.valueOf(p.endDate())   : java.sql.Date.valueOf("2999-12-31");
+        LocalDate dt1 = p.startDate() != null ? p.startDate() : LocalDate.of(1900, 1, 1);
+        LocalDate dt2 = p.endDate()   != null ? p.endDate()   : LocalDate.of(2999, 12, 31);
 
         boolean byPayrun = "Payrun date".equals(p.sortBy());
         boolean byPaygroup = "Paygroup".equals(p.sortBy());
 
-        String groupBy = byPayrun
-            ? "h.employee_no, s.surname, s.first_name, s.paygroup, s.dept, h.pay_type, h.pay_code, code_desc, h.payrun_no, h.payrun_date"
-            : "h.employee_no, s.surname, s.first_name, s.paygroup, s.dept, h.pay_type, h.pay_code, code_desc";
-        String orderBy = byPayrun
-            ? "h.payrun_date, h.payrun_no, s.surname, s.first_name, h.employee_no, h.pay_type"
-            : byPaygroup
-                ? "s.paygroup, s.surname, s.first_name, h.employee_no, h.pay_type"
-                : "s.surname, s.first_name, h.employee_no, h.pay_type";
+        var h = PAEHIST.as("h");
+        var s2 = PASTAFF.as("s");
+        var c = PACODES.as("c");
 
-        String selectExtra = byPayrun ? ", h.payrun_no, h.payrun_date" : "";
-        String sql =
-            "SELECT h.employee_no, s.surname, s.first_name, s.paygroup, s.dept, " +
-            "       h.pay_type, h.pay_code, COALESCE(c.desc1,h.pay_code) code_desc, " +
-            "       SUM(h.hrs) total_hrs, SUM(h.ext_amt) total_amt" + selectExtra + " " +
-            "FROM paehist h " +
-            "JOIN pastaff s ON s.company_no=h.company_no AND s.employee_no=h.employee_no " +
-            "LEFT JOIN pacodes c ON c.company_no=h.company_no AND c.pay_code=h.pay_code " +
-            "WHERE h.company_no=? AND h.employee_no BETWEEN ? AND ? " +
-            "  AND s.paygroup BETWEEN ? AND ? AND s.dept BETWEEN ? AND ? " +
-            "  AND h.payrun_date BETWEEN ? AND ? " +
-            "GROUP BY " + groupBy + " ORDER BY " + orderBy;
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), h.field(PAEHIST.PAY_CODE)).as("code_desc");
+
+        // Dynamic GROUP BY and ORDER BY — use inline DSL.field() because the column
+        // set changes at runtime based on sortBy and cannot be typed-API expressed
+        // without duplicating the entire select tree. See class Javadoc.
+        var groupByFields = new ArrayList<Field<?>>();
+        groupByFields.add(h.field(PAEHIST.EMPLOYEE_NO));
+        groupByFields.add(s2.field(PASTAFF.SURNAME));
+        groupByFields.add(s2.field(PASTAFF.FIRST_NAME));
+        groupByFields.add(s2.field(PASTAFF.PAYGROUP));
+        groupByFields.add(s2.field(PASTAFF.DEPT));
+        groupByFields.add(h.field(PAEHIST.PAY_TYPE));
+        groupByFields.add(h.field(PAEHIST.PAY_CODE));
+        groupByFields.add(DSL.field("code_desc", String.class));
+        if (byPayrun) {
+            groupByFields.add(h.field(PAEHIST.PAYRUN_NO));
+            groupByFields.add(h.field(PAEHIST.PAYRUN_DATE));
+        }
+
+        var orderByFields = new ArrayList<Field<?>>();
+        if (byPayrun) {
+            orderByFields.add(h.field(PAEHIST.PAYRUN_DATE));
+            orderByFields.add(h.field(PAEHIST.PAYRUN_NO));
+            orderByFields.add(s2.field(PASTAFF.SURNAME));
+            orderByFields.add(s2.field(PASTAFF.FIRST_NAME));
+            orderByFields.add(h.field(PAEHIST.EMPLOYEE_NO));
+            orderByFields.add(h.field(PAEHIST.PAY_TYPE));
+        } else if (byPaygroup) {
+            orderByFields.add(s2.field(PASTAFF.PAYGROUP));
+            orderByFields.add(s2.field(PASTAFF.SURNAME));
+            orderByFields.add(s2.field(PASTAFF.FIRST_NAME));
+            orderByFields.add(h.field(PAEHIST.EMPLOYEE_NO));
+            orderByFields.add(h.field(PAEHIST.PAY_TYPE));
+        } else {
+            orderByFields.add(s2.field(PASTAFF.SURNAME));
+            orderByFields.add(s2.field(PASTAFF.FIRST_NAME));
+            orderByFields.add(h.field(PAEHIST.EMPLOYEE_NO));
+            orderByFields.add(h.field(PAEHIST.PAY_TYPE));
+        }
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("empNo",     rs.getInt("employee_no"));
-                r2.put("surname",   trim(rs.getString("surname")));
-                r2.put("firstName", trim(rs.getString("first_name")));
-                r2.put("paygroup",  trim(rs.getString("paygroup")));
-                r2.put("dept",      trim(rs.getString("dept")));
-                r2.put("payType",   rs.getInt("pay_type"));
-                r2.put("payCode",   trim(rs.getString("pay_code")));
-                r2.put("codeDesc",  trim(rs.getString("code_desc")));
-                int mins = rs.getInt("total_hrs");
-                r2.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                r2.put("amount",    z(rs.getBigDecimal("total_amt")));
-                if (byPayrun) {
-                    r2.put("payrunNo",   rs.getInt("payrun_no"));
-                    r2.put("payrunDate", rs.getDate("payrun_date"));
-                } else {
-                    r2.put("payrunNo",   null);
-                    r2.put("payrunDate", null);
-                }
-                rows.add(r2);
-            }, s.getCompanyNo(), e1, e2, pg1, pg2, d1s, d2s, dt1, dt2);
+            var selectStep = dsl.select(
+                   h.field(PAEHIST.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   s2.field(PASTAFF.PAYGROUP),
+                   s2.field(PASTAFF.DEPT),
+                   h.field(PAEHIST.PAY_TYPE),
+                   h.field(PAEHIST.PAY_CODE),
+                   codeDesc,
+                   DSL.sum(h.field(PAEHIST.HRS)).as("total_hrs"),
+                   DSL.sum(h.field(PAEHIST.EXT_AMT)).as("total_amt"),
+                   byPayrun ? h.field(PAEHIST.PAYRUN_NO) : DSL.val((Integer) null).as("payrun_no"),
+                   byPayrun ? h.field(PAEHIST.PAYRUN_DATE) : DSL.val((LocalDate) null).as("payrun_date"))
+               .from(h)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(h.field(PAEHIST.EMPLOYEE_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(h.field(PAEHIST.PAY_CODE))))
+               .where(h.field(PAEHIST.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(h.field(PAEHIST.EMPLOYEE_NO).between(e1, e2))
+                   .and(s2.field(PASTAFF.PAYGROUP).between(pg1, pg2))
+                   .and(s2.field(PASTAFF.DEPT).between(d1s, d2s))
+                   .and(h.field(PAEHIST.PAYRUN_DATE).between(dt1, dt2)))
+               .groupBy(groupByFields)
+               .orderBy(orderByFields);
+
+            selectStep.fetch().forEach(row -> {
+                Map<String, Object> rowMap = new LinkedHashMap<>();
+                rowMap.put("empNo",     row.get(h.field(PAEHIST.EMPLOYEE_NO)));
+                rowMap.put("surname",   trim(row.get(s2.field(PASTAFF.SURNAME))));
+                rowMap.put("firstName", trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
+                rowMap.put("paygroup",  trim(row.get(s2.field(PASTAFF.PAYGROUP))));
+                rowMap.put("dept",      trim(row.get(s2.field(PASTAFF.DEPT))));
+                rowMap.put("payType",   row.get(h.field(PAEHIST.PAY_TYPE)));
+                rowMap.put("payCode",   trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
+                int mins = row.get("total_hrs", Integer.class) != null ? row.get("total_hrs", Integer.class) : 0;
+                rowMap.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
+                rowMap.put("amount", z(row.get("total_amt", BigDecimal.class)));
+                rowMap.put("payrunNo",   byPayrun ? row.get("payrun_no", Integer.class)   : null);
+                rowMap.put("payrunDate", byPayrun ? row.get("payrun_date", LocalDate.class) : null);
+                rows.add(rowMap);
+            });
         } catch (Exception e) {
             log.error("getHistorySummary: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No history data matched the selection.");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -484,42 +612,62 @@ public class PayReportDataService {
         int e1 = p.startEmp() == null || p.startEmp() <= 0 ? 0      : p.startEmp();
         int e2 = p.endEmp()   == null || p.endEmp()   <= 0 ? 999999 : p.endEmp();
         boolean byFund = "Fund Name".equals(p.sortBy());
-        String orderBy = byFund
-            ? "COALESCE(c.fund_name,''), t.pay_code, s.surname, t.employee_no"
-            : "t.pay_code, s.surname, t.employee_no";
 
-        String sql =
-            "SELECT t.pay_code, t.pay_type, COALESCE(c.desc1, t.pay_code) code_desc, " +
-            "       COALESCE(c.fund_name,'') fund_name, " +
-            "       t.employee_no, s.surname, s.first_name, t.amt " +
-            "FROM paytd t " +
-            "JOIN pastaff s ON s.company_no=t.company_no AND s.employee_no=t.employee_no " +
-            "LEFT JOIN pacodes c ON c.company_no=t.company_no AND c.pay_code=t.pay_code " +
-            "WHERE t.company_no=? AND t.year_no=? AND t.pay_type IN(19,20,21) " +
-            "  AND t.pay_code BETWEEN ? AND ? AND t.employee_no BETWEEN ? AND ? " +
-            "ORDER BY " + orderBy;
+        var t = PAYTD.as("t");
+        var s2 = PASTAFF.as("s");
+        var c = PACODES.as("c");
+
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), t.field(PAYTD.PAY_CODE)).as("code_desc");
+        Field<String> fundName = DSL.coalesce(c.field(PACODES.FUND_NAME), DSL.val("")).as("fund_name");
+
+        var orderByFields = new ArrayList<Field<?>>();
+        if (byFund) orderByFields.add(DSL.coalesce(c.field(PACODES.FUND_NAME), DSL.val("")));
+        orderByFields.add(t.field(PAYTD.PAY_CODE));
+        orderByFields.add(s2.field(PASTAFF.SURNAME));
+        orderByFields.add(t.field(PAYTD.EMPLOYEE_NO));
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("payCode",   trim(rs.getString("pay_code")));
-                r2.put("payType",   rs.getInt("pay_type"));
-                r2.put("codeDesc",  trim(rs.getString("code_desc")));
-                r2.put("fundName",  trim(rs.getString("fund_name")));
-                r2.put("empNo",     rs.getInt("employee_no"));
-                r2.put("surname",   trim(rs.getString("surname")));
-                r2.put("firstName", trim(rs.getString("first_name")));
-                r2.put("amount",    z(rs.getBigDecimal("amt")));
-                rows.add(r2);
-            }, s.getCompanyNo(), p.yearNo(), c1, c2, e1, e2);
+            dsl.select(
+                   t.field(PAYTD.PAY_CODE),
+                   t.field(PAYTD.PAY_TYPE),
+                   codeDesc,
+                   fundName,
+                   t.field(PAYTD.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   t.field(PAYTD.AMT))
+               .from(t)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(t.field(PAYTD.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(t.field(PAYTD.EMPLOYEE_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(t.field(PAYTD.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(t.field(PAYTD.PAY_CODE))))
+               .where(t.field(PAYTD.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(t.field(PAYTD.YEAR_NO).eq(p.yearNo()))
+                   .and(t.field(PAYTD.PAY_TYPE).in(19, 20, 21))
+                   .and(t.field(PAYTD.PAY_CODE).between(c1, c2))
+                   .and(t.field(PAYTD.EMPLOYEE_NO).between(e1, e2)))
+               .orderBy(orderByFields)
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("payCode",   trim(row.get(t.field(PAYTD.PAY_CODE))));
+                   rowMap.put("payType",   row.get(t.field(PAYTD.PAY_TYPE)));
+                   rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
+                   rowMap.put("fundName",  trim(row.get("fund_name", String.class)));
+                   rowMap.put("empNo",     row.get(t.field(PAYTD.EMPLOYEE_NO)));
+                   rowMap.put("surname",   trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("firstName", trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
+                   rowMap.put("amount",    z(row.get(t.field(PAYTD.AMT))));
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getDednSuper: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No deduction/super data matched the selection.");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -533,7 +681,7 @@ public class PayReportDataService {
     // ── PATL16 — Department Expenses ────────────────────────────────────────
 
     public record DeptExpensesParams(
-            java.time.LocalDate periodDate,
+            LocalDate periodDate,
             String startPg, String endPg,
             String startDept, String endDept) {}
 
@@ -543,43 +691,62 @@ public class PayReportDataService {
         String pg2 = blank(p.endPg())     ? "zzzz" : p.endPg();
         String d1  = blank(p.startDept()) ? "    " : p.startDept();
         String d2  = blank(p.endDept())   ? "zzzz" : p.endDept();
-        java.sql.Date pd = java.sql.Date.valueOf(p.periodDate());
 
-        String sql =
-            "SELECT k.paygroup, g.desc1 pg_desc, k.dept, d.desc1 dept_desc, " +
-            "       k.pay_type, k.pay_code, COALESCE(c.desc1, k.pay_code) code_desc, " +
-            "       k.amt, k.hrs " +
-            "FROM pacosts k " +
-            "LEFT JOIN pagroup g ON g.company_no=k.company_no AND g.paygroup=k.paygroup " +
-            "LEFT JOIN padepts d ON d.company_no=k.company_no AND d.dept=k.dept AND d.paygroup=k.paygroup " +
-            "LEFT JOIN pacodes c ON c.company_no=k.company_no AND c.pay_code=k.pay_code " +
-            "WHERE k.company_no=? AND k.period_end_date=? " +
-            "  AND k.paygroup BETWEEN ? AND ? AND k.dept BETWEEN ? AND ? " +
-            "ORDER BY k.paygroup, k.dept, k.pay_type, k.pay_code";
+        var k = PACOSTS.as("k");
+        var g = PAGROUP.as("g");
+        var d = PADEPTS.as("d");
+        var c = PACODES.as("c");
+
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), k.field(PACOSTS.PAY_CODE)).as("code_desc");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("paygroup",  trim(rs.getString("paygroup")));
-                r2.put("pgDesc",    trim(rs.getString("pg_desc")));
-                r2.put("dept",      trim(rs.getString("dept")));
-                r2.put("deptDesc",  trim(rs.getString("dept_desc")));
-                r2.put("payType",   rs.getInt("pay_type"));
-                r2.put("payCode",   trim(rs.getString("pay_code")));
-                r2.put("codeDesc",  trim(rs.getString("code_desc")));
-                int mins = rs.getInt("hrs");
-                r2.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                r2.put("amount",    z(rs.getBigDecimal("amt")));
-                rows.add(r2);
-            }, s.getCompanyNo(), pd, pg1, pg2, d1, d2);
+            dsl.select(
+                   k.field(PACOSTS.PAYGROUP),
+                   g.field(PAGROUP.DESC1).as("pg_desc"),
+                   k.field(PACOSTS.DEPT),
+                   d.field(PADEPTS.DESC1).as("dept_desc"),
+                   k.field(PACOSTS.PAY_TYPE),
+                   k.field(PACOSTS.PAY_CODE),
+                   codeDesc,
+                   k.field(PACOSTS.AMT),
+                   k.field(PACOSTS.HRS))
+               .from(k)
+               .leftJoin(g).on(g.field(PAGROUP.COMPANY_NO).eq(k.field(PACOSTS.COMPANY_NO))
+                   .and(g.field(PAGROUP.PAYGROUP).eq(k.field(PACOSTS.PAYGROUP))))
+               .leftJoin(d).on(d.field(PADEPTS.COMPANY_NO).eq(k.field(PACOSTS.COMPANY_NO))
+                   .and(d.field(PADEPTS.DEPT).eq(k.field(PACOSTS.DEPT)))
+                   .and(d.field(PADEPTS.PAYGROUP).eq(k.field(PACOSTS.PAYGROUP))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(k.field(PACOSTS.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(k.field(PACOSTS.PAY_CODE))))
+               .where(k.field(PACOSTS.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(k.field(PACOSTS.PERIOD_END_DATE).eq(p.periodDate()))
+                   .and(k.field(PACOSTS.PAYGROUP).between(pg1, pg2))
+                   .and(k.field(PACOSTS.DEPT).between(d1, d2)))
+               .orderBy(k.field(PACOSTS.PAYGROUP), k.field(PACOSTS.DEPT),
+                        k.field(PACOSTS.PAY_TYPE), k.field(PACOSTS.PAY_CODE))
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("paygroup",  trim(row.get(k.field(PACOSTS.PAYGROUP))));
+                   rowMap.put("pgDesc",    trim(row.get("pg_desc", String.class)));
+                   rowMap.put("dept",      trim(row.get(k.field(PACOSTS.DEPT))));
+                   rowMap.put("deptDesc",  trim(row.get("dept_desc", String.class)));
+                   rowMap.put("payType",   row.get(k.field(PACOSTS.PAY_TYPE)));
+                   rowMap.put("payCode",   trim(row.get(k.field(PACOSTS.PAY_CODE))));
+                   rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
+                   int mins = row.get(k.field(PACOSTS.HRS));
+                   rowMap.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
+                   rowMap.put("amount",    z(row.get(k.field(PACOSTS.AMT))));
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getDeptExpenses: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No cost data for period " + p.periodDate() + ".");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -593,56 +760,67 @@ public class PayReportDataService {
 
     public record PeriodSummaryParams(
             String startPg, String endPg,
-            java.time.LocalDate startDate, java.time.LocalDate endDate) {}
+            LocalDate startDate, LocalDate endDate) {}
 
     public Map<String, Object> getPeriodSummary(AppSession s, PeriodSummaryParams p) {
         String pg1 = blank(p.startPg()) ? "    " : p.startPg();
         String pg2 = blank(p.endPg())   ? "zzzz" : p.endPg();
-        java.sql.Date d1 = p.startDate() != null ? java.sql.Date.valueOf(p.startDate()) : java.sql.Date.valueOf("1900-01-01");
-        java.sql.Date d2 = p.endDate()   != null ? java.sql.Date.valueOf(p.endDate())   : java.sql.Date.valueOf("2999-12-31");
+        LocalDate d1 = p.startDate() != null ? p.startDate() : LocalDate.of(1900, 1, 1);
+        LocalDate d2 = p.endDate()   != null ? p.endDate()   : LocalDate.of(2999, 12, 31);
 
-        String sql =
-            "SELECT h.paygroup, h.payrun_no, r.payrun_date, " +
-            "       SUM(CASE WHEN h.pay_type=1 THEN h.ext_amt ELSE 0 END) normal_pay, " +
-            "       SUM(CASE WHEN h.pay_type=2 THEN h.ext_amt ELSE 0 END) overtime, " +
-            "       SUM(CASE WHEN h.pay_type IN(5,7,4,8) THEN h.ext_amt ELSE 0 END) leave_pay, " +
-            "       SUM(CASE WHEN h.pay_type IN(20,21) THEN h.ext_amt ELSE 0 END) super_, " +
-            "       SUM(CASE WHEN h.pay_type=18 THEN h.ext_amt ELSE 0 END) tax, " +
-            "       SUM(CASE WHEN h.pay_type=19 THEN h.ext_amt ELSE 0 END) deductions, " +
-            "       SUM(CASE WHEN h.pay_type=22 THEN h.ext_amt ELSE 0 END) payroll_tax, " +
-            "       SUM(h.ext_amt) total, COUNT(DISTINCT h.employee_no) emp_count " +
-            "FROM paehist h " +
-            "JOIN parunhd r ON r.company_no=h.company_no AND r.payrun_no=h.payrun_no " +
-            "WHERE h.company_no=? AND h.paygroup BETWEEN ? AND ? " +
-            "  AND h.payrun_date BETWEEN ? AND ? " +
-            "GROUP BY h.paygroup, h.payrun_no, r.payrun_date " +
-            "ORDER BY h.paygroup, r.payrun_date, h.payrun_no";
+        var h = PAEHIST.as("h");
+        var r2 = PARUNHD.as("r");
+
+        // CASE WHEN aggregates — typed jOOQ DSL.when()/DSL.sum()
+        Field<BigDecimal> normalPay  = DSL.sum(DSL.when(h.field(PAEHIST.PAY_TYPE).eq(1),  h.field(PAEHIST.EXT_AMT)).otherwise(BigDecimal.ZERO)).as("normal_pay");
+        Field<BigDecimal> overtime   = DSL.sum(DSL.when(h.field(PAEHIST.PAY_TYPE).eq(2),  h.field(PAEHIST.EXT_AMT)).otherwise(BigDecimal.ZERO)).as("overtime");
+        Field<BigDecimal> leavePay   = DSL.sum(DSL.when(h.field(PAEHIST.PAY_TYPE).in(5,7,4,8), h.field(PAEHIST.EXT_AMT)).otherwise(BigDecimal.ZERO)).as("leave_pay");
+        Field<BigDecimal> super_     = DSL.sum(DSL.when(h.field(PAEHIST.PAY_TYPE).in(20,21), h.field(PAEHIST.EXT_AMT)).otherwise(BigDecimal.ZERO)).as("super_");
+        Field<BigDecimal> tax        = DSL.sum(DSL.when(h.field(PAEHIST.PAY_TYPE).eq(18), h.field(PAEHIST.EXT_AMT)).otherwise(BigDecimal.ZERO)).as("tax");
+        Field<BigDecimal> deductions = DSL.sum(DSL.when(h.field(PAEHIST.PAY_TYPE).eq(19), h.field(PAEHIST.EXT_AMT)).otherwise(BigDecimal.ZERO)).as("deductions");
+        Field<BigDecimal> payrollTax = DSL.sum(DSL.when(h.field(PAEHIST.PAY_TYPE).eq(22), h.field(PAEHIST.EXT_AMT)).otherwise(BigDecimal.ZERO)).as("payroll_tax");
+        Field<BigDecimal> total      = DSL.sum(h.field(PAEHIST.EXT_AMT)).as("total");
+        Field<Integer>    empCount   = DSL.countDistinct(h.field(PAEHIST.EMPLOYEE_NO)).as("emp_count");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("paygroup",   trim(rs.getString("paygroup")));
-                r2.put("payrunNo",   rs.getInt("payrun_no"));
-                r2.put("payrunDate", rs.getDate("payrun_date"));
-                r2.put("normalPay",  z(rs.getBigDecimal("normal_pay")));
-                r2.put("overtime",   z(rs.getBigDecimal("overtime")));
-                r2.put("leavePay",   z(rs.getBigDecimal("leave_pay")));
-                r2.put("super_",     z(rs.getBigDecimal("super_")));
-                r2.put("tax",        z(rs.getBigDecimal("tax")));
-                r2.put("deductions", z(rs.getBigDecimal("deductions")));
-                r2.put("payrollTax", z(rs.getBigDecimal("payroll_tax")));
-                r2.put("total",      z(rs.getBigDecimal("total")));
-                r2.put("empCount",   rs.getInt("emp_count"));
-                rows.add(r2);
-            }, s.getCompanyNo(), pg1, pg2, d1, d2);
+            dsl.select(
+                   h.field(PAEHIST.PAYGROUP),
+                   h.field(PAEHIST.PAYRUN_NO),
+                   r2.field(PARUNHD.PAYRUN_DATE),
+                   normalPay, overtime, leavePay, super_, tax, deductions, payrollTax, total, empCount)
+               .from(h)
+               .join(r2).on(r2.field(PARUNHD.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(r2.field(PARUNHD.PAYRUN_NO).eq(h.field(PAEHIST.PAYRUN_NO))))
+               .where(h.field(PAEHIST.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(h.field(PAEHIST.PAYGROUP).between(pg1, pg2))
+                   .and(h.field(PAEHIST.PAYRUN_DATE).between(d1, d2)))
+               .groupBy(h.field(PAEHIST.PAYGROUP), h.field(PAEHIST.PAYRUN_NO), r2.field(PARUNHD.PAYRUN_DATE))
+               .orderBy(h.field(PAEHIST.PAYGROUP), r2.field(PARUNHD.PAYRUN_DATE), h.field(PAEHIST.PAYRUN_NO))
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("paygroup",   trim(row.get(h.field(PAEHIST.PAYGROUP))));
+                   rowMap.put("payrunNo",   row.get(h.field(PAEHIST.PAYRUN_NO)));
+                   rowMap.put("payrunDate", row.get(r2.field(PARUNHD.PAYRUN_DATE)));
+                   rowMap.put("normalPay",  z(row.get("normal_pay",  BigDecimal.class)));
+                   rowMap.put("overtime",   z(row.get("overtime",    BigDecimal.class)));
+                   rowMap.put("leavePay",   z(row.get("leave_pay",   BigDecimal.class)));
+                   rowMap.put("super_",     z(row.get("super_",      BigDecimal.class)));
+                   rowMap.put("tax",        z(row.get("tax",         BigDecimal.class)));
+                   rowMap.put("deductions", z(row.get("deductions",  BigDecimal.class)));
+                   rowMap.put("payrollTax", z(row.get("payroll_tax", BigDecimal.class)));
+                   rowMap.put("total",      z(row.get("total",       BigDecimal.class)));
+                   rowMap.put("empCount",   row.get("emp_count", Integer.class));
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getPeriodSummary: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No payrun data matched the selection.");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("total")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("total")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -655,52 +833,75 @@ public class PayReportDataService {
     // ── PATL60 — Payrun GL Detail ────────────────────────────────────────────
 
     public Map<String, Object> getPayrunGlDetail(AppSession s, int payrunNo) {
-        String sql =
-            "SELECT h.employee_no, s.surname, s.first_name, " +
-            "       h.pay_type, h.pay_code, COALESCE(c.desc1, h.pay_code) code_desc, " +
-            "       h.gl_acct_no_main, h.gl_acct_no_sub, " +
-            "       COALESCE(g.desc1,'') gl_desc, h.ext_amt " +
-            "FROM paehist h " +
-            "JOIN pastaff s ON s.company_no=h.company_no AND s.employee_no=h.employee_no " +
-            "LEFT JOIN pacodes c ON c.company_no=h.company_no AND c.pay_code=h.pay_code " +
-            "LEFT JOIN glchart g ON g.company_no=h.company_no " +
-            "     AND g.acct_main_no=h.gl_acct_no_main AND g.acct_sub_no=h.gl_acct_no_sub " +
-            "WHERE h.company_no=? AND h.payrun_no=? " +
-            "ORDER BY h.employee_no, h.pay_type, h.line_no";
+        var h = PAEHIST.as("h");
+        var s2 = PASTAFF.as("s");
+        var c = PACODES.as("c");
+        var g = GLCHART.as("g");
+
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), h.field(PAEHIST.PAY_CODE)).as("code_desc");
+        Field<String> glDesc   = DSL.coalesce(g.field(GLCHART.DESC1), DSL.val("")).as("gl_desc");
 
         // Load payrun header
         String[] payrunInfo = new String[]{""};
         try {
-            jdbc.query("SELECT payrun_date, payrun_status FROM parunhd WHERE company_no=? AND payrun_no=?",
-                (RowCallbackHandler) rs -> {
-                    String st = "F".equals(rs.getString("payrun_status")) ? "Completed" : "Posted";
-                    payrunInfo[0] = "Payrun " + payrunNo + "  —  " + rs.getDate("payrun_date") + "  (" + st + ")";
-                }, s.getCompanyNo(), payrunNo);
+            dsl.select(PARUNHD.PAYRUN_DATE, PARUNHD.PAYRUN_STATUS)
+               .from(PARUNHD)
+               .where(PARUNHD.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(PARUNHD.PAYRUN_NO.eq(payrunNo)))
+               .fetch()
+               .forEach(row -> {
+                   String st = "F".equals(row.get(PARUNHD.PAYRUN_STATUS)) ? "Completed" : "Posted";
+                   LocalDate pd = row.get(PARUNHD.PAYRUN_DATE);
+                   payrunInfo[0] = "Payrun " + payrunNo + "  —  " + (pd != null ? pd : "?") + "  (" + st + ")";
+               });
         } catch (Exception e) { log.warn("getPayrunGlDetail header: {}", e.getMessage()); }
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("empNo",      rs.getInt("employee_no"));
-                r2.put("surname",    trim(rs.getString("surname")));
-                r2.put("firstName",  trim(rs.getString("first_name")));
-                r2.put("payType",    rs.getInt("pay_type"));
-                r2.put("payCode",    trim(rs.getString("pay_code")));
-                r2.put("codeDesc",   trim(rs.getString("code_desc")));
-                r2.put("glAcctMain", rs.getInt("gl_acct_no_main"));
-                r2.put("glAcctSub",  rs.getInt("gl_acct_no_sub"));
-                r2.put("glDesc",     trim(rs.getString("gl_desc")));
-                r2.put("amount",     z(rs.getBigDecimal("ext_amt")));
-                rows.add(r2);
-            }, s.getCompanyNo(), payrunNo);
+            dsl.select(
+                   h.field(PAEHIST.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   h.field(PAEHIST.PAY_TYPE),
+                   h.field(PAEHIST.PAY_CODE),
+                   codeDesc,
+                   h.field(PAEHIST.GL_ACCT_NO_MAIN),
+                   h.field(PAEHIST.GL_ACCT_NO_SUB),
+                   glDesc,
+                   h.field(PAEHIST.EXT_AMT))
+               .from(h)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(h.field(PAEHIST.EMPLOYEE_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(h.field(PAEHIST.PAY_CODE))))
+               .leftJoin(g).on(g.field(GLCHART.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(g.field(GLCHART.ACCT_MAIN_NO).eq(h.field(PAEHIST.GL_ACCT_NO_MAIN)))
+                   .and(g.field(GLCHART.ACCT_SUB_NO).eq(h.field(PAEHIST.GL_ACCT_NO_SUB))))
+               .where(h.field(PAEHIST.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(h.field(PAEHIST.PAYRUN_NO).eq(payrunNo)))
+               .orderBy(h.field(PAEHIST.EMPLOYEE_NO), h.field(PAEHIST.PAY_TYPE), h.field(PAEHIST.LINE_NO))
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("empNo",      row.get(h.field(PAEHIST.EMPLOYEE_NO)));
+                   rowMap.put("surname",    trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("firstName",  trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
+                   rowMap.put("payType",    row.get(h.field(PAEHIST.PAY_TYPE)));
+                   rowMap.put("payCode",    trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
+                   rowMap.put("glAcctMain", row.get(h.field(PAEHIST.GL_ACCT_NO_MAIN)));
+                   rowMap.put("glAcctSub",  row.get(h.field(PAEHIST.GL_ACCT_NO_SUB)));
+                   rowMap.put("glDesc",     trim(row.get("gl_desc", String.class)));
+                   rowMap.put("amount",     z(row.get(h.field(PAEHIST.EXT_AMT))));
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getPayrunGlDetail: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No GL detail found for payrun " + payrunNo + ".");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -715,59 +916,86 @@ public class PayReportDataService {
     public record TimesheetHistoryParams(
             String startPg, String endPg,
             Integer startEmp, Integer endEmp,
-            java.time.LocalDate startDate, java.time.LocalDate endDate) {}
+            LocalDate startDate, LocalDate endDate) {}
 
     public Map<String, Object> getTimesheetHistory(AppSession s, TimesheetHistoryParams p) {
         String pg1 = blank(p.startPg()) ? "    " : p.startPg();
         String pg2 = blank(p.endPg())   ? "zzzz" : p.endPg();
         int e1 = p.startEmp() == null || p.startEmp() <= 0 ? 0      : p.startEmp();
         int e2 = p.endEmp()   == null || p.endEmp()   <= 0 ? 999999 : p.endEmp();
-        java.sql.Date d1 = p.startDate() != null ? java.sql.Date.valueOf(p.startDate()) : java.sql.Date.valueOf("1900-01-01");
-        java.sql.Date d2 = p.endDate()   != null ? java.sql.Date.valueOf(p.endDate())   : java.sql.Date.valueOf("2999-12-31");
+        LocalDate d1 = p.startDate() != null ? p.startDate() : LocalDate.of(1900, 1, 1);
+        LocalDate d2 = p.endDate()   != null ? p.endDate()   : LocalDate.of(2999, 12, 31);
 
-        String sql =
-            "SELECT h.paygroup, h.employee_no, s.surname, s.first_name, s.dept, " +
-            "       h.payrun_no, h.payrun_date, r.start_date, r.end_date, " +
-            "       h.pay_type, h.pay_code, COALESCE(c.desc1,h.pay_code) code_desc, " +
-            "       h.hrs, h.qty, h.rate_perc, h.ext_amt, h.ref " +
-            "FROM paehist h " +
-            "JOIN pastaff s ON s.company_no=h.company_no AND s.employee_no=h.employee_no " +
-            "JOIN parunhd r ON r.company_no=h.company_no AND r.payrun_no=h.payrun_no " +
-            "LEFT JOIN pacodes c ON c.company_no=h.company_no AND c.pay_code=h.pay_code " +
-            "WHERE h.company_no=? AND s.paygroup BETWEEN ? AND ? " +
-            "  AND h.employee_no BETWEEN ? AND ? AND h.payrun_date BETWEEN ? AND ? " +
-            "ORDER BY s.paygroup, s.surname, h.employee_no, h.payrun_date, h.payrun_no, h.pay_type, h.line_no";
+        var h = PAEHIST.as("h");
+        var s2 = PASTAFF.as("s");
+        var r2 = PARUNHD.as("r");
+        var c = PACODES.as("c");
+
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), h.field(PAEHIST.PAY_CODE)).as("code_desc");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("paygroup",   trim(rs.getString("paygroup")));
-                r2.put("empNo",      rs.getInt("employee_no"));
-                r2.put("surname",    trim(rs.getString("surname")));
-                r2.put("firstName",  trim(rs.getString("first_name")));
-                r2.put("dept",       trim(rs.getString("dept")));
-                r2.put("payrunNo",   rs.getInt("payrun_no"));
-                r2.put("payrunDate", rs.getDate("payrun_date"));
-                r2.put("startDate",  rs.getDate("start_date"));
-                r2.put("endDate",    rs.getDate("end_date"));
-                r2.put("payCode",    trim(rs.getString("pay_code")));
-                r2.put("codeDesc",   trim(rs.getString("code_desc")));
-                int mins = rs.getInt("hrs");
-                r2.put("hours",    mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                r2.put("qty",      rs.getBigDecimal("qty"));
-                r2.put("ratePerc", rs.getBigDecimal("rate_perc"));
-                r2.put("amount",   z(rs.getBigDecimal("ext_amt")));
-                r2.put("ref",      trim(rs.getString("ref")));
-                rows.add(r2);
-            }, s.getCompanyNo(), pg1, pg2, e1, e2, d1, d2);
+            dsl.select(
+                   h.field(PAEHIST.PAYGROUP),
+                   h.field(PAEHIST.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   s2.field(PASTAFF.DEPT),
+                   h.field(PAEHIST.PAYRUN_NO),
+                   h.field(PAEHIST.PAYRUN_DATE),
+                   r2.field(PARUNHD.START_DATE),
+                   r2.field(PARUNHD.END_DATE),
+                   h.field(PAEHIST.PAY_TYPE),
+                   h.field(PAEHIST.PAY_CODE),
+                   codeDesc,
+                   h.field(PAEHIST.HRS),
+                   h.field(PAEHIST.QTY),
+                   h.field(PAEHIST.RATE_PERC),
+                   h.field(PAEHIST.EXT_AMT),
+                   h.field(PAEHIST.REF))
+               .from(h)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(h.field(PAEHIST.EMPLOYEE_NO))))
+               .join(r2).on(r2.field(PARUNHD.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(r2.field(PARUNHD.PAYRUN_NO).eq(h.field(PAEHIST.PAYRUN_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(h.field(PAEHIST.PAY_CODE))))
+               .where(h.field(PAEHIST.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(s2.field(PASTAFF.PAYGROUP).between(pg1, pg2))
+                   .and(h.field(PAEHIST.EMPLOYEE_NO).between(e1, e2))
+                   .and(h.field(PAEHIST.PAYRUN_DATE).between(d1, d2)))
+               .orderBy(s2.field(PASTAFF.PAYGROUP), s2.field(PASTAFF.SURNAME),
+                        h.field(PAEHIST.EMPLOYEE_NO), h.field(PAEHIST.PAYRUN_DATE),
+                        h.field(PAEHIST.PAYRUN_NO), h.field(PAEHIST.PAY_TYPE), h.field(PAEHIST.LINE_NO))
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("paygroup",   trim(row.get(h.field(PAEHIST.PAYGROUP))));
+                   rowMap.put("empNo",      row.get(h.field(PAEHIST.EMPLOYEE_NO)));
+                   rowMap.put("surname",    trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("firstName",  trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
+                   rowMap.put("dept",       trim(row.get(s2.field(PASTAFF.DEPT))));
+                   rowMap.put("payrunNo",   row.get(h.field(PAEHIST.PAYRUN_NO)));
+                   rowMap.put("payrunDate", row.get(h.field(PAEHIST.PAYRUN_DATE)));
+                   rowMap.put("startDate",  row.get(r2.field(PARUNHD.START_DATE)));
+                   rowMap.put("endDate",    row.get(r2.field(PARUNHD.END_DATE)));
+                   rowMap.put("payCode",    trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
+                   int mins = row.get(h.field(PAEHIST.HRS));
+                   rowMap.put("hours",    mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
+                   rowMap.put("qty",      row.get(h.field(PAEHIST.QTY)));
+                   rowMap.put("ratePerc", row.get(h.field(PAEHIST.RATE_PERC)));
+                   rowMap.put("amount",   z(row.get(h.field(PAEHIST.EXT_AMT))));
+                   rowMap.put("ref",      trim(row.get(h.field(PAEHIST.REF))));
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getTimesheetHistory: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No timesheet history matched the selection.");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -782,52 +1010,69 @@ public class PayReportDataService {
     public record DednStatusParams(
             String startCode, String endCode,
             Integer startEmp, Integer endEmp,
-            java.time.LocalDate startDate, java.time.LocalDate endDate) {}
+            LocalDate startDate, LocalDate endDate) {}
 
     public Map<String, Object> getDednStatus(AppSession s, DednStatusParams p) {
         String c1 = blank(p.startCode()) ? "      " : p.startCode();
         String c2 = blank(p.endCode())   ? "zzzzzz" : p.endCode();
         int e1 = p.startEmp() == null || p.startEmp() <= 0 ? 0      : p.startEmp();
         int e2 = p.endEmp()   == null || p.endEmp()   <= 0 ? 999999 : p.endEmp();
-        java.sql.Date d1 = p.startDate() != null ? java.sql.Date.valueOf(p.startDate()) : java.sql.Date.valueOf("1900-01-01");
-        java.sql.Date d2 = p.endDate()   != null ? java.sql.Date.valueOf(p.endDate())   : java.sql.Date.valueOf("2999-12-31");
+        LocalDate d1 = p.startDate() != null ? p.startDate() : LocalDate.of(1900, 1, 1);
+        LocalDate d2 = p.endDate()   != null ? p.endDate()   : LocalDate.of(2999, 12, 31);
 
-        String sql =
-            "SELECT h.pay_code, COALESCE(c.desc1,h.pay_code) code_desc, " +
-            "       COALESCE(c.fund_name,'') fund_name, " +
-            "       h.employee_no, s.surname, s.first_name, " +
-            "       h.payrun_date, h.ext_amt, h.paid_flag " +
-            "FROM paehist h " +
-            "JOIN pastaff s ON s.company_no=h.company_no AND s.employee_no=h.employee_no " +
-            "LEFT JOIN pacodes c ON c.company_no=h.company_no AND c.pay_code=h.pay_code " +
-            "WHERE h.company_no=? AND h.pay_type IN(19,20,21) " +
-            "  AND h.pay_code BETWEEN ? AND ? AND h.employee_no BETWEEN ? AND ? " +
-            "  AND h.payrun_date BETWEEN ? AND ? " +
-            "ORDER BY h.pay_code, s.surname, h.employee_no, h.payrun_date";
+        var h = PAEHIST.as("h");
+        var s2 = PASTAFF.as("s");
+        var c = PACODES.as("c");
+
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), h.field(PAEHIST.PAY_CODE)).as("code_desc");
+        Field<String> fundName = DSL.coalesce(c.field(PACODES.FUND_NAME), DSL.val("")).as("fund_name");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("payCode",    trim(rs.getString("pay_code")));
-                r2.put("codeDesc",   trim(rs.getString("code_desc")));
-                r2.put("fundName",   trim(rs.getString("fund_name")));
-                r2.put("empNo",      rs.getInt("employee_no"));
-                r2.put("surname",    trim(rs.getString("surname")));
-                r2.put("firstName",  trim(rs.getString("first_name")));
-                r2.put("payrunDate", rs.getDate("payrun_date"));
-                r2.put("amount",     z(rs.getBigDecimal("ext_amt")));
-                String pf = rs.getString("paid_flag");
-                r2.put("paidFlag",   pf != null ? pf.trim() : "");
-                rows.add(r2);
-            }, s.getCompanyNo(), c1, c2, e1, e2, d1, d2);
+            dsl.select(
+                   h.field(PAEHIST.PAY_CODE),
+                   codeDesc,
+                   fundName,
+                   h.field(PAEHIST.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   h.field(PAEHIST.PAYRUN_DATE),
+                   h.field(PAEHIST.EXT_AMT),
+                   h.field(PAEHIST.PAID_FLAG))
+               .from(h)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(h.field(PAEHIST.EMPLOYEE_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(h.field(PAEHIST.PAY_CODE))))
+               .where(h.field(PAEHIST.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(h.field(PAEHIST.PAY_TYPE).in(19, 20, 21))
+                   .and(h.field(PAEHIST.PAY_CODE).between(c1, c2))
+                   .and(h.field(PAEHIST.EMPLOYEE_NO).between(e1, e2))
+                   .and(h.field(PAEHIST.PAYRUN_DATE).between(d1, d2)))
+               .orderBy(h.field(PAEHIST.PAY_CODE), s2.field(PASTAFF.SURNAME),
+                        h.field(PAEHIST.EMPLOYEE_NO), h.field(PAEHIST.PAYRUN_DATE))
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("payCode",    trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
+                   rowMap.put("fundName",   trim(row.get("fund_name", String.class)));
+                   rowMap.put("empNo",      row.get(h.field(PAEHIST.EMPLOYEE_NO)));
+                   rowMap.put("surname",    trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("firstName",  trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
+                   rowMap.put("payrunDate", row.get(h.field(PAEHIST.PAYRUN_DATE)));
+                   rowMap.put("amount",     z(row.get(h.field(PAEHIST.EXT_AMT))));
+                   String pf = row.get(h.field(PAEHIST.PAID_FLAG));
+                   rowMap.put("paidFlag",   pf != null ? pf.trim() : "");
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getDednStatus: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No deduction/super data matched the selection.");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -850,39 +1095,57 @@ public class PayReportDataService {
         int e1 = p.startEmp() == null || p.startEmp() <= 0 ? 0      : p.startEmp();
         int e2 = p.endEmp()   == null || p.endEmp()   <= 0 ? 999999 : p.endEmp();
 
-        String sql =
-            "SELECT COALESCE(c.fund_name,'Unknown Fund') fund_name, " +
-            "       COALESCE(c.fund_abn,'') fund_abn, " +
-            "       t.pay_code, COALESCE(c.desc1,t.pay_code) code_desc, " +
-            "       t.employee_no, s.surname, s.first_name, t.amt " +
-            "FROM paytd t " +
-            "JOIN pastaff s ON s.company_no=t.company_no AND s.employee_no=t.employee_no " +
-            "LEFT JOIN pacodes c ON c.company_no=t.company_no AND c.pay_code=t.pay_code " +
-            "WHERE t.company_no=? AND t.year_no=? AND t.pay_type IN(20,21) " +
-            "  AND t.pay_code BETWEEN ? AND ? AND t.employee_no BETWEEN ? AND ? " +
-            "ORDER BY COALESCE(c.fund_name,'Unknown Fund'), t.pay_code, s.surname, t.employee_no";
+        var t = PAYTD.as("t");
+        var s2 = PASTAFF.as("s");
+        var c = PACODES.as("c");
+
+        Field<String> fundName = DSL.coalesce(c.field(PACODES.FUND_NAME), DSL.val("Unknown Fund")).as("fund_name");
+        Field<String> fundAbn  = DSL.coalesce(c.field(PACODES.FUND_ABN),  DSL.val("")).as("fund_abn");
+        Field<String> codeDesc = DSL.coalesce(c.field(PACODES.DESC1), t.field(PAYTD.PAY_CODE)).as("code_desc");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("fundName",  trim(rs.getString("fund_name")));
-                r2.put("fundAbn",   trim(rs.getString("fund_abn")));
-                r2.put("payCode",   trim(rs.getString("pay_code")));
-                r2.put("codeDesc",  trim(rs.getString("code_desc")));
-                r2.put("empNo",     rs.getInt("employee_no"));
-                r2.put("surname",   trim(rs.getString("surname")));
-                r2.put("firstName", trim(rs.getString("first_name")));
-                r2.put("amount",    z(rs.getBigDecimal("amt")));
-                rows.add(r2);
-            }, s.getCompanyNo(), p.yearNo(), c1, c2, e1, e2);
+            dsl.select(
+                   fundName,
+                   fundAbn,
+                   t.field(PAYTD.PAY_CODE),
+                   codeDesc,
+                   t.field(PAYTD.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   t.field(PAYTD.AMT))
+               .from(t)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(t.field(PAYTD.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(t.field(PAYTD.EMPLOYEE_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(t.field(PAYTD.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(t.field(PAYTD.PAY_CODE))))
+               .where(t.field(PAYTD.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(t.field(PAYTD.YEAR_NO).eq(p.yearNo()))
+                   .and(t.field(PAYTD.PAY_TYPE).in(20, 21))
+                   .and(t.field(PAYTD.PAY_CODE).between(c1, c2))
+                   .and(t.field(PAYTD.EMPLOYEE_NO).between(e1, e2)))
+               .orderBy(DSL.coalesce(c.field(PACODES.FUND_NAME), DSL.val("Unknown Fund")),
+                        t.field(PAYTD.PAY_CODE), s2.field(PASTAFF.SURNAME), t.field(PAYTD.EMPLOYEE_NO))
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("fundName",  trim(row.get("fund_name", String.class)));
+                   rowMap.put("fundAbn",   trim(row.get("fund_abn",  String.class)));
+                   rowMap.put("payCode",   trim(row.get(t.field(PAYTD.PAY_CODE))));
+                   rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
+                   rowMap.put("empNo",     row.get(t.field(PAYTD.EMPLOYEE_NO)));
+                   rowMap.put("surname",   trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("firstName", trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
+                   rowMap.put("amount",    z(row.get(t.field(PAYTD.AMT))));
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getSuperByFund: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No super data matched the selection.");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -897,55 +1160,76 @@ public class PayReportDataService {
     public record ExtendedSuperParams(
             String startCode, String endCode,
             Integer startEmp, Integer endEmp,
-            java.time.LocalDate startDate, java.time.LocalDate endDate) {}
+            LocalDate startDate, LocalDate endDate) {}
 
     public Map<String, Object> getExtendedSuper(AppSession s, ExtendedSuperParams p) {
         String c1 = blank(p.startCode()) ? "      " : p.startCode();
         String c2 = blank(p.endCode())   ? "zzzzzz" : p.endCode();
         int e1 = p.startEmp() == null || p.startEmp() <= 0 ? 0      : p.startEmp();
         int e2 = p.endEmp()   == null || p.endEmp()   <= 0 ? 999999 : p.endEmp();
-        java.sql.Date d1 = p.startDate() != null ? java.sql.Date.valueOf(p.startDate()) : java.sql.Date.valueOf("1900-01-01");
-        java.sql.Date d2 = p.endDate()   != null ? java.sql.Date.valueOf(p.endDate())   : java.sql.Date.valueOf("2999-12-31");
+        LocalDate d1 = p.startDate() != null ? p.startDate() : LocalDate.of(1900, 1, 1);
+        LocalDate d2 = p.endDate()   != null ? p.endDate()   : LocalDate.of(2999, 12, 31);
 
-        String sql =
-            "SELECT h.pay_code, COALESCE(c.desc1,h.pay_code) code_desc, " +
-            "       COALESCE(c.fund_name,'') fund_name, COALESCE(c.fund_abn,'') fund_abn, " +
-            "       h.employee_no, s.surname, s.first_name, s.tax_file_no, " +
-            "       h.payrun_date, h.ext_amt, c.super_before_after_tax " +
-            "FROM paehist h " +
-            "JOIN pastaff s ON s.company_no=h.company_no AND s.employee_no=h.employee_no " +
-            "LEFT JOIN pacodes c ON c.company_no=h.company_no AND c.pay_code=h.pay_code " +
-            "WHERE h.company_no=? AND h.pay_type IN(20,21) " +
-            "  AND h.pay_code BETWEEN ? AND ? AND h.employee_no BETWEEN ? AND ? " +
-            "  AND h.payrun_date BETWEEN ? AND ? " +
-            "ORDER BY h.pay_code, s.surname, h.employee_no, h.payrun_date";
+        var h = PAEHIST.as("h");
+        var s2 = PASTAFF.as("s");
+        var c = PACODES.as("c");
+
+        Field<String> codeDesc      = DSL.coalesce(c.field(PACODES.DESC1), h.field(PAEHIST.PAY_CODE)).as("code_desc");
+        Field<String> fundName      = DSL.coalesce(c.field(PACODES.FUND_NAME), DSL.val("")).as("fund_name");
+        Field<String> fundAbn       = DSL.coalesce(c.field(PACODES.FUND_ABN), DSL.val("")).as("fund_abn");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         try {
-            jdbc.query(sql, rs -> {
-                Map<String, Object> r2 = new LinkedHashMap<>();
-                r2.put("payCode",      trim(rs.getString("pay_code")));
-                r2.put("codeDesc",     trim(rs.getString("code_desc")));
-                r2.put("fundName",     trim(rs.getString("fund_name")));
-                r2.put("fundAbn",      trim(rs.getString("fund_abn")));
-                r2.put("empNo",        rs.getInt("employee_no"));
-                r2.put("surname",      trim(rs.getString("surname")));
-                r2.put("firstName",    trim(rs.getString("first_name")));
-                long tfnLong = rs.getLong("tax_file_no");
-                r2.put("maskedTfn",    com.landmarksoftware.payroll.model.Employee.maskTfn(String.valueOf(tfnLong)));
-                r2.put("payrunDate",   rs.getDate("payrun_date"));
-                r2.put("amount",       z(rs.getBigDecimal("ext_amt")));
-                String bat = rs.getString("super_before_after_tax");
-                r2.put("beforeAfterTax", bat != null ? bat.trim() : "");
-                rows.add(r2);
-            }, s.getCompanyNo(), c1, c2, e1, e2, d1, d2);
+            dsl.select(
+                   h.field(PAEHIST.PAY_CODE),
+                   codeDesc,
+                   fundName,
+                   fundAbn,
+                   h.field(PAEHIST.EMPLOYEE_NO),
+                   s2.field(PASTAFF.SURNAME),
+                   s2.field(PASTAFF.FIRST_NAME),
+                   s2.field(PASTAFF.TAX_FILE_NO),
+                   h.field(PAEHIST.PAYRUN_DATE),
+                   h.field(PAEHIST.EXT_AMT),
+                   c.field(PACODES.SUPER_BEFORE_AFTER_TAX))
+               .from(h)
+               .join(s2).on(s2.field(PASTAFF.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(s2.field(PASTAFF.EMPLOYEE_NO).eq(h.field(PAEHIST.EMPLOYEE_NO))))
+               .leftJoin(c).on(c.field(PACODES.COMPANY_NO).eq(h.field(PAEHIST.COMPANY_NO))
+                   .and(c.field(PACODES.PAY_CODE).eq(h.field(PAEHIST.PAY_CODE))))
+               .where(h.field(PAEHIST.COMPANY_NO).eq(s.getCompanyNo())
+                   .and(h.field(PAEHIST.PAY_TYPE).in(20, 21))
+                   .and(h.field(PAEHIST.PAY_CODE).between(c1, c2))
+                   .and(h.field(PAEHIST.EMPLOYEE_NO).between(e1, e2))
+                   .and(h.field(PAEHIST.PAYRUN_DATE).between(d1, d2)))
+               .orderBy(h.field(PAEHIST.PAY_CODE), s2.field(PASTAFF.SURNAME),
+                        h.field(PAEHIST.EMPLOYEE_NO), h.field(PAEHIST.PAYRUN_DATE))
+               .fetch()
+               .forEach(row -> {
+                   Map<String, Object> rowMap = new LinkedHashMap<>();
+                   rowMap.put("payCode",      trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("codeDesc",     trim(row.get("code_desc", String.class)));
+                   rowMap.put("fundName",     trim(row.get("fund_name", String.class)));
+                   rowMap.put("fundAbn",      trim(row.get("fund_abn",  String.class)));
+                   rowMap.put("empNo",        row.get(h.field(PAEHIST.EMPLOYEE_NO)));
+                   rowMap.put("surname",      trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("firstName",    trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
+                   long tfnLong = row.get(s2.field(PASTAFF.TAX_FILE_NO)) != null
+                       ? row.get(s2.field(PASTAFF.TAX_FILE_NO)) : 0L;
+                   rowMap.put("maskedTfn",    com.landmarksoftware.payroll.model.Employee.maskTfn(String.valueOf(tfnLong)));
+                   rowMap.put("payrunDate",   row.get(h.field(PAEHIST.PAYRUN_DATE)));
+                   rowMap.put("amount",       z(row.get(h.field(PAEHIST.EXT_AMT))));
+                   String bat = row.get(c.field(PACODES.SUPER_BEFORE_AFTER_TAX));
+                   rowMap.put("beforeAfterTax", bat != null ? bat.trim() : "");
+                   rows.add(rowMap);
+               });
         } catch (Exception e) {
             log.error("getExtendedSuper: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
         }
         if (rows.isEmpty()) return warn("No extended super data matched the selection.");
-        for (Map<String, Object> r2 : rows) grandTotal = grandTotal.add(z((BigDecimal) r2.get("amount")));
+        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -957,7 +1241,7 @@ public class PayReportDataService {
 
     // ── Date range helper ────────────────────────────────────────────────────
 
-    private static String datRangeDesc(java.time.LocalDate from, java.time.LocalDate to) {
+    private static String datRangeDesc(LocalDate from, LocalDate to) {
         String f = from != null ? from.toString() : "";
         String t = to   != null ? to.toString()   : "";
         if (f.isEmpty() && t.isEmpty()) return "";

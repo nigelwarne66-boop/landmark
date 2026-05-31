@@ -2,15 +2,26 @@ package com.landmarksoftware.service.gl;
 
 import com.landmarksoftware.model.AppSession;
 import jakarta.annotation.PostConstruct;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
+
+import static com.landmarksoftware.db.tables.Glchart.GLCHART;
+import static com.landmarksoftware.db.tables.Gldates.GLDATES;
+import static com.landmarksoftware.db.tables.Glrpsel.GLRPSEL;
+import static com.landmarksoftware.db.tables.Glrptah.GLRPTAH;
+import static com.landmarksoftware.db.tables.Glrpveh.GLRPVEH;
+import static com.landmarksoftware.db.tables.Glrpvel.GLRPVEL;
+import static com.landmarksoftware.db.tables.Glrpwkc.GLRPWKC;
+import static com.landmarksoftware.db.tables.Gltrx.GLTRX;
 
 /**
  * GL Report Writer engine — Java port of COBOL {@code glrp60}, the matrix
@@ -37,6 +48,13 @@ import java.util.*;
  * {@code glbal} (period movements) and {@code gltrx} for each row's
  * account range over each column's date range, applying the {@code dr_cr_ind}
  * sign and {@code total_type} sub-total operators.
+ *
+ * <p><b>Inline-SQL note:</b> {@code loadHorizontalTable} keeps a plain-SQL
+ * SELECT for the {@code glrptab} body row because the 366 dynamic column names
+ * ({@code report_date_001..report_date_366}) cannot be expressed with typed
+ * jOOQ fields — they are a COBOL OCCURS expansion stored as individual columns
+ * and there is no generated field array for them in the Glrptab table class.
+ * All other queries use fully typed jOOQ DSLContext calls.
  */
 @Service
 public class GlReportWriterService {
@@ -46,9 +64,9 @@ public class GlReportWriterService {
     /** Hard column cap — matches the standard Landmark wide reports (monthly + YTD). */
     public static final int MAX_COLUMNS = 13;
 
-    private final JdbcTemplate jdbc;
+    private final DSLContext dsl;
 
-    public GlReportWriterService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public GlReportWriterService(DSLContext dsl) { this.dsl = dsl; }
 
     /**
      * Self-creates the {@code glrpwkc} runtime work table — the engine's
@@ -59,7 +77,7 @@ public class GlReportWriterService {
     @PostConstruct
     public void ensureTables() {
         try {
-            jdbc.execute(
+            dsl.execute(
                 "CREATE TABLE IF NOT EXISTS glrpwkc (" +
                 "  company_no INT NOT NULL," +
                 "  selection_no INT NOT NULL," +
@@ -110,22 +128,31 @@ public class GlReportWriterService {
     public List<SelectionRow> getSelections(AppSession s) {
         List<SelectionRow> list = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT selection_no, desc_1, rpt_title, vert_format_no, horiz_format_no, " +
-                "       yr_no, zero_bal_flag, rounding_flag, acct_mask " +
-                "FROM glrpsel WHERE company_no=? ORDER BY selection_no",
-                rs -> {
-                    list.add(new SelectionRow(
-                        rs.getInt("selection_no"),
-                        trim(rs.getString("desc_1")),
-                        trim(rs.getString("rpt_title")),
-                        rs.getInt("vert_format_no"),
-                        trim(rs.getString("horiz_format_no")),
-                        rs.getInt("yr_no"),
-                        "Y".equalsIgnoreCase(trim(rs.getString("zero_bal_flag"))),
-                        trim(rs.getString("rounding_flag")),
-                        trim(rs.getString("acct_mask"))));
-                }, s.getCompanyNo());
+            dsl.select(
+                    GLRPSEL.SELECTION_NO,
+                    GLRPSEL.DESC_1,
+                    GLRPSEL.RPT_TITLE,
+                    GLRPSEL.VERT_FORMAT_NO,
+                    GLRPSEL.HORIZ_FORMAT_NO,
+                    GLRPSEL.YR_NO,
+                    GLRPSEL.ZERO_BAL_FLAG,
+                    GLRPSEL.ROUNDING_FLAG,
+                    GLRPSEL.ACCT_MASK)
+               .from(GLRPSEL)
+               .where(GLRPSEL.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(GLRPSEL.SELECTION_NO)
+               .fetch()
+               .forEach(r -> list.add(new SelectionRow(
+                   r.get(GLRPSEL.SELECTION_NO),
+                   trim(r.get(GLRPSEL.DESC_1)),
+                   trim(r.get(GLRPSEL.RPT_TITLE)),
+                   // vert_format_no is VARCHAR(4) in the schema — parse to int
+                   parseIntSafe(trim(r.get(GLRPSEL.VERT_FORMAT_NO))),
+                   trim(r.get(GLRPSEL.HORIZ_FORMAT_NO)),
+                   r.get(GLRPSEL.YR_NO),
+                   "Y".equalsIgnoreCase(trim(r.get(GLRPSEL.ZERO_BAL_FLAG))),
+                   trim(r.get(GLRPSEL.ROUNDING_FLAG)),
+                   trim(r.get(GLRPSEL.ACCT_MASK)))));
         } catch (Exception e) { log.warn("getSelections: {}", e.getMessage()); }
         return list;
     }
@@ -134,16 +161,21 @@ public class GlReportWriterService {
     public List<VerticalFormatRow> getVerticalFormats(AppSession s) {
         List<VerticalFormatRow> list = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT vert_format_no, desc_1, desc_2, vert_format_type " +
-                "FROM glrpveh WHERE company_no=? ORDER BY vert_format_no",
-                rs -> {
-                    list.add(new VerticalFormatRow(
-                        rs.getInt("vert_format_no"),
-                        trim(rs.getString("desc_1")),
-                        trim(rs.getString("desc_2")),
-                        trim(rs.getString("vert_format_type"))));
-                }, s.getCompanyNo());
+            dsl.select(
+                    GLRPVEH.VERT_FORMAT_NO,
+                    GLRPVEH.DESC_1,
+                    GLRPVEH.DESC_2,
+                    GLRPVEH.VERT_FORMAT_TYPE)
+               .from(GLRPVEH)
+               .where(GLRPVEH.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(GLRPVEH.VERT_FORMAT_NO)
+               .fetch()
+               .forEach(r -> list.add(new VerticalFormatRow(
+                   // vert_format_no is VARCHAR(4) in the schema — parse to int
+                   parseIntSafe(trim(r.get(GLRPVEH.VERT_FORMAT_NO))),
+                   trim(r.get(GLRPVEH.DESC_1)),
+                   trim(r.get(GLRPVEH.DESC_2)),
+                   trim(r.get(GLRPVEH.VERT_FORMAT_TYPE)))));
         } catch (Exception e) { log.warn("getVerticalFormats: {}", e.getMessage()); }
         return list;
     }
@@ -152,13 +184,14 @@ public class GlReportWriterService {
     public List<HorizontalTableRow> getHorizontalTables(AppSession s) {
         List<HorizontalTableRow> list = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT date_table, desc1 FROM glrptah WHERE company_no=? ORDER BY date_table",
-                rs -> {
-                    list.add(new HorizontalTableRow(
-                        trim(rs.getString("date_table")),
-                        trim(rs.getString("desc1"))));
-                }, s.getCompanyNo());
+            dsl.select(GLRPTAH.DATE_TABLE, GLRPTAH.DESC1)
+               .from(GLRPTAH)
+               .where(GLRPTAH.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(GLRPTAH.DATE_TABLE)
+               .fetch()
+               .forEach(r -> list.add(new HorizontalTableRow(
+                   trim(r.get(GLRPTAH.DATE_TABLE)),
+                   trim(r.get(GLRPTAH.DESC1)))));
         } catch (Exception e) { log.warn("getHorizontalTables: {}", e.getMessage()); }
         return list;
     }
@@ -337,49 +370,70 @@ public class GlReportWriterService {
 
     /** Loads {@code glrpveh} + {@code glrpvel} for a (company, vert_format_no). */
     public VerticalFormat loadVerticalFormat(int companyNo, int vertFormatNo) {
+        // vert_format_no is stored as VARCHAR(4) in the schema; use string comparison
+        String vertFormatNoStr = String.valueOf(vertFormatNo);
         VerticalFormat[] head = { null };
         try {
-            jdbc.query(
-                "SELECT desc_1, desc_2, vert_format_type, rounding_main_no, rounding_sub_no " +
-                "FROM glrpveh WHERE company_no=? AND vert_format_no=?",
-                rs -> {
-                    head[0] = new VerticalFormat(
-                        vertFormatNo,
-                        trim(rs.getString("desc_1")),
-                        trim(rs.getString("desc_2")),
-                        trim(rs.getString("vert_format_type")),
-                        rs.getInt("rounding_main_no"),
-                        rs.getInt("rounding_sub_no"),
-                        new ArrayList<>());
-                }, companyNo, vertFormatNo);
+            dsl.select(
+                    GLRPVEH.DESC_1,
+                    GLRPVEH.DESC_2,
+                    GLRPVEH.VERT_FORMAT_TYPE,
+                    GLRPVEH.ROUNDING_MAIN_NO,
+                    GLRPVEH.ROUNDING_SUB_NO)
+               .from(GLRPVEH)
+               .where(GLRPVEH.COMPANY_NO.eq(companyNo)
+                   .and(GLRPVEH.VERT_FORMAT_NO.eq(vertFormatNoStr)))
+               .fetch()
+               .forEach(r -> head[0] = new VerticalFormat(
+                   vertFormatNo,
+                   trim(r.get(GLRPVEH.DESC_1)),
+                   trim(r.get(GLRPVEH.DESC_2)),
+                   trim(r.get(GLRPVEH.VERT_FORMAT_TYPE)),
+                   r.get(GLRPVEH.ROUNDING_MAIN_NO),
+                   r.get(GLRPVEH.ROUNDING_SUB_NO),
+                   new ArrayList<>()));
         } catch (Exception e) { log.warn("loadVerticalFormat header: {}", e.getMessage()); }
         if (head[0] == null) return null;
 
         List<RowDef> rows = head[0].rows();
         try {
-            jdbc.query(
-                "SELECT seq_no, start_main_no, start_sub_no, end_main_no, end_sub_no, " +
-                "       line_desc, dr_cr_ind, total_type, total_no, constant, col_no, " +
-                "       print_each_acct_flag, acct_type, print_flag, " +
-                "       start_report_group, end_report_group " +
-                "FROM glrpvel WHERE company_no=? AND vert_format_no=? ORDER BY seq_no",
-                rs -> {
-                    rows.add(new RowDef(
-                        rs.getInt("seq_no"),
-                        rs.getInt("start_main_no"), rs.getInt("start_sub_no"),
-                        rs.getInt("end_main_no"),   rs.getInt("end_sub_no"),
-                        rs.getString("line_desc"),
-                        trim(rs.getString("dr_cr_ind")),
-                        trim(rs.getString("total_type")),
-                        rs.getInt("total_no"),
-                        z(rs.getBigDecimal("constant")),
-                        rs.getInt("col_no"),
-                        trim(rs.getString("print_each_acct_flag")),
-                        trim(rs.getString("acct_type")),
-                        trim(rs.getString("print_flag")),
-                        trim(rs.getString("start_report_group")),
-                        trim(rs.getString("end_report_group"))));
-                }, companyNo, vertFormatNo);
+            dsl.select(
+                    GLRPVEL.SEQ_NO,
+                    GLRPVEL.START_MAIN_NO,
+                    GLRPVEL.START_SUB_NO,
+                    GLRPVEL.END_MAIN_NO,
+                    GLRPVEL.END_SUB_NO,
+                    GLRPVEL.LINE_DESC,
+                    GLRPVEL.DR_CR_IND,
+                    GLRPVEL.TOTAL_TYPE,
+                    GLRPVEL.TOTAL_NO,
+                    GLRPVEL.CONSTANT,
+                    GLRPVEL.COL_NO,
+                    GLRPVEL.PRINT_EACH_ACCT_FLAG,
+                    GLRPVEL.ACCT_TYPE,
+                    GLRPVEL.PRINT_FLAG,
+                    GLRPVEL.START_REPORT_GROUP,
+                    GLRPVEL.END_REPORT_GROUP)
+               .from(GLRPVEL)
+               .where(GLRPVEL.COMPANY_NO.eq(companyNo)
+                   .and(GLRPVEL.VERT_FORMAT_NO.eq(vertFormatNoStr)))
+               .orderBy(GLRPVEL.SEQ_NO)
+               .fetch()
+               .forEach(r -> rows.add(new RowDef(
+                   r.get(GLRPVEL.SEQ_NO),
+                   r.get(GLRPVEL.START_MAIN_NO), r.get(GLRPVEL.START_SUB_NO),
+                   r.get(GLRPVEL.END_MAIN_NO),   r.get(GLRPVEL.END_SUB_NO),
+                   r.get(GLRPVEL.LINE_DESC),
+                   trim(r.get(GLRPVEL.DR_CR_IND)),
+                   trim(r.get(GLRPVEL.TOTAL_TYPE)),
+                   r.get(GLRPVEL.TOTAL_NO),
+                   z(r.get(GLRPVEL.CONSTANT)),
+                   r.get(GLRPVEL.COL_NO),
+                   trim(r.get(GLRPVEL.PRINT_EACH_ACCT_FLAG)),
+                   trim(r.get(GLRPVEL.ACCT_TYPE)),
+                   trim(r.get(GLRPVEL.PRINT_FLAG)),
+                   trim(r.get(GLRPVEL.START_REPORT_GROUP)),
+                   trim(r.get(GLRPVEL.END_REPORT_GROUP)))));
         } catch (Exception e) { log.warn("loadVerticalFormat lines: {}", e.getMessage()); }
         return head[0];
     }
@@ -398,33 +452,49 @@ public class GlReportWriterService {
      * fiscal year, then unpivots the 366 {@code report_date_NNN} slots into
      * (start, end) column pairs — odd slot = period start, even slot = period end.
      * Stops at the first sentinel ({@value SENTINEL}).
+     *
+     * <p><b>Inline-SQL note:</b> The {@code glrptab} body-row query builds a
+     * plain-SQL column list of all 366 {@code report_date_NNN} fields. These are
+     * a COBOL OCCURS expansion stored as individual VARCHAR columns; jOOQ's
+     * generated {@code Glrptab} table class does not expose them as typed
+     * {@code TableField} references. Using {@code DSL.field("report_date_NNN",
+     * LocalDate.class)} for each is the only type-safe alternative but would
+     * require 366 individual field declarations with no practical benefit over the
+     * single-string column list approach.
      */
     public HorizontalTable loadHorizontalTable(int companyNo, String dateTableCode, int yearNo) {
         String[] desc = { null };
         try {
-            jdbc.query(
-                "SELECT desc1 FROM glrptah WHERE company_no=? AND date_table=?",
-                rs -> { desc[0] = trim(rs.getString("desc1")); },
-                companyNo, dateTableCode);
+            Record r = dsl.select(GLRPTAH.DESC1)
+                          .from(GLRPTAH)
+                          .where(GLRPTAH.COMPANY_NO.eq(companyNo)
+                              .and(GLRPTAH.DATE_TABLE.eq(dateTableCode)))
+                          .fetchOne();
+            if (r != null) desc[0] = trim(r.get(GLRPTAH.DESC1));
         } catch (Exception e) { log.warn("loadHorizontalTable header: {}", e.getMessage()); }
         if (desc[0] == null) return null;
 
         // Pull all 366 date slots in one row, then unpivot.
+        // Inline SQL required: report_date_001..report_date_366 are COBOL OCCURS
+        // columns not representable as typed jOOQ fields in the generated Glrptab class.
         StringBuilder cols = new StringBuilder("year_no");
         for (int i = 1; i <= 366; i++) cols.append(String.format(", report_date_%03d", i));
         Map<String, Object>[] bodyRow = new Map[]{ null };
         try {
-            jdbc.query(
-                "SELECT " + cols + " FROM glrptab WHERE company_no=? AND date_table=? AND year_no=?",
-                rs -> {
-                    Map<String, Object> r = new LinkedHashMap<>();
-                    r.put("year_no", rs.getInt("year_no"));
-                    for (int i = 1; i <= 366; i++) {
-                        java.sql.Date d = rs.getDate(String.format("report_date_%03d", i));
-                        r.put(String.format("report_date_%03d", i), d == null ? null : d.toLocalDate());
-                    }
-                    bodyRow[0] = r;
-                }, companyNo, dateTableCode, yearNo);
+            dsl.resultQuery(
+                    "SELECT " + cols + " FROM glrptab WHERE company_no=? AND date_table=? AND year_no=?",
+                    companyNo, dateTableCode, yearNo)
+               .fetch()
+               .forEach(r -> {
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("year_no", r.get("year_no", Integer.class));
+                   for (int i = 1; i <= 366; i++) {
+                       String colName = String.format("report_date_%03d", i);
+                       LocalDate d = r.get(colName, LocalDate.class);
+                       row.put(colName, d);
+                   }
+                   bodyRow[0] = row;
+               });
         } catch (Exception e) { log.warn("loadHorizontalTable body: {}", e.getMessage()); }
         if (bodyRow[0] == null) {
             return new HorizontalTable(dateTableCode, desc[0], yearNo, List.of());
@@ -509,12 +579,11 @@ public class GlReportWriterService {
      * gldates can't be resolved for the relevant year.
      */
     private List<ColumnDef> ptdYtdPriorYtd(int companyNo, LocalDate start, LocalDate end) {
-        int endCalendarYear = end.getYear();
         Integer fyYearNo = pickFiscalYearForDate(companyNo, end);
         LocalDate yrStart = null;
         if (fyYearNo != null) {
             Map<String, Object> row = loadGlDatesRow(companyNo, fyYearNo);
-            if (row != null) yrStart = sqlToLocal(row.get("yr_start_date"));
+            if (row != null) yrStart = (LocalDate) row.get("yr_start_date");
         }
         // Prior fiscal year — for the "Prior YTD" column we want the same shape
         // one fiscal year earlier; row picked by year_no = fyYearNo - 1.
@@ -522,7 +591,7 @@ public class GlReportWriterService {
         LocalDate priorEnd = end.minusYears(1);
         if (fyYearNo != null) {
             Map<String, Object> prior = loadGlDatesRow(companyNo, fyYearNo - 1);
-            if (prior != null) priorYrStart = sqlToLocal(prior.get("yr_start_date"));
+            if (prior != null) priorYrStart = (LocalDate) prior.get("yr_start_date");
         }
 
         List<ColumnDef> cols = new ArrayList<>();
@@ -546,19 +615,27 @@ public class GlReportWriterService {
      */
     private Integer pickFiscalYearForDate(int companyNo, LocalDate refDate) {
         try {
-            return jdbc.queryForObject(
-                "SELECT yr_no FROM gldates " +
-                "WHERE company_no=? AND yr_start_date <= ? AND yr_end_date >= ? " +
-                "ORDER BY yr_no DESC LIMIT 1",
-                Integer.class, companyNo, Date.valueOf(refDate), Date.valueOf(refDate));
+            Integer result = dsl.select(GLDATES.YR_NO)
+                .from(GLDATES)
+                .where(GLDATES.COMPANY_NO.eq(companyNo)
+                    .and(GLDATES.YR_START_DATE.le(refDate))
+                    .and(GLDATES.YR_END_DATE.ge(refDate)))
+                .orderBy(GLDATES.YR_NO.desc())
+                .limit(1)
+                .fetchOne(GLDATES.YR_NO);
+            if (result != null) return result;
         } catch (Exception e) {
-            // Fallback: year_no equals the end-date's calendar year.
-            try {
-                return jdbc.queryForObject(
-                    "SELECT yr_no FROM gldates WHERE company_no=? AND year_no=? LIMIT 1",
-                    Integer.class, companyNo, refDate.getYear());
-            } catch (Exception e2) { return null; }
+            // fall through to calendar-year fallback
         }
+        // Fallback: year_no equals the end-date's calendar year.
+        try {
+            return dsl.select(GLDATES.YR_NO)
+                .from(GLDATES)
+                .where(GLDATES.COMPANY_NO.eq(companyNo)
+                    .and(GLDATES.YEAR_NO.eq(refDate.getYear())))
+                .limit(1)
+                .fetchOne(GLDATES.YR_NO);
+        } catch (Exception e2) { return null; }
     }
 
     private static String fmt(LocalDate d) {
@@ -567,33 +644,44 @@ public class GlReportWriterService {
 
     private Map<String, Object> loadGlDatesRow(int companyNo, int yrNoSeq) {
         try {
-            StringBuilder cols = new StringBuilder("yr_start_date, yr_end_date");
-            for (int i = 1; i <= 13; i++) cols.append(String.format(", period_end_%02d", i));
-            return jdbc.queryForMap(
-                "SELECT " + cols + " FROM gldates WHERE company_no=? AND yr_no=?",
-                companyNo, yrNoSeq);
+            // gldates has 13 period_end_NN columns — fetch as typed LocalDate fields via jOOQ
+            // but build the column name list dynamically since period_end_01..13 are plain fields.
+            // Using resultQuery with inline SQL for the period columns only; yr_start/end are typed.
+            StringBuilder colsSql = new StringBuilder("yr_start_date, yr_end_date");
+            for (int i = 1; i <= 13; i++) colsSql.append(String.format(", period_end_%02d", i));
+            Record row = dsl.resultQuery(
+                    "SELECT " + colsSql + " FROM gldates WHERE company_no=? AND yr_no=?",
+                    companyNo, yrNoSeq)
+                .fetchOne();
+            if (row == null) return null;
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("yr_start_date", row.get("yr_start_date", LocalDate.class));
+            result.put("yr_end_date",   row.get("yr_end_date",   LocalDate.class));
+            for (int i = 1; i <= 13; i++) {
+                String col = String.format("period_end_%02d", i);
+                result.put(col, row.get(col, LocalDate.class));
+            }
+            return result;
         } catch (Exception e) { return null; }
-    }
-
-    private static LocalDate sqlToLocal(Object v) {
-        if (v instanceof java.sql.Date d) return d.toLocalDate();
-        if (v instanceof LocalDate d)     return d;
-        return null;
     }
 
     /** Loads persisted rundates for one selection from {@code glrpwkc}. */
     private List<ColumnDef> loadRunDates(int companyNo, int selectionNo) {
         List<ColumnDef> out = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT seq_no, start_date, end_date FROM glrpwkc " +
-                "WHERE company_no=? AND selection_no=? ORDER BY seq_no",
-                rs -> {
-                    java.sql.Date sd = rs.getDate("start_date"), ed = rs.getDate("end_date");
-                    if (sd != null && ed != null) {
-                        out.add(new ColumnDef(rs.getInt("seq_no"), sd.toLocalDate(), ed.toLocalDate()));
-                    }
-                }, companyNo, selectionNo);
+            dsl.select(GLRPWKC.SEQ_NO, GLRPWKC.START_DATE, GLRPWKC.END_DATE)
+               .from(GLRPWKC)
+               .where(GLRPWKC.COMPANY_NO.eq(companyNo)
+                   .and(GLRPWKC.SELECTION_NO.eq(selectionNo)))
+               .orderBy(GLRPWKC.SEQ_NO)
+               .fetch()
+               .forEach(r -> {
+                   LocalDate sd = r.get(GLRPWKC.START_DATE);
+                   LocalDate ed = r.get(GLRPWKC.END_DATE);
+                   if (sd != null && ed != null) {
+                       out.add(new ColumnDef(r.get(GLRPWKC.SEQ_NO), sd, ed));
+                   }
+               });
         } catch (Exception e) { log.warn("loadRunDates: {}", e.getMessage()); }
         return out;
     }
@@ -601,15 +689,19 @@ public class GlReportWriterService {
     /** Replaces persisted rundates for a selection (delete + insert in one tx). */
     private void persistRunDates(AppSession s, int selectionNo, String dateTable, List<ColumnDef> cols) {
         try {
-            jdbc.update("DELETE FROM glrpwkc WHERE company_no=? AND selection_no=?",
-                s.getCompanyNo(), selectionNo);
+            dsl.deleteFrom(GLRPWKC)
+               .where(GLRPWKC.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(GLRPWKC.SELECTION_NO.eq(selectionNo)))
+               .execute();
             for (ColumnDef c : cols) {
-                jdbc.update(
-                    "INSERT INTO glrpwkc (company_no, selection_no, seq_no, date_table, " +
-                    "start_date, end_date, audit_user_id, audit_date) VALUES (?,?,?,?,?,?,?,?)",
-                    s.getCompanyNo(), selectionNo, c.idx(), trim(dateTable),
-                    Date.valueOf(c.periodStart()), Date.valueOf(c.periodEnd()),
-                    s.getUserId(), Date.valueOf(LocalDate.now()));
+                dsl.insertInto(GLRPWKC,
+                        GLRPWKC.COMPANY_NO, GLRPWKC.SELECTION_NO, GLRPWKC.SEQ_NO,
+                        GLRPWKC.DATE_TABLE, GLRPWKC.START_DATE, GLRPWKC.END_DATE,
+                        GLRPWKC.AUDIT_USER_ID, GLRPWKC.AUDIT_DATE)
+                   .values(s.getCompanyNo(), selectionNo, c.idx(), trim(dateTable),
+                           c.periodStart(), c.periodEnd(),
+                           s.getUserId(), LocalDate.now())
+                   .execute();
             }
         } catch (Exception e) { log.warn("persistRunDates: {}", e.getMessage()); }
     }
@@ -617,9 +709,11 @@ public class GlReportWriterService {
     /** Title-bar caption for the horizontal — glrptah desc if known, else the key. */
     private String describeHoriz(int companyNo, String key) {
         try {
-            String d = jdbc.queryForObject(
-                "SELECT desc1 FROM glrptah WHERE company_no=? AND date_table=?",
-                String.class, companyNo, key);
+            String d = dsl.select(GLRPTAH.DESC1)
+                          .from(GLRPTAH)
+                          .where(GLRPTAH.COMPANY_NO.eq(companyNo)
+                              .and(GLRPTAH.DATE_TABLE.eq(key)))
+                          .fetchOne(GLRPTAH.DESC1);
             if (notBlank(d)) return d;
         } catch (Exception ignored) {}
         // Friendly descriptions for the synthesised conventions.
@@ -641,9 +735,11 @@ public class GlReportWriterService {
      */
     private Integer lookupCalendarYear(int companyNo, int yrNoSeq) {
         try {
-            return jdbc.queryForObject(
-                "SELECT year_no FROM gldates WHERE company_no=? AND yr_no=?",
-                Integer.class, companyNo, yrNoSeq);
+            return dsl.select(GLDATES.YEAR_NO)
+                      .from(GLDATES)
+                      .where(GLDATES.COMPANY_NO.eq(companyNo)
+                          .and(GLDATES.YR_NO.eq(yrNoSeq)))
+                      .fetchOne(GLDATES.YEAR_NO);
         } catch (Exception e) {
             return null;
         }
@@ -688,32 +784,36 @@ public class GlReportWriterService {
         }
 
         try {
-            jdbc.query(
-                "SELECT acct_main_no, acct_sub_no, jnl_date, dr_amt, cr_amt FROM gltrx " +
-                "WHERE company_no=? AND acct_main_no BETWEEN ? AND ? " +
-                "  AND acct_sub_no BETWEEN ? AND ? " +
-                "  AND jnl_date BETWEEN ? AND ? " +
-                "ORDER BY acct_main_no, acct_sub_no",
-                rs -> {
-                    java.sql.Date dd = rs.getDate("jnl_date");
-                    if (dd == null) return;
-                    String key = rs.getInt("acct_main_no") + "." + rs.getInt("acct_sub_no");
-                    BigDecimal[] cells = perAcct.computeIfAbsent(key, k -> zeroes(colCount));
-                    LocalDate d = dd.toLocalDate();
-                    BigDecimal net = z(rs.getBigDecimal("dr_amt")).subtract(z(rs.getBigDecimal("cr_amt")));
-                    // Add to EVERY column whose date range contains this posting.
-                    // PTD and YTD often overlap (when start_date = fiscal year
-                    // start they're identical), so a single break here would
-                    // leak the posting out of YTD. Each column is an independent
-                    // aggregate; non-overlapping columns naturally match one.
-                    for (int c = 0; c < colCount; c++) {
-                        if (!d.isBefore(cols0[c]) && !d.isAfter(cols1[c])) {
-                            cells[c] = cells[c].add(net);
-                        }
-                    }
-                },
-                companyNo, r.startMain(), endMain, r.startSub(), endSub,
-                Date.valueOf(spanStart), Date.valueOf(spanEnd));
+            dsl.select(
+                    GLTRX.ACCT_MAIN_NO,
+                    GLTRX.ACCT_SUB_NO,
+                    GLTRX.JNL_DATE,
+                    GLTRX.DR_AMT,
+                    GLTRX.CR_AMT)
+               .from(GLTRX)
+               .where(GLTRX.COMPANY_NO.eq(companyNo)
+                   .and(GLTRX.ACCT_MAIN_NO.between(r.startMain(), endMain))
+                   .and(GLTRX.ACCT_SUB_NO.between(r.startSub(), endSub))
+                   .and(GLTRX.JNL_DATE.between(spanStart, spanEnd)))
+               .orderBy(GLTRX.ACCT_MAIN_NO, GLTRX.ACCT_SUB_NO)
+               .fetch()
+               .forEach(row -> {
+                   LocalDate d = row.get(GLTRX.JNL_DATE);
+                   if (d == null) return;
+                   String key = row.get(GLTRX.ACCT_MAIN_NO) + "." + row.get(GLTRX.ACCT_SUB_NO);
+                   BigDecimal[] cells = perAcct.computeIfAbsent(key, k -> zeroes(colCount));
+                   BigDecimal net = z(row.get(GLTRX.DR_AMT)).subtract(z(row.get(GLTRX.CR_AMT)));
+                   // Add to EVERY column whose date range contains this posting.
+                   // PTD and YTD often overlap (when start_date = fiscal year
+                   // start they're identical), so a single break here would
+                   // leak the posting out of YTD. Each column is an independent
+                   // aggregate; non-overlapping columns naturally match one.
+                   for (int c = 0; c < colCount; c++) {
+                       if (!d.isBefore(cols0[c]) && !d.isAfter(cols1[c])) {
+                           cells[c] = cells[c].add(net);
+                       }
+                   }
+               });
         } catch (Exception e) {
             log.warn("aggregatePerAccount row seq={} accts={}.{}–{}.{}: {}",
                 r.seqNo(), r.startMain(), r.startSub(), endMain, endSub, e.getMessage());
@@ -725,10 +825,12 @@ public class GlReportWriterService {
     private Map<String, String> loadAccountDescriptions(int companyNo) {
         Map<String, String> map = new HashMap<>();
         try {
-            jdbc.query(
-                "SELECT acct_main_no, acct_sub_no, desc1 FROM glchart WHERE company_no=?",
-                rs -> { map.put(rs.getInt(1) + "." + rs.getInt(2), trim(rs.getString(3))); },
-                companyNo);
+            dsl.select(GLCHART.ACCT_MAIN_NO, GLCHART.ACCT_SUB_NO, GLCHART.DESC1)
+               .from(GLCHART)
+               .where(GLCHART.COMPANY_NO.eq(companyNo))
+               .fetch()
+               .forEach(r -> map.put(r.get(GLCHART.ACCT_MAIN_NO) + "." + r.get(GLCHART.ACCT_SUB_NO),
+                                     trim(r.get(GLCHART.DESC1))));
         } catch (Exception e) { log.warn("loadAccountDescriptions: {}", e.getMessage()); }
         return map;
     }
@@ -868,4 +970,10 @@ public class GlReportWriterService {
     static boolean notBlank(String s) { return s != null && !s.trim().isEmpty(); }
     static String  trim(String s)     { return s == null ? "" : s.trim(); }
     static BigDecimal z(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
+
+    /** Safely parses a VARCHAR vert_format_no / selection_no to int; returns 0 on failure. */
+    private static int parseIntSafe(String s) {
+        if (s == null || s.isBlank()) return 0;
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 0; }
+    }
 }
