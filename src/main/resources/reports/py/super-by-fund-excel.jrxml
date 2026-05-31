@@ -4,8 +4,8 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="super-by-fund-excel"
-              pageWidth="1200" pageHeight="595" orientation="Landscape"
-              columnWidth="1200" leftMargin="0" rightMargin="0"
+              pageWidth="760" pageHeight="595" orientation="Landscape"
+              columnWidth="760" leftMargin="0" rightMargin="0"
               topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
@@ -46,8 +46,6 @@
       <staticText><reportElement x="400" y="0" width="150" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
       <staticText><reportElement x="550" y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Emp No]]></text></staticText>
       <staticText><reportElement x="610" y="0" width="150" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Surname]]></text></staticText>
-      <staticText><reportElement x="760" y="0" width="240" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[First Name]]></text></staticText>
-      <staticText><reportElement x="1000" y="0" width="200" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
     </band>
   </columnHeader>
 
@@ -59,8 +57,6 @@
       <textField isStretchWithOverflow="true"><reportElement x="400" y="0" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{codeDesc}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="550" y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{empNo}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="610" y="0" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{surname}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true"><reportElement x="760" y="0" width="240" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{firstName}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="1000" y="0" width="200" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
     </band>
   </detail>
 
@@ -68,10 +64,8 @@
 
   <summary>
     <band height="20">
-      <rectangle><reportElement x="0" y="0" width="1200" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <textField isStretchWithOverflow="true"><reportElement x="0" y="4" width="600" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="800" y="4" width="198" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand Total:]]></text></staticText>
-      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="1000" y="4" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="760" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="4" width="760" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)"]]></textFieldExpression></textField>
     </band>
   </summary>
 

@@ -42,7 +42,7 @@
       <band height="14">
         <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
         <staticText><reportElement x="4" y="2" width="400" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Fund Total]]></text></staticText>
-        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="642" y="2" width="136" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{fundGroup_AMOUNT_sum}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="430" y="2" width="348" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{fundGroup_AMOUNT_sum}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -61,8 +61,7 @@
       <staticText><reportElement x="68"  y="4" width="150" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
       <staticText><reportElement x="222" y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Emp No]]></text></staticText>
       <staticText><reportElement x="276" y="4" width="150" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Surname]]></text></staticText>
-      <staticText><reportElement x="430" y="4" width="210" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[First Name]]></text></staticText>
-      <staticText><reportElement x="644" y="4" width="134" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+      <staticText><reportElement x="430" y="4" width="348" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
     </band>
   </columnHeader>
 
@@ -72,8 +71,7 @@
       <textField isStretchWithOverflow="true"><reportElement x="68"  y="1" width="150" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{codeDesc}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="222" y="1" width="50"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{empNo}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="276" y="1" width="150" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{surname}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true"><reportElement x="430" y="1" width="210" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{firstName}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="644" y="1" width="134" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="430" y="1" width="348" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
     </band>
   </detail>
 
