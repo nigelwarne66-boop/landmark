@@ -43,11 +43,11 @@
 
   <columnHeader>
     <band height="18">
-      <staticText><reportElement x="0"    y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Emp No]]></text></staticText>
+      <staticText><reportElement x="0"    y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Employee No]]></text></staticText>
       <staticText><reportElement x="80"   y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Surname]]></text></staticText>
       <staticText><reportElement x="220"  y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[First Name]]></text></staticText>
-      <staticText><reportElement x="320"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Dept]]></text></staticText>
-      <staticText><reportElement x="400"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Paygroup]]></text></staticText>
+      <staticText><reportElement x="320"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Department]]></text></staticText>
+      <staticText><reportElement x="400"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Group]]></text></staticText>
       <staticText><reportElement x="480"  y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
       <staticText><reportElement x="540"  y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Code]]></text></staticText>
       <staticText><reportElement x="640"  y="0" width="560" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>

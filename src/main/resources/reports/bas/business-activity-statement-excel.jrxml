@@ -58,7 +58,7 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="3" width="500" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)  —  BAS: " + ($P{BAS_DESC}==null?"":$P{BAS_DESC})]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="3" width="620" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)  —  BAS: " + ($P{BAS_DESC}==null?"":$P{BAS_DESC})]]></textFieldExpression></textField>
     </band>
   </summary>
 

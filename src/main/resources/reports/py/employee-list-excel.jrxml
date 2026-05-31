@@ -62,7 +62,7 @@
   <columnHeader>
     <band height="18">
       <staticText><reportElement x="0"    y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Department]]></text></staticText>
-      <staticText><reportElement x="120"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Emp No]]></text></staticText>
+      <staticText><reportElement x="120"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Employee No]]></text></staticText>
       <staticText><reportElement x="200"  y="0" width="300" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Name]]></text></staticText>
       <staticText><reportElement x="500"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Freq]]></text></staticText>
       <staticText><reportElement x="580"  y="0" width="180" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Hourly Rate]]></text></staticText>
@@ -90,7 +90,7 @@
   <summary>
     <band height="20">
       <rectangle><reportElement x="0" y="0" width="1600" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <textField isStretchWithOverflow="true"><reportElement x="0" y="4" width="600" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Total: " + $V{TOTAL_COUNT} + " employee(s)"]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="4" width="1600" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Total: " + $V{TOTAL_COUNT} + " employee(s)"]]></textFieldExpression></textField>
     </band>
   </summary>
 

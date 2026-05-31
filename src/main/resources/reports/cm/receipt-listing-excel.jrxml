@@ -41,7 +41,7 @@
   <columnHeader>
     <band height="18">
       <staticText><reportElement x="0"   y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Document No]]></text></staticText>
-      <staticText><reportElement x="70"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="70"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Date]]></text></staticText>
       <staticText><reportElement x="150" y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Receipt Type]]></text></staticText>
       <staticText><reportElement x="270" y="0" width="260" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Received From]]></text></staticText>
       <staticText><reportElement x="530" y="0" width="200" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Reference]]></text></staticText>
@@ -64,7 +64,7 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="3" width="680" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " receipt(s) — total " + ($P{SUM_AMT}==null?"":$P{SUM_AMT}.toString())]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="3" width="730" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " receipt(s) — total " + ($P{SUM_AMT}==null?"":$P{SUM_AMT}.toString())]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="730" y="3" width="140" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_AMT}]]></textFieldExpression></textField>
     </band>
   </summary>

@@ -73,7 +73,7 @@
       <staticText><reportElement x="922"  y="0" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Analysis]]></text></staticText>
       <staticText><reportElement x="1002" y="0" width="180" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
       <staticText><reportElement x="1182" y="0" width="120" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Reference]]></text></staticText>
-      <staticText><reportElement x="1302" y="0" width="60"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Qty]]></text></staticText>
+      <staticText><reportElement x="1302" y="0" width="60"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Quantity]]></text></staticText>
       <staticText><reportElement x="1362" y="0" width="40"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Per]]></text></staticText>
       <staticText><reportElement x="1402" y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Unit Cost]]></text></staticText>
       <staticText><reportElement x="1476" y="0" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
@@ -119,7 +119,7 @@
 
   <summary>
     <band height="20">
-      <staticText><reportElement x="1396" y="4" width="78" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
+      <staticText><reportElement x="1402" y="4" width="74" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1476" y="4" width="80" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_AMT}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1814" y="4" width="74" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_TAX}]]></textFieldExpression></textField>
     </band>

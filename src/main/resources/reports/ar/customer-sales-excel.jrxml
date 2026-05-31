@@ -81,7 +81,7 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="3" width="370" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " customer(s) — Grand total"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="3" width="400" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " customer(s) — Grand total"]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="480"  y="3" width="140" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_SALES}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="620"  y="3" width="140" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_COST}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="760"  y="3" width="120" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_PROFIT}]]></textFieldExpression></textField>

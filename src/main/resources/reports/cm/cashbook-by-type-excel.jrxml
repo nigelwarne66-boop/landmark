@@ -40,7 +40,7 @@
 
   <columnHeader>
     <band height="18">
-      <staticText><reportElement x="0"   y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="0"   y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Date]]></text></staticText>
       <staticText><reportElement x="80"  y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
       <staticText><reportElement x="200" y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Document No]]></text></staticText>
       <staticText><reportElement x="280" y="0" width="300" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Payee]]></text></staticText>
@@ -62,7 +62,7 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="3" width="800" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " transaction(s) — net " + ($P{SUM_NET}==null?"":$P{SUM_NET}.toString())]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="3" width="860" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " transaction(s) — net " + ($P{SUM_NET}==null?"":$P{SUM_NET}.toString())]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="860" y="3" width="140" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_NET}]]></textFieldExpression></textField>
     </band>
   </summary>

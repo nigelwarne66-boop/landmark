@@ -69,7 +69,7 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="3" width="330" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " customer(s) — Totals"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="3" width="420" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " customer(s) — Totals"]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="420" y="3" width="130" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_BAL}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="550" y="3" width="130" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_SALES}]]></textFieldExpression></textField>
     </band>

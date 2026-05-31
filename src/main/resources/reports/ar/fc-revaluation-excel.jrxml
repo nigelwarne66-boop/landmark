@@ -92,7 +92,7 @@
 
   <summary>
     <band height="20">
-      <staticText><reportElement x="880" y="4" width="132" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand revaluation total:]]></text></staticText>
+      <staticText><reportElement x="860" y="4" width="154" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand revaluation total:]]></text></staticText>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1014" y="4" width="154" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
     </band>
   </summary>

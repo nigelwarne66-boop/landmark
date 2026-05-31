@@ -139,7 +139,7 @@
 
   <summary>
     <band height="22">
-      <textField><reportElement x="0" y="6" width="600" height="12"/><textElement><font size="10" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) — " + ($P{COL_COUNT}==null?0:$P{COL_COUNT}) + " column(s)"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="6" width="246" height="12"/><textElement><font size="10" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) — " + ($P{COL_COUNT}==null?0:$P{COL_COUNT}) + " column(s)"]]></textFieldExpression></textField>
     </band>
   </summary>
 

@@ -44,10 +44,10 @@
 
   <columnHeader>
     <band height="18">
-      <staticText><reportElement x="0"    y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Paygroup]]></text></staticText>
-      <staticText><reportElement x="80"   y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Payrun]]></text></staticText>
-      <staticText><reportElement x="150"  y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
-      <staticText><reportElement x="240"  y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Emps]]></text></staticText>
+      <staticText><reportElement x="0"    y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Group]]></text></staticText>
+      <staticText><reportElement x="80"   y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Run No]]></text></staticText>
+      <staticText><reportElement x="150"  y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Date]]></text></staticText>
+      <staticText><reportElement x="240"  y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Employees]]></text></staticText>
       <staticText><reportElement x="300"  y="0" width="180" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Normal Pay]]></text></staticText>
       <staticText><reportElement x="480"  y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Overtime]]></text></staticText>
       <staticText><reportElement x="620"  y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Leave Pay]]></text></staticText>
@@ -81,8 +81,7 @@
   <summary>
     <band height="20">
       <rectangle><reportElement x="0" y="0" width="1600" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <textField isStretchWithOverflow="true"><reportElement x="0" y="4" width="700" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " payrun(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="1040" y="4" width="278" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand Total:]]></text></staticText>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="4" width="1320" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " payrun(s)   Grand Total:"]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="1320" y="4" width="280" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
     </band>
   </summary>

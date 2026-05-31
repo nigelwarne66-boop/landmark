@@ -64,7 +64,7 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="3" width="450" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " customer(s) — Total balance"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="3" width="460" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " customer(s) — Total balance"]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="560" y="3" width="140" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_BAL}]]></textFieldExpression></textField>
     </band>
   </summary>

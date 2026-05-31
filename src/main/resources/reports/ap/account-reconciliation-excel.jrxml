@@ -113,7 +113,7 @@
 
   <summary>
     <band height="20">
-      <staticText><reportElement x="1042" y="4" width="80" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total:]]></text></staticText>
+      <staticText><reportElement x="1058" y="4" width="64" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total:]]></text></staticText>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1122" y="4" width="80" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_NET}]]></textFieldExpression></textField>
     </band>
   </summary>

@@ -44,7 +44,7 @@
   <columnHeader>
     <band height="18">
       <staticText><reportElement x="0"    y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier]]></text></staticText>
-      <staticText><reportElement x="90"   y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Doc No]]></text></staticText>
+      <staticText><reportElement x="90"   y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Document No]]></text></staticText>
       <staticText><reportElement x="210"  y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
       <staticText><reportElement x="270"  y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Doc Date]]></text></staticText>
       <staticText><reportElement x="360"  y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Posting Date]]></text></staticText>
@@ -71,7 +71,7 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="3" width="400" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " document(s)"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="3" width="520" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " document(s)"]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="520" y="3" width="250" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MATCHED}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="770" y="3" width="250" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_ADJUST}]]></textFieldExpression></textField>
     </band>

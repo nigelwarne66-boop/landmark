@@ -48,7 +48,7 @@
     <groupFooter>
       <band height="18">
         <rectangle><reportElement x="0" y="0" width="1160" height="18" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-        <textField><reportElement x="4" y="2" width="600" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Total " + $F{section}]]></textFieldExpression></textField>
+        <textField><reportElement x="0" y="2" width="780" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Total " + $F{section}]]></textFieldExpression></textField>
         <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="780" y="2" width="380" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SECTION_TOTAL}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
@@ -84,12 +84,12 @@
   <summary>
     <band height="64">
       <rectangle><reportElement x="0" y="0" width="1160" height="64" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <staticText><reportElement x="0" y="6" width="400" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Income:]]></text></staticText>
+      <staticText><reportElement x="0" y="6" width="780" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Income:]]></text></staticText>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="780" y="6" width="380" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_INCOME}]]></textFieldExpression></textField>
-      <staticText><reportElement x="0" y="24" width="400" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Expenses:]]></text></staticText>
+      <staticText><reportElement x="0" y="24" width="780" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Expenses:]]></text></staticText>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="780" y="24" width="380" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_EXPENSE}]]></textFieldExpression></textField>
       <line><reportElement x="0" y="42" width="1160" height="1" forecolor="#8aabbf"/><graphicElement><pen lineWidth="0.5"/></graphicElement></line>
-      <staticText><reportElement x="0" y="46" width="400" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Net Profit/(Loss):]]></text></staticText>
+      <staticText><reportElement x="0" y="46" width="780" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Net Profit/(Loss):]]></text></staticText>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="780" y="46" width="380" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="10" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{NET_PROFIT}]]></textFieldExpression></textField>
     </band>
   </summary>

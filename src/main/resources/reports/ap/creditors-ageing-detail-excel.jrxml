@@ -102,7 +102,7 @@
 
   <summary>
     <band height="22">
-      <textField><reportElement x="0" y="4" width="300" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{ROW_COUNT} + " transaction(s) — total outstanding:"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="4" width="380" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{ROW_COUNT} + " transaction(s) — total outstanding:"]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="624" y="4" width="64" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SUM_P1}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="688" y="4" width="64" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SUM_P2}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="752" y="4" width="64" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SUM_P3}]]></textFieldExpression></textField>

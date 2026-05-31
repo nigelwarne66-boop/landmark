@@ -75,12 +75,10 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="2" width="740" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " note(s)   Cr: "]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="300" y="2" width="150" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CR}]]></textFieldExpression></textField>
-      <staticText><reportElement x="450" y="2" width="140" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Dr:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="590" y="2" width="150" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DR}]]></textFieldExpression></textField>
-      <staticText><reportElement x="740" y="2" width="150" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Net:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="890" y="2" width="150" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_NET}]]></textFieldExpression></textField>
+      <staticText><reportElement x="0" y="2" width="540" height="14"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="540" y="2" width="200" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CR}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="740" y="2" width="150" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DR}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="890" y="2" width="370" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_NET}]]></textFieldExpression></textField>
     </band>
   </summary>
 

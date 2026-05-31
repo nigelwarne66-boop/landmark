@@ -90,7 +90,7 @@
 
   <summary>
     <band height="20">
-      <staticText><reportElement x="1160" y="4" width="118" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand total:]]></text></staticText>
+      <staticText><reportElement x="1110" y="4" width="170" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand total:]]></text></staticText>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1280" y="4" width="90" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
     </band>
   </summary>

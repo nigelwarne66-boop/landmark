@@ -80,7 +80,7 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="0" y="3" width="600" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " item(s) below minimum"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="3" width="1660" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " item(s) below minimum"]]></textFieldExpression></textField>
     </band>
   </summary>
 
