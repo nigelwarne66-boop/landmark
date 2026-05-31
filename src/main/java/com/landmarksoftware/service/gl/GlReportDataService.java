@@ -134,7 +134,7 @@ public class GlReportDataService {
     public Map<String, Object> getTrialBalance(AppSession s, TrialBalanceParams p) {
         int n = clampPeriod(p.asAtPeriod());
         // Inline SQL: dynamic period sum — see class Javadoc for rationale
-        String balExpr = "(COALESCE(b.open_bal,0) + " + rangeSum(1, n, "b") + ")";
+        String balExpr = "(COALESCE(glbal.open_bal,0) + " + rangeSum(1, n, "glbal") + ")";
         Field<BigDecimal> balField = DSL.field(balExpr, BigDecimal.class).as("bal");
 
         // Build conditions. Non-zero filter applied to WHERE (no GROUP BY, so WHERE ≡ HAVING here).
@@ -196,7 +196,7 @@ public class GlReportDataService {
         int from = clampPeriod(p.fromPeriod()), to = clampPeriod(p.toPeriod());
         if (to < from) { int t = from; from = to; to = t; }
         // Inline SQL: dynamic period sum — see class Javadoc for rationale
-        String movExpr = "COALESCE(" + rangeSum(from, to, "b") + ",0)";
+        String movExpr = "COALESCE(" + rangeSum(from, to, "glbal") + ",0)";
         Field<BigDecimal> movField = DSL.field(movExpr, BigDecimal.class).as("mov");
 
         // Non-zero filter applied to WHERE (no GROUP BY, so WHERE ≡ HAVING here).
@@ -260,7 +260,7 @@ public class GlReportDataService {
     public Map<String, Object> getBalanceSheet(AppSession s, BalanceSheetParams p) {
         int n = clampPeriod(p.asAtPeriod());
         // Inline SQL: dynamic period sum — see class Javadoc for rationale
-        String balExpr = "(COALESCE(b.open_bal,0) + " + rangeSum(1, n, "b") + ")";
+        String balExpr = "(COALESCE(glbal.open_bal,0) + " + rangeSum(1, n, "glbal") + ")";
         Field<BigDecimal> balField = DSL.field(balExpr, BigDecimal.class).as("bal");
 
         // Non-zero filter applied to WHERE (no GROUP BY, so WHERE ≡ HAVING here).

@@ -9,6 +9,8 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
   <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
   <parameter name="COMPANY_NAME" class="java.lang.String"/>
   <parameter name="AS_AT_DATE"   class="java.lang.String" isForPrompting="false"/>

@@ -58,7 +58,7 @@
 
   <title>
     <band height="28">
-      <staticText><reportElement x="0" y="0" width="700" height="16"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Account Transactions]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1460" height="16"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Account Transactions]]></text></staticText>
       <textField><reportElement x="0" y="16" width="1460" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   " + $P{YEAR_DESC}]]></textFieldExpression></textField>
     </band>
   </title>

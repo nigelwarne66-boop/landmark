@@ -44,7 +44,7 @@
 
   <title>
     <band height="34">
-      <staticText><reportElement x="0" y="0" width="600" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Customer Sales by Year]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="960" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Customer Sales by Year]]></text></staticText>
       <textField><reportElement x="0" y="20" width="960" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   " + $P{CUST_RANGE} + " • " + $P{DATE_RANGE}]]></textFieldExpression></textField>
     </band>
   </title>

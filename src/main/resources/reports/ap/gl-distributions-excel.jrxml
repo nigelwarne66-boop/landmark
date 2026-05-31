@@ -33,7 +33,7 @@
 
   <title>
     <band height="22">
-      <textField><reportElement x="0" y="0" width="900" height="16"/><textElement><font size="11" isBold="true"/></textElement><textFieldExpression><![CDATA["GL Distributions Summary — " + $P{COMPANY_NAME} + "  (period ending " + $P{PERIOD_END} + ")"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="0" width="920" height="16"/><textElement><font size="11" isBold="true"/></textElement><textFieldExpression><![CDATA["GL Distributions Summary — " + $P{COMPANY_NAME} + "  (period ending " + $P{PERIOD_END} + ")"]]></textFieldExpression></textField>
     </band>
   </title>
 

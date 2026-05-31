@@ -37,7 +37,7 @@
 
   <title>
     <band height="34">
-      <staticText><reportElement x="0" y="0" width="600" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Detailed BAS]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1060" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Detailed BAS]]></text></staticText>
       <textField><reportElement x="0" y="20" width="1060" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   BAS: " + ($P{BAS_DESC}==null?"":$P{BAS_DESC}) + "   —   " + ($P{MODE_DESC}==null?"":$P{MODE_DESC})]]></textFieldExpression></textField>
     </band>
   </title>

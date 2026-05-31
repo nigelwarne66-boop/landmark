@@ -36,7 +36,7 @@
 
   <title>
     <band height="32">
-      <staticText><reportElement x="0" y="0" width="800" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Cashbook Foreign Currency Match]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1160" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Cashbook Foreign Currency Match]]></text></staticText>
       <textField><reportElement x="0" y="18" width="1160" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   " + $P{BANK_DESC} + "   —   " + $P{DATE_RANGE}]]></textFieldExpression></textField>
     </band>
   </title>

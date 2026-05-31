@@ -44,7 +44,7 @@
 
   <title>
     <band height="22">
-      <textField><reportElement x="0" y="0" width="1200" height="16"/><textElement><font size="11" isBold="true"/></textElement><textFieldExpression><![CDATA["Foreign Currency Revaluation — " + $P{COMPANY_NAME} + "  (" + ($P{PRINT_SEQ_DESC}==null?"":$P{PRINT_SEQ_DESC}) + ", " + ($P{DATE_BASIS_DESC}==null?"":$P{DATE_BASIS_DESC}) + ", " + ($P{DATE_RANGE}==null?"":$P{DATE_RANGE}) + ")"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="0" width="1600" height="16"/><textElement><font size="11" isBold="true"/></textElement><textFieldExpression><![CDATA["Foreign Currency Revaluation — " + $P{COMPANY_NAME} + "  (" + ($P{PRINT_SEQ_DESC}==null?"":$P{PRINT_SEQ_DESC}) + ", " + ($P{DATE_BASIS_DESC}==null?"":$P{DATE_BASIS_DESC}) + ", " + ($P{DATE_RANGE}==null?"":$P{DATE_RANGE}) + ")"]]></textFieldExpression></textField>
     </band>
   </title>
 

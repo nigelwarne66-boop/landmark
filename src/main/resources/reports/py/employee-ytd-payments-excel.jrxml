@@ -36,7 +36,7 @@
 
   <title>
     <band height="30">
-      <staticText><reportElement x="0" y="0" width="700" height="16"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Employee YTD Payments]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1400" height="16"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Employee YTD Payments]]></text></staticText>
       <textField isStretchWithOverflow="true"><reportElement x="0" y="18" width="1400" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   " + $P{YEAR_DESC} + "   " + $P{ACCT_RANGE}]]></textFieldExpression></textField>
     </band>
   </title>

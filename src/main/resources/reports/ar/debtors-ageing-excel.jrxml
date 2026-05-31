@@ -52,7 +52,7 @@
 
   <title>
     <band height="40">
-      <staticText><reportElement x="0" y="0" width="600" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Debtors Ageing]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1250" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Debtors Ageing]]></text></staticText>
       <textField><reportElement x="0" y="20" width="900" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   As at " + $P{AS_AT_DATE} + "   —   Aged by " + $P{DATE_BASIS} + " — " + $P{AMT_BASIS} + " — periods: " + $P{DATES_TYPE_DESC}]]></textFieldExpression></textField>
     </band>
   </title>

@@ -39,7 +39,7 @@
 
   <title>
     <band height="110">
-      <staticText><reportElement x="0" y="0" width="800" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Bank Reconciliation Statement]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1060" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Bank Reconciliation Statement]]></text></staticText>
       <textField><reportElement x="0" y="18" width="1060" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   " + $P{BANK_DESC}]]></textFieldExpression></textField>
 
       <staticText><reportElement x="0" y="36" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Reconciliation No:]]></text></staticText>

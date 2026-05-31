@@ -16,7 +16,8 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.stage.Stage;
 import javafx.stage.Window;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JRField;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -30,11 +31,11 @@ import java.util.ResourceBundle;
 /**
  * GLTL12 (pl_bs_ind='B') — Balance Sheet. Assets vs Liabilities & Equity as at
  * end of a chosen period, grouped by section. Uses GlReportDataService (glbal-based)
- * and JRBeanCollectionDataSource.
+ * and mapDataSource.
  *
  * <p>This replaces the old stub that routed through hub.runJasperReport with static
  * SQL inside the jrxml. The new version calls GlReportDataService.getBalanceSheet
- * and passes pre-fetched rows via JRBeanCollectionDataSource.
+ * and passes pre-fetched rows via mapDataSource.
  */
 @Component
 @Scope("prototype")
@@ -100,7 +101,7 @@ public class GlBalanceSheetController implements Initializable {
         String reportPath = "excel".equals(format) ? EXCEL_PATH : PDF_PATH;
         Window owner = ((Node) e.getSource()).getScene().getWindow();
         hub.runJasperReportWithDataSource(reportPath, jp,
-                new JRBeanCollectionDataSource(rows), format, owner);
+                mapDataSource(rows), format, owner);
         close(e);
     }
 
@@ -118,5 +119,14 @@ public class GlBalanceSheetController implements Initializable {
 
     private void close(ActionEvent e) {
         ((Stage) ((Node) e.getSource()).getScene().getWindow()).close();
+    }
+
+    private static JRDataSource mapDataSource(java.util.List<java.util.Map<String, Object>> rows) {
+        return new JRDataSource() {
+            private final java.util.Iterator<java.util.Map<String, Object>> it = rows.iterator();
+            private java.util.Map<String, Object> current;
+            @Override public boolean next() { if (!it.hasNext()) return false; current = it.next(); return true; }
+            @Override public Object getFieldValue(JRField f) { return current.get(f.getName()); }
+        };
     }
 }

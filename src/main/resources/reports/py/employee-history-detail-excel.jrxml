@@ -37,7 +37,7 @@
 
   <title>
     <band height="30">
-      <staticText><reportElement x="0" y="0" width="800" height="16"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Employee History Detail]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1600" height="16"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Employee History Detail]]></text></staticText>
       <textField isStretchWithOverflow="true"><reportElement x="0" y="18" width="1600" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   " + $P{DATE_RANGE}]]></textFieldExpression></textField>
     </band>
   </title>

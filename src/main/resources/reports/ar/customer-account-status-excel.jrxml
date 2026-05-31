@@ -33,7 +33,7 @@
 
   <title>
     <band height="36">
-      <staticText><reportElement x="0" y="0" width="600" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Customer Account Status]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1060" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Customer Account Status]]></text></staticText>
       <textField><reportElement x="0" y="18" width="900" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
     </band>
   </title>

@@ -44,7 +44,7 @@
 
   <title>
     <band height="36">
-      <staticText><reportElement x="0" y="0" width="600" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Customer Sales]]></text></staticText>
+      <staticText><reportElement x="0" y="0" width="1260" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Customer Sales]]></text></staticText>
       <textField><reportElement x="0" y="18" width="1000" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   Grouped by " + $P{GROUP_BY} + "   Period ending: " + $P{PERIOD_END} + "   Year: " + $P{THIS_YR}]]></textFieldExpression></textField>
     </band>
   </title>

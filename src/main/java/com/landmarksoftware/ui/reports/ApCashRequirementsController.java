@@ -13,7 +13,8 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JRField;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -105,7 +106,7 @@ public class ApCashRequirementsController implements Initializable {
         String reportPath = "excel".equals(format) ? base + "-excel" : base;
         Window owner = ((Node) e.getSource()).getScene().getWindow();
         hub.runJasperReportWithDataSource(reportPath, jasperParams,
-            new JRBeanCollectionDataSource(rows), format, owner);
+            mapDataSource(rows), format, owner);
         close(e);
     }
 
@@ -128,5 +129,14 @@ public class ApCashRequirementsController implements Initializable {
 
     private void close(ActionEvent e) {
         ((Stage) ((Node) e.getSource()).getScene().getWindow()).close();
+    }
+
+    private static JRDataSource mapDataSource(java.util.List<java.util.Map<String, Object>> rows) {
+        return new JRDataSource() {
+            private final java.util.Iterator<java.util.Map<String, Object>> it = rows.iterator();
+            private java.util.Map<String, Object> current;
+            @Override public boolean next() { if (!it.hasNext()) return false; current = it.next(); return true; }
+            @Override public Object getFieldValue(JRField f) { return current.get(f.getName()); }
+        };
     }
 }
