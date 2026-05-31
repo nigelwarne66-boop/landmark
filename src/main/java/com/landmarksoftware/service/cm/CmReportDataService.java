@@ -1,23 +1,32 @@
 package com.landmarksoftware.service.cm;
 
 import com.landmarksoftware.model.AppSession;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
+
+import static com.landmarksoftware.db.tables.Cmbanks.CMBANKS;
+import static com.landmarksoftware.db.tables.Cmcbdis.CMCBDIS;
+import static com.landmarksoftware.db.tables.Cmcbtrx.CMCBTRX;
+import static com.landmarksoftware.db.tables.Cmrched.CMRCHED;
+import static com.landmarksoftware.db.tables.Cmtrans.CMTRANS;
+import static com.landmarksoftware.db.tables.Cpgstcd.CPGSTCD;
+import static com.landmarksoftware.db.tables.Glchart.GLCHART;
 
 /**
  * Cash Management (cashbook) <b>report</b> data service — one query method per CM
  * report card in the JavaFX Reports Hub ({@code -Preporting} build).
  *
- * <p>All JDBC lives here; controllers stay pure JavaFX. Every method is a port of
- * the matching COBOL/Perl in {@code C:\landmark\cobol\cm2}, with column names
- * verified against the live {@code lmextract} schema.
+ * <p>All DB access lives here via jOOQ DSLContext; controllers stay pure JavaFX.
+ * Every method is a port of the matching COBOL/Perl in {@code C:\landmark\cobol\cm2},
+ * with column names verified against the live {@code lmextract} schema.
  *
  * <p>CM doc_type convention: 1 = deposit, 2 = bank credit, 3 = cheque, 4 = bank
  * debit. Receipts (1/2) are positive to the cashbook; payments (3/4) negative.
@@ -26,9 +35,9 @@ import java.util.*;
 public class CmReportDataService {
 
     private static final Logger log = LoggerFactory.getLogger(CmReportDataService.class);
-    private final JdbcTemplate jdbc;
+    private final DSLContext dsl;
 
-    public CmReportDataService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public CmReportDataService(DSLContext dsl) { this.dsl = dsl; }
 
     // ── Picker lookups ────────────────────────────────────────────────────────
 
@@ -41,10 +50,15 @@ public class CmReportDataService {
     public List<CodeName> getBanks(AppSession s) {
         List<CodeName> list = new ArrayList<>();
         try {
-            jdbc.query("SELECT bank_code, name1 FROM cmbanks WHERE company_no=? ORDER BY bank_code",
-                rs -> { list.add(new CodeName(trim(rs.getString("bank_code")),
-                                              trim(rs.getString("bank_code")) + " — " + trim(rs.getString("name1")))); },
-                s.getCompanyNo());
+            dsl.select(CMBANKS.BANK_CODE, CMBANKS.NAME1)
+               .from(CMBANKS)
+               .where(CMBANKS.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(CMBANKS.BANK_CODE)
+               .fetch()
+               .forEach(r -> {
+                   String code = trim(r.get(CMBANKS.BANK_CODE));
+                   list.add(new CodeName(code, code + " — " + trim(r.get(CMBANKS.NAME1))));
+               });
         } catch (Exception e) { log.warn("getBanks: {}", e.getMessage()); }
         return list;
     }
@@ -55,11 +69,17 @@ public class CmReportDataService {
         list.add(new CodeName("", "(All reconciliations)"));
         if (notBlank(bankCode)) {
             try {
-                jdbc.query("SELECT recon_no, stmnt_close_date FROM cmrched WHERE company_no=? AND bank_code=? ORDER BY recon_no DESC",
-                    rs -> { LocalDate d = ld(rs.getDate("stmnt_close_date"));
-                            list.add(new CodeName(String.valueOf(rs.getInt("recon_no")),
-                                    rs.getInt("recon_no") + (d != null ? " — " + d : ""))); },
-                    s.getCompanyNo(), bankCode);
+                dsl.select(CMRCHED.RECON_NO, CMRCHED.STMNT_CLOSE_DATE)
+                   .from(CMRCHED)
+                   .where(CMRCHED.COMPANY_NO.eq(s.getCompanyNo()).and(CMRCHED.BANK_CODE.eq(bankCode)))
+                   .orderBy(CMRCHED.RECON_NO.desc())
+                   .fetch()
+                   .forEach(r -> {
+                       LocalDate d = ld(r.get(CMRCHED.STMNT_CLOSE_DATE));
+                       int recon = r.get(CMRCHED.RECON_NO);
+                       list.add(new CodeName(String.valueOf(recon),
+                               recon + (d != null ? " — " + d : "")));
+                   });
             } catch (Exception e) { log.warn("getReconNumbers: {}", e.getMessage()); }
         }
         return list;
@@ -70,10 +90,15 @@ public class CmReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All accounts)"));
         try {
-            jdbc.query("SELECT acct_main_no, acct_sub_no, desc1 FROM glchart WHERE company_no=? ORDER BY acct_main_no, acct_sub_no",
-                rs -> { String code = rs.getInt("acct_main_no") + "-" + rs.getInt("acct_sub_no");
-                        list.add(new CodeName(code, code + " — " + trim(rs.getString("desc1")))); },
-                s.getCompanyNo());
+            dsl.select(GLCHART.ACCT_MAIN_NO, GLCHART.ACCT_SUB_NO, GLCHART.DESC1)
+               .from(GLCHART)
+               .where(GLCHART.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(GLCHART.ACCT_MAIN_NO, GLCHART.ACCT_SUB_NO)
+               .fetch()
+               .forEach(r -> {
+                   String code = r.get(GLCHART.ACCT_MAIN_NO) + "-" + r.get(GLCHART.ACCT_SUB_NO);
+                   list.add(new CodeName(code, code + " — " + trim(r.get(GLCHART.DESC1))));
+               });
         } catch (Exception e) { log.warn("getGlAccounts: {}", e.getMessage()); }
         return list;
     }
@@ -83,9 +108,15 @@ public class CmReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All GL mains)"));
         try {
-            jdbc.query("SELECT DISTINCT acct_main_no FROM glchart WHERE company_no=? ORDER BY acct_main_no",
-                rs -> { int m = rs.getInt("acct_main_no"); list.add(new CodeName(String.valueOf(m), String.valueOf(m))); },
-                s.getCompanyNo());
+            dsl.selectDistinct(GLCHART.ACCT_MAIN_NO)
+               .from(GLCHART)
+               .where(GLCHART.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(GLCHART.ACCT_MAIN_NO)
+               .fetch()
+               .forEach(r -> {
+                   int m = r.get(GLCHART.ACCT_MAIN_NO);
+                   list.add(new CodeName(String.valueOf(m), String.valueOf(m)));
+               });
         } catch (Exception e) { log.warn("getGlMainAccounts: {}", e.getMessage()); }
         return list;
     }
@@ -95,10 +126,15 @@ public class CmReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All tax codes)"));
         try {
-            jdbc.query("SELECT gst_code, gst_desc FROM cpgstcd WHERE company_no=? ORDER BY gst_code",
-                rs -> { String c = trim(rs.getString("gst_code")); if (!c.isEmpty())
-                            list.add(new CodeName(c, c + " — " + trim(rs.getString("gst_desc")))); },
-                s.getCompanyNo());
+            dsl.select(CPGSTCD.GST_CODE, CPGSTCD.GST_DESC)
+               .from(CPGSTCD)
+               .where(CPGSTCD.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(CPGSTCD.GST_CODE)
+               .fetch()
+               .forEach(r -> {
+                   String c = trim(r.get(CPGSTCD.GST_CODE));
+                   if (!c.isEmpty()) list.add(new CodeName(c, c + " — " + trim(r.get(CPGSTCD.GST_DESC))));
+               });
         } catch (Exception e) { log.warn("getTaxCodes: {}", e.getMessage()); }
         return list;
     }
@@ -137,52 +173,58 @@ public class CmReportDataService {
         if (p.inclBankDebits())  types.add("4");
         if (types.isEmpty()) return warn("Select at least one transaction type (deposits / credits / cheques / debits).");
 
-        StringBuilder sql = new StringBuilder(
-            "SELECT t.doc_date, t.doc_type, t.doc_no, t.amt, t.trx_status, t.recon_no, " +
-            "       t.system_id, t.ref, t.payee_1, t.payee_2 " +
-            "FROM cmtrans t WHERE t.company_no=? AND t.bank_code=? " +
-            "  AND t.doc_type IN (" + qMarks(types.size()) + ") ");
-        List<Object> args = new ArrayList<>();
-        args.add(s.getCompanyNo()); args.add(p.bankCode()); args.addAll(types);
+        Condition where = CMTRANS.COMPANY_NO.eq(s.getCompanyNo())
+                .and(CMTRANS.BANK_CODE.eq(p.bankCode()))
+                .and(CMTRANS.DOC_TYPE.in(types));
 
         if (p.startDate() != null) {
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
-            sql.append(" AND t.doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            where = where.and(CMTRANS.DOC_DATE.between(p.startDate(), end));
         }
         if (p.startDocNo() > 0) {
             int end = p.endDocNo() > 0 ? p.endDocNo() : 99999999;
-            sql.append(" AND t.doc_no BETWEEN ? AND ? "); args.add(p.startDocNo()); args.add(end);
+            where = where.and(CMTRANS.DOC_NO.between(p.startDocNo(), end));
         }
-        if (p.unreconciledOnly())          { sql.append(" AND t.recon_no = 0 "); }
-        else if (notBlank(p.reconNo()))    { sql.append(" AND t.recon_no = ? "); args.add(Integer.parseInt(p.reconNo())); }
+        if (p.unreconciledOnly())
+            where = where.and(CMTRANS.RECON_NO.eq(0));
+        else if (notBlank(p.reconNo()))
+            where = where.and(CMTRANS.RECON_NO.eq(Integer.parseInt(p.reconNo())));
 
-        sql.append("N".equalsIgnoreCase(p.printSeq())
-            ? " ORDER BY t.doc_type, t.doc_no, t.doc_date " : " ORDER BY t.doc_date, t.doc_type, t.doc_no ");
+        var orderBy = "N".equalsIgnoreCase(p.printSeq())
+                ? new org.jooq.SortField<?>[]{ CMTRANS.DOC_TYPE.asc(), CMTRANS.DOC_NO.asc(), CMTRANS.DOC_DATE.asc() }
+                : new org.jooq.SortField<?>[]{ CMTRANS.DOC_DATE.asc(), CMTRANS.DOC_TYPE.asc(), CMTRANS.DOC_NO.asc() };
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };   // receipts, payments
         int[] count = { 0 };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String dt = trim(rs.getString("doc_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt"));
-                boolean receipt = "1".equals(dt) || "2".equals(dt);
-                BigDecimal signed = receipt ? amt : amt.negate();
-                if (receipt) tot[0] = tot[0].add(amt); else tot[1] = tot[1].add(amt);
-                count[0]++;
+            dsl.select(CMTRANS.DOC_DATE, CMTRANS.DOC_TYPE, CMTRANS.DOC_NO, CMTRANS.AMT,
+                       CMTRANS.TRX_STATUS, CMTRANS.RECON_NO, CMTRANS.SYSTEM_ID,
+                       CMTRANS.REF, CMTRANS.PAYEE_1, CMTRANS.PAYEE_2)
+               .from(CMTRANS)
+               .where(where)
+               .orderBy(orderBy)
+               .fetch()
+               .forEach(r -> {
+                   String dt = trim(r.get(CMTRANS.DOC_TYPE));
+                   BigDecimal amt = z(r.get(CMTRANS.AMT));
+                   boolean receipt = "1".equals(dt) || "2".equals(dt);
+                   BigDecimal signed = receipt ? amt : amt.negate();
+                   if (receipt) tot[0] = tot[0].add(amt); else tot[1] = tot[1].add(amt);
+                   count[0]++;
 
-                Map<String, Object> row = new LinkedHashMap<>();
-                row.put("docDate",  sqlDate(rs.getDate("doc_date")));
-                row.put("docType",  cmDocType(dt));
-                row.put("docNo",    rs.getInt("doc_no"));
-                row.put("payee",    payee(rs.getString("payee_1"), rs.getString("payee_2")));
-                row.put("reference", rs.getString("ref"));
-                row.put("systemId", trim(rs.getString("system_id")));
-                row.put("amount",   signed);
-                row.put("reconNo",  rs.getInt("recon_no"));
-                row.put("status",   trxStatus(rs.getString("trx_status")));
-                rows.add(row);
-            }, args.toArray());
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docDate",   ldToSqlDate(r.get(CMTRANS.DOC_DATE)));
+                   row.put("docType",   cmDocType(dt));
+                   row.put("docNo",     r.get(CMTRANS.DOC_NO));
+                   row.put("payee",     payee(r.get(CMTRANS.PAYEE_1), r.get(CMTRANS.PAYEE_2)));
+                   row.put("reference", r.get(CMTRANS.REF));
+                   row.put("systemId",  trim(r.get(CMTRANS.SYSTEM_ID)));
+                   row.put("amount",    signed);
+                   row.put("reconNo",   r.get(CMTRANS.RECON_NO));
+                   row.put("status",    trxStatus(r.get(CMTRANS.TRX_STATUS)));
+                   rows.add(row);
+               });
         } catch (Exception e) {
             log.error("getCashbookTransactions: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -215,32 +257,42 @@ public class CmReportDataService {
     /** CMTL08 — receipts (cmcbtrx trx_type='R') for a bank, with receipt-type and status. */
     public Map<String, Object> getReceiptListing(AppSession s, ReceiptListingParams p) {
         if (!notBlank(p.bankCode())) return warn("Choose a bank.");
-        StringBuilder sql = new StringBuilder(
-            "SELECT doc_no, doc_date, recpt_type, amt, trx_status, ref_1, recvd_from " +
-            "FROM cmcbtrx WHERE company_no=? AND bank_code=? AND trx_type='R' ");
-        List<Object> args = new ArrayList<>(); args.add(s.getCompanyNo()); args.add(p.bankCode());
-        if (p.startDocNo() > 0) { int e = p.endDocNo() > 0 ? p.endDocNo() : 99999999;
-            sql.append(" AND doc_no BETWEEN ? AND ? "); args.add(p.startDocNo()); args.add(e); }
-        if (p.startDate() != null) { LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999,12,31);
-            sql.append(" AND doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(e)); }
-        if (!p.includeCancelled()) sql.append(" AND trx_status <> 'C' ");
-        sql.append(" ORDER BY doc_date, doc_no ");
+
+        Condition where = CMCBTRX.COMPANY_NO.eq(s.getCompanyNo())
+                .and(CMCBTRX.BANK_CODE.eq(p.bankCode()))
+                .and(CMCBTRX.TRX_TYPE.eq("R"));
+
+        if (p.startDocNo() > 0) {
+            int e = p.endDocNo() > 0 ? p.endDocNo() : 99999999;
+            where = where.and(CMCBTRX.DOC_NO.between(p.startDocNo(), e));
+        }
+        if (p.startDate() != null) {
+            LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
+            where = where.and(CMCBTRX.DOC_DATE.between(p.startDate(), e));
+        }
+        if (!p.includeCancelled()) where = where.and(CMCBTRX.TRX_STATUS.ne("C"));
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal amt = z(rs.getBigDecimal("amt")); tot[0] = tot[0].add(amt);
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("docNo", rs.getInt("doc_no"));
-                r.put("docDate", sqlDate(rs.getDate("doc_date")));
-                r.put("recptType", recptType(rs.getString("recpt_type")));
-                r.put("receivedFrom", trim(rs.getString("recvd_from")));
-                r.put("reference", rs.getString("ref_1"));
-                r.put("amount", amt);
-                r.put("status", trxStatus(rs.getString("trx_status")));
-                rows.add(r);
-            }, args.toArray());
+            dsl.select(CMCBTRX.DOC_NO, CMCBTRX.DOC_DATE, CMCBTRX.RECPT_TYPE,
+                       CMCBTRX.AMT, CMCBTRX.TRX_STATUS, CMCBTRX.REF_1, CMCBTRX.RECVD_FROM)
+               .from(CMCBTRX)
+               .where(where)
+               .orderBy(CMCBTRX.DOC_DATE, CMCBTRX.DOC_NO)
+               .fetch()
+               .forEach(r -> {
+                   BigDecimal amt = z(r.get(CMCBTRX.AMT)); tot[0] = tot[0].add(amt);
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docNo",       r.get(CMCBTRX.DOC_NO));
+                   row.put("docDate",     ldToSqlDate(r.get(CMCBTRX.DOC_DATE)));
+                   row.put("recptType",   recptType(r.get(CMCBTRX.RECPT_TYPE)));
+                   row.put("receivedFrom", trim(r.get(CMCBTRX.RECVD_FROM)));
+                   row.put("reference",   r.get(CMCBTRX.REF_1));
+                   row.put("amount",      amt);
+                   row.put("status",      trxStatus(r.get(CMCBTRX.TRX_STATUS)));
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getReceiptListing: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("BANK_DESC", bankLabel(s, p.bankCode()));
@@ -258,32 +310,40 @@ public class CmReportDataService {
     /** CMTL35 — cashbook transactions grouped by document type, with per-type subtotals. */
     public Map<String, Object> getCashbookByType(AppSession s, CashbookByTypeParams p) {
         if (!notBlank(p.bankCode())) return warn("Choose a bank.");
-        StringBuilder sql = new StringBuilder(
-            "SELECT doc_type, doc_date, doc_no, payee_1, payee_2, ref, amt FROM cmtrans " +
-            "WHERE company_no=? AND bank_code=? AND doc_type IN ('1','2','3','4') ");
-        List<Object> args = new ArrayList<>(); args.add(s.getCompanyNo()); args.add(p.bankCode());
-        if (p.startDate() != null) { LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999,12,31);
-            sql.append(" AND doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(e)); }
-        sql.append(" ORDER BY doc_type, doc_date, doc_no ");
+
+        Condition where = CMTRANS.COMPANY_NO.eq(s.getCompanyNo())
+                .and(CMTRANS.BANK_CODE.eq(p.bankCode()))
+                .and(CMTRANS.DOC_TYPE.in("1", "2", "3", "4"));
+
+        if (p.startDate() != null) {
+            LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
+            where = where.and(CMTRANS.DOC_DATE.between(p.startDate(), e));
+        }
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String dt = trim(rs.getString("doc_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt"));
-                BigDecimal signed = ("1".equals(dt) || "2".equals(dt)) ? amt : amt.negate();
-                tot[0] = tot[0].add(signed);
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("docTypeCode", dt);
-                r.put("docType", cmDocType(dt));
-                r.put("docDate", sqlDate(rs.getDate("doc_date")));
-                r.put("docNo", rs.getInt("doc_no"));
-                r.put("payee", payee(rs.getString("payee_1"), rs.getString("payee_2")));
-                r.put("reference", rs.getString("ref"));
-                r.put("amount", signed);
-                rows.add(r);
-            }, args.toArray());
+            dsl.select(CMTRANS.DOC_TYPE, CMTRANS.DOC_DATE, CMTRANS.DOC_NO,
+                       CMTRANS.PAYEE_1, CMTRANS.PAYEE_2, CMTRANS.REF, CMTRANS.AMT)
+               .from(CMTRANS)
+               .where(where)
+               .orderBy(CMTRANS.DOC_TYPE, CMTRANS.DOC_DATE, CMTRANS.DOC_NO)
+               .fetch()
+               .forEach(r -> {
+                   String dt = trim(r.get(CMTRANS.DOC_TYPE));
+                   BigDecimal amt = z(r.get(CMTRANS.AMT));
+                   BigDecimal signed = ("1".equals(dt) || "2".equals(dt)) ? amt : amt.negate();
+                   tot[0] = tot[0].add(signed);
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docTypeCode", dt);
+                   row.put("docType",     cmDocType(dt));
+                   row.put("docDate",     ldToSqlDate(r.get(CMTRANS.DOC_DATE)));
+                   row.put("docNo",       r.get(CMTRANS.DOC_NO));
+                   row.put("payee",       payee(r.get(CMTRANS.PAYEE_1), r.get(CMTRANS.PAYEE_2)));
+                   row.put("reference",   r.get(CMTRANS.REF));
+                   row.put("amount",      signed);
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getCashbookByType: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("BANK_DESC", bankLabel(s, p.bankCode()));
@@ -301,33 +361,44 @@ public class CmReportDataService {
     /** CMCB02 — cashbook documents (cmcbdis aggregated by document), receipts/payments/both. */
     public Map<String, Object> getCashbookListing(AppSession s, CashbookListingParams p) {
         if (!notBlank(p.bankCode())) return warn("Choose a bank.");
-        StringBuilder sql = new StringBuilder(
-            "SELECT doc_type, doc_no, doc_date, MAX(payee_name_1) AS payee, SUM(amt) AS doc_amt, COUNT(*) AS lines " +
-            "FROM cmcbdis WHERE company_no=? AND bank_code=? ");
-        List<Object> args = new ArrayList<>(); args.add(s.getCompanyNo()); args.add(p.bankCode());
-        if (p.startDate() != null) { LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999,12,31);
-            sql.append(" AND doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(e)); }
-        if ("R".equalsIgnoreCase(p.trxType()))      sql.append(" AND doc_type < '3' ");
-        else if ("P".equalsIgnoreCase(p.trxType())) sql.append(" AND doc_type >= '3' ");
-        sql.append(" GROUP BY doc_type, doc_no, doc_date ORDER BY doc_type, doc_date, doc_no ");
+
+        Condition where = CMCBDIS.COMPANY_NO.eq(s.getCompanyNo())
+                .and(CMCBDIS.BANK_CODE.eq(p.bankCode()));
+
+        if (p.startDate() != null) {
+            LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
+            where = where.and(CMCBDIS.DOC_DATE.between(p.startDate(), e));
+        }
+        // doc_type < '3' = receipts; doc_type >= '3' = payments (string comparison on VARCHAR(1))
+        if ("R".equalsIgnoreCase(p.trxType()))      where = where.and(CMCBDIS.DOC_TYPE.lt("3"));
+        else if ("P".equalsIgnoreCase(p.trxType())) where = where.and(CMCBDIS.DOC_TYPE.ge("3"));
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String dt = trim(rs.getString("doc_type"));
-                BigDecimal amt = z(rs.getBigDecimal("doc_amt"));
-                BigDecimal signed = ("1".equals(dt) || "2".equals(dt)) ? amt : amt.negate();
-                tot[0] = tot[0].add(signed);
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("docType", cmDocType(dt));
-                r.put("docNo", rs.getInt("doc_no"));
-                r.put("docDate", sqlDate(rs.getDate("doc_date")));
-                r.put("payee", trim(rs.getString("payee")));
-                r.put("lines", rs.getInt("lines"));
-                r.put("amount", signed);
-                rows.add(r);
-            }, args.toArray());
+            dsl.select(CMCBDIS.DOC_TYPE, CMCBDIS.DOC_NO, CMCBDIS.DOC_DATE,
+                       DSL.max(CMCBDIS.PAYEE_NAME_1).as("payee"),
+                       DSL.sum(CMCBDIS.AMT).as("doc_amt"),
+                       DSL.count().as("lines"))
+               .from(CMCBDIS)
+               .where(where)
+               .groupBy(CMCBDIS.DOC_TYPE, CMCBDIS.DOC_NO, CMCBDIS.DOC_DATE)
+               .orderBy(CMCBDIS.DOC_TYPE, CMCBDIS.DOC_DATE, CMCBDIS.DOC_NO)
+               .fetch()
+               .forEach(r -> {
+                   String dt = trim(r.get(CMCBDIS.DOC_TYPE));
+                   BigDecimal amt = z(r.get("doc_amt", BigDecimal.class));
+                   BigDecimal signed = ("1".equals(dt) || "2".equals(dt)) ? amt : amt.negate();
+                   tot[0] = tot[0].add(signed);
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docType",  cmDocType(dt));
+                   row.put("docNo",    r.get(CMCBDIS.DOC_NO));
+                   row.put("docDate",  ldToSqlDate(r.get(CMCBDIS.DOC_DATE)));
+                   row.put("payee",    trim(r.get("payee", String.class)));
+                   row.put("lines",    r.get("lines", Integer.class));
+                   row.put("amount",   signed);
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getCashbookListing: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("BANK_DESC", bankLabel(s, p.bankCode()));
@@ -356,46 +427,67 @@ public class CmReportDataService {
         if (p.inclBankDebits()) types.add("4");
         if (types.isEmpty()) return warn("Select at least one transaction type.");
 
-        StringBuilder sql = new StringBuilder(
-            "SELECT d.doc_date, d.doc_type, d.doc_no, d.seq_no, d.gl_acct_main, d.gl_acct_sub, " +
-            "       COALESCE(g.desc1,'') AS gl_desc, d.payee_name_1, d.ref_1, d.amt, d.tax_code, d.tax_amt, " +
-            "       d.system_id, d.batch_no, d.bas_group " +
-            "FROM cmcbdis d LEFT JOIN glchart g ON g.company_no=d.company_no AND g.acct_main_no=d.gl_acct_main AND g.acct_sub_no=d.gl_acct_sub " +
-            "WHERE d.company_no=? AND d.bank_code=? AND d.doc_type IN (" + qMarks(types.size()) + ") ");
-        List<Object> args = new ArrayList<>(); args.add(s.getCompanyNo()); args.add(p.bankCode()); args.addAll(types);
-        if (p.startDate() != null) { LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999,12,31);
-            sql.append(" AND d.doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(e)); }
-        if (notBlank(p.startGlMain())) { String e = notBlank(p.endGlMain()) ? p.endGlMain() : "999999";
-            sql.append(" AND d.gl_acct_main BETWEEN ? AND ? "); args.add(Integer.parseInt(p.startGlMain())); args.add(Integer.parseInt(e)); }
-        if (notBlank(p.taxCode())) { sql.append(" AND d.tax_code = ? "); args.add(p.taxCode()); }
-        sql.append("N".equalsIgnoreCase(p.printSeq()) ? " ORDER BY d.doc_type, d.doc_no, d.seq_no " : " ORDER BY d.doc_date, d.doc_type, d.doc_no, d.seq_no ");
+        // Alias glchart to avoid ambiguous column names in the join
+        var g = GLCHART.as("g");
+
+        Condition where = CMCBDIS.COMPANY_NO.eq(s.getCompanyNo())
+                .and(CMCBDIS.BANK_CODE.eq(p.bankCode()))
+                .and(CMCBDIS.DOC_TYPE.in(types));
+
+        if (p.startDate() != null) {
+            LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
+            where = where.and(CMCBDIS.DOC_DATE.between(p.startDate(), e));
+        }
+        if (notBlank(p.startGlMain())) {
+            int startMain = Integer.parseInt(p.startGlMain());
+            int endMain   = notBlank(p.endGlMain()) ? Integer.parseInt(p.endGlMain()) : 999999;
+            where = where.and(CMCBDIS.GL_ACCT_MAIN.between(startMain, endMain));
+        }
+        if (notBlank(p.taxCode())) where = where.and(CMCBDIS.TAX_CODE.eq(p.taxCode()));
+
+        var orderBy = "N".equalsIgnoreCase(p.printSeq())
+                ? new org.jooq.SortField<?>[]{ CMCBDIS.DOC_TYPE.asc(), CMCBDIS.DOC_NO.asc(), CMCBDIS.SEQ_NO.asc() }
+                : new org.jooq.SortField<?>[]{ CMCBDIS.DOC_DATE.asc(), CMCBDIS.DOC_TYPE.asc(), CMCBDIS.DOC_NO.asc(), CMCBDIS.SEQ_NO.asc() };
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal amt = z(rs.getBigDecimal("amt"));
-                BigDecimal tax = z(rs.getBigDecimal("tax_amt"));
-                if ("T".equalsIgnoreCase(trim(rs.getString("tax_code"))) && tax.signum() == 0)
-                    tax = amt.divide(BigDecimal.valueOf(10), 2, java.math.RoundingMode.HALF_UP);
-                tot[0] = tot[0].add(amt); tot[1] = tot[1].add(tax);
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("docDate", sqlDate(rs.getDate("doc_date")));
-                r.put("docType", cmDocType(trim(rs.getString("doc_type"))));
-                r.put("docNo", rs.getInt("doc_no"));
-                r.put("seqNo", rs.getInt("seq_no"));
-                r.put("glAcct", rs.getInt("gl_acct_main") + "-" + rs.getInt("gl_acct_sub"));
-                r.put("glDesc", rs.getString("gl_desc"));
-                r.put("payee", trim(rs.getString("payee_name_1")));
-                r.put("reference", rs.getString("ref_1"));
-                r.put("amount", amt);
-                r.put("taxCode", trim(rs.getString("tax_code")));
-                r.put("taxAmt", tax);
-                r.put("systemId", trim(rs.getString("system_id")));
-                r.put("batchNo", rs.getInt("batch_no"));
-                r.put("basGroup", trim(rs.getString("bas_group")));
-                rows.add(r);
-            }, args.toArray());
+            dsl.select(CMCBDIS.DOC_DATE, CMCBDIS.DOC_TYPE, CMCBDIS.DOC_NO, CMCBDIS.SEQ_NO,
+                       CMCBDIS.GL_ACCT_MAIN, CMCBDIS.GL_ACCT_SUB,
+                       DSL.coalesce(g.field(GLCHART.DESC1), DSL.val("")).as("gl_desc"),
+                       CMCBDIS.PAYEE_NAME_1, CMCBDIS.REF_1, CMCBDIS.AMT,
+                       CMCBDIS.TAX_CODE, CMCBDIS.TAX_AMT, CMCBDIS.SYSTEM_ID,
+                       CMCBDIS.BATCH_NO, CMCBDIS.BAS_GROUP)
+               .from(CMCBDIS)
+               .leftJoin(g).on(g.field(GLCHART.COMPANY_NO).eq(CMCBDIS.COMPANY_NO)
+                       .and(g.field(GLCHART.ACCT_MAIN_NO).eq(CMCBDIS.GL_ACCT_MAIN))
+                       .and(g.field(GLCHART.ACCT_SUB_NO).eq(CMCBDIS.GL_ACCT_SUB)))
+               .where(where)
+               .orderBy(orderBy)
+               .fetch()
+               .forEach(r -> {
+                   BigDecimal amt = z(r.get(CMCBDIS.AMT));
+                   BigDecimal tax = z(r.get(CMCBDIS.TAX_AMT));
+                   if ("T".equalsIgnoreCase(trim(r.get(CMCBDIS.TAX_CODE))) && tax.signum() == 0)
+                       tax = amt.divide(BigDecimal.valueOf(10), 2, java.math.RoundingMode.HALF_UP);
+                   tot[0] = tot[0].add(amt); tot[1] = tot[1].add(tax);
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docDate",   ldToSqlDate(r.get(CMCBDIS.DOC_DATE)));
+                   row.put("docType",   cmDocType(trim(r.get(CMCBDIS.DOC_TYPE))));
+                   row.put("docNo",     r.get(CMCBDIS.DOC_NO));
+                   row.put("seqNo",     r.get(CMCBDIS.SEQ_NO));
+                   row.put("glAcct",    r.get(CMCBDIS.GL_ACCT_MAIN) + "-" + r.get(CMCBDIS.GL_ACCT_SUB));
+                   row.put("glDesc",    r.get("gl_desc", String.class));
+                   row.put("payee",     trim(r.get(CMCBDIS.PAYEE_NAME_1)));
+                   row.put("reference", r.get(CMCBDIS.REF_1));
+                   row.put("amount",    amt);
+                   row.put("taxCode",   trim(r.get(CMCBDIS.TAX_CODE)));
+                   row.put("taxAmt",    tax);
+                   row.put("systemId",  trim(r.get(CMCBDIS.SYSTEM_ID)));
+                   row.put("batchNo",   r.get(CMCBDIS.BATCH_NO));
+                   row.put("basGroup",  trim(r.get(CMCBDIS.BAS_GROUP)));
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getCashbookDistributions: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("BANK_DESC", bankLabel(s, p.bankCode()));
@@ -415,9 +507,11 @@ public class CmReportDataService {
         if (!notBlank(p.bankCode())) return warn("Choose a bank.");
         BigDecimal openBal;
         try {
-            openBal = jdbc.query("SELECT open_stmnt_bal FROM cmbanks WHERE company_no=? AND bank_code=?",
-                rs -> rs.next() ? z(rs.getBigDecimal("open_stmnt_bal")) : BigDecimal.ZERO,
-                s.getCompanyNo(), p.bankCode());
+            var rec = dsl.select(CMBANKS.OPEN_STMNT_BAL)
+                         .from(CMBANKS)
+                         .where(CMBANKS.COMPANY_NO.eq(s.getCompanyNo()).and(CMBANKS.BANK_CODE.eq(p.bankCode())))
+                         .fetchOne();
+            openBal = rec != null ? z(rec.get(CMBANKS.OPEN_STMNT_BAL)) : BigDecimal.ZERO;
         } catch (Exception e) { openBal = BigDecimal.ZERO; }
 
         LocalDate endDate = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
@@ -425,25 +519,33 @@ public class CmReportDataService {
         BigDecimal[] running = { openBal };
         LocalDate startDate = p.startDate();
         try {
-            jdbc.query(
-                "SELECT doc_date, doc_type, doc_no, seq_no, amt FROM cmcbdis " +
-                "WHERE company_no=? AND bank_code=? AND doc_date <= ? ORDER BY doc_date, doc_type, doc_no, seq_no",
-                rs -> {
-                    String dt = trim(rs.getString("doc_type"));
-                    BigDecimal amt = z(rs.getBigDecimal("amt"));
-                    BigDecimal signed = ("1".equals(dt) || "2".equals(dt)) ? amt : amt.negate();
-                    running[0] = running[0].add(signed);
-                    LocalDate d = rs.getDate("doc_date") != null ? rs.getDate("doc_date").toLocalDate() : null;
-                    if (startDate != null && d != null && d.isBefore(startDate)) return;  // pre-range: balance only
-                    Map<String, Object> r = new LinkedHashMap<>();
-                    r.put("docDate", sqlDate(rs.getDate("doc_date")));
-                    r.put("docType", cmDocType(dt));
-                    r.put("docNo", rs.getInt("doc_no"));
-                    r.put("seqNo", rs.getInt("seq_no"));
-                    r.put("amount", signed);
-                    r.put("balance", running[0]);
-                    rows.add(r);
-                }, s.getCompanyNo(), p.bankCode(), Date.valueOf(endDate));
+            // Fetch all rows up to endDate; accumulate running balance across all, but only
+            // emit rows within [startDate, endDate] into the result list (pre-range rows
+            // still update the running balance — matching COBOL behaviour).
+            dsl.select(CMCBDIS.DOC_DATE, CMCBDIS.DOC_TYPE, CMCBDIS.DOC_NO,
+                       CMCBDIS.SEQ_NO, CMCBDIS.AMT)
+               .from(CMCBDIS)
+               .where(CMCBDIS.COMPANY_NO.eq(s.getCompanyNo())
+                       .and(CMCBDIS.BANK_CODE.eq(p.bankCode()))
+                       .and(CMCBDIS.DOC_DATE.le(endDate)))
+               .orderBy(CMCBDIS.DOC_DATE, CMCBDIS.DOC_TYPE, CMCBDIS.DOC_NO, CMCBDIS.SEQ_NO)
+               .fetch()
+               .forEach(r -> {
+                   String dt = trim(r.get(CMCBDIS.DOC_TYPE));
+                   BigDecimal amt = z(r.get(CMCBDIS.AMT));
+                   BigDecimal signed = ("1".equals(dt) || "2".equals(dt)) ? amt : amt.negate();
+                   running[0] = running[0].add(signed);
+                   LocalDate d = r.get(CMCBDIS.DOC_DATE);
+                   if (startDate != null && d != null && d.isBefore(startDate)) return;  // pre-range: balance only
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docDate",  ldToSqlDate(d));
+                   row.put("docType",  cmDocType(dt));
+                   row.put("docNo",    r.get(CMCBDIS.DOC_NO));
+                   row.put("seqNo",    r.get(CMCBDIS.SEQ_NO));
+                   row.put("amount",   signed);
+                   row.put("balance",  running[0]);
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getCashbookLedger: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("BANK_DESC", bankLabel(s, p.bankCode()));
@@ -471,37 +573,47 @@ public class CmReportDataService {
         if (p.inclBankDebits()) types.add("4");
         if (types.isEmpty()) return warn("Select at least one transaction type.");
 
-        StringBuilder sql = new StringBuilder(
-            "SELECT doc_date, doc_type, doc_no, payee_1, payee_2, ref, amt, amt_paid, trx_status, system_id " +
-            "FROM cmtrans WHERE company_no=? AND bank_code=? AND doc_type IN (" + qMarks(types.size()) + ") ");
-        List<Object> args = new ArrayList<>(); args.add(s.getCompanyNo()); args.add(p.bankCode()); args.addAll(types);
-        if (p.startDate() != null) { LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999,12,31);
-            sql.append(" AND doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(e)); }
-        if (p.startDocNo() > 0) { int e = p.endDocNo() > 0 ? p.endDocNo() : 99999999;
-            sql.append(" AND doc_no BETWEEN ? AND ? "); args.add(p.startDocNo()); args.add(e); }
-        sql.append(" ORDER BY doc_date, doc_type, doc_no ");
+        Condition where = CMTRANS.COMPANY_NO.eq(s.getCompanyNo())
+                .and(CMTRANS.BANK_CODE.eq(p.bankCode()))
+                .and(CMTRANS.DOC_TYPE.in(types));
+
+        if (p.startDate() != null) {
+            LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
+            where = where.and(CMTRANS.DOC_DATE.between(p.startDate(), e));
+        }
+        if (p.startDocNo() > 0) {
+            int e = p.endDocNo() > 0 ? p.endDocNo() : 99999999;
+            where = where.and(CMTRANS.DOC_NO.between(p.startDocNo(), e));
+        }
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String dt = trim(rs.getString("doc_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt")), paid = z(rs.getBigDecimal("amt_paid"));
-                BigDecimal outstanding = amt.subtract(paid);
-                tot[0] = tot[0].add(amt); tot[1] = tot[1].add(paid); tot[2] = tot[2].add(outstanding);
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("docDate", sqlDate(rs.getDate("doc_date")));
-                r.put("docType", cmDocType(dt));
-                r.put("docNo", rs.getInt("doc_no"));
-                r.put("payee", payee(rs.getString("payee_1"), rs.getString("payee_2")));
-                r.put("reference", rs.getString("ref"));
-                r.put("systemId", trim(rs.getString("system_id")));
-                r.put("amount", amt);
-                r.put("amtPaid", paid);
-                r.put("outstanding", outstanding);
-                r.put("status", trxStatus(rs.getString("trx_status")));
-                rows.add(r);
-            }, args.toArray());
+            dsl.select(CMTRANS.DOC_DATE, CMTRANS.DOC_TYPE, CMTRANS.DOC_NO,
+                       CMTRANS.PAYEE_1, CMTRANS.PAYEE_2, CMTRANS.REF,
+                       CMTRANS.AMT, CMTRANS.AMT_PAID, CMTRANS.TRX_STATUS, CMTRANS.SYSTEM_ID)
+               .from(CMTRANS)
+               .where(where)
+               .orderBy(CMTRANS.DOC_DATE, CMTRANS.DOC_TYPE, CMTRANS.DOC_NO)
+               .fetch()
+               .forEach(r -> {
+                   String dt = trim(r.get(CMTRANS.DOC_TYPE));
+                   BigDecimal amt = z(r.get(CMTRANS.AMT)), paid = z(r.get(CMTRANS.AMT_PAID));
+                   BigDecimal outstanding = amt.subtract(paid);
+                   tot[0] = tot[0].add(amt); tot[1] = tot[1].add(paid); tot[2] = tot[2].add(outstanding);
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docDate",     ldToSqlDate(r.get(CMTRANS.DOC_DATE)));
+                   row.put("docType",     cmDocType(dt));
+                   row.put("docNo",       r.get(CMTRANS.DOC_NO));
+                   row.put("payee",       payee(r.get(CMTRANS.PAYEE_1), r.get(CMTRANS.PAYEE_2)));
+                   row.put("reference",   r.get(CMTRANS.REF));
+                   row.put("systemId",    trim(r.get(CMTRANS.SYSTEM_ID)));
+                   row.put("amount",      amt);
+                   row.put("amtPaid",     paid);
+                   row.put("outstanding", outstanding);
+                   row.put("status",      trxStatus(r.get(CMTRANS.TRX_STATUS)));
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getDocumentListing: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("BANK_DESC", bankLabel(s, p.bankCode()));
@@ -530,40 +642,51 @@ public class CmReportDataService {
         params.put("BANK_DESC", bankLabel(s, p.bankCode()));
         params.put("RECON_NO", recon);
         try {
-            jdbc.query("SELECT stmnt_open_date, stmnt_close_date, cshbk_open_bal, stmnt_open_bal, stmnt_close_bal, drs_entered, crs_entered " +
-                       "FROM cmrched WHERE company_no=? AND bank_code=? AND recon_no=?",
-                rs -> { if (rs.next()) {
-                    LocalDate od = ld(rs.getDate("stmnt_open_date")), cd = ld(rs.getDate("stmnt_close_date"));
-                    params.put("STMNT_OPEN_DATE", od != null ? od.toString() : "");
-                    params.put("STMNT_CLOSE_DATE", cd != null ? cd.toString() : "");
-                    params.put("CSHBK_OPEN_BAL", z(rs.getBigDecimal("cshbk_open_bal")));
-                    params.put("STMNT_OPEN_BAL", z(rs.getBigDecimal("stmnt_open_bal")));
-                    params.put("STMNT_CLOSE_BAL", z(rs.getBigDecimal("stmnt_close_bal")));
-                    params.put("DRS_ENTERED", z(rs.getBigDecimal("drs_entered")));
-                    params.put("CRS_ENTERED", z(rs.getBigDecimal("crs_entered")));
-                } }, s.getCompanyNo(), p.bankCode(), recon);
+            var rec = dsl.select(CMRCHED.STMNT_OPEN_DATE, CMRCHED.STMNT_CLOSE_DATE,
+                                 CMRCHED.CSHBK_OPEN_BAL, CMRCHED.STMNT_OPEN_BAL,
+                                 CMRCHED.STMNT_CLOSE_BAL, CMRCHED.DRS_ENTERED, CMRCHED.CRS_ENTERED)
+                         .from(CMRCHED)
+                         .where(CMRCHED.COMPANY_NO.eq(s.getCompanyNo())
+                                 .and(CMRCHED.BANK_CODE.eq(p.bankCode()))
+                                 .and(CMRCHED.RECON_NO.eq(recon)))
+                         .fetchOne();
+            if (rec != null) {
+                LocalDate od = ld(rec.get(CMRCHED.STMNT_OPEN_DATE)), cd = ld(rec.get(CMRCHED.STMNT_CLOSE_DATE));
+                params.put("STMNT_OPEN_DATE",  od != null ? od.toString() : "");
+                params.put("STMNT_CLOSE_DATE", cd != null ? cd.toString() : "");
+                params.put("CSHBK_OPEN_BAL",   z(rec.get(CMRCHED.CSHBK_OPEN_BAL)));
+                params.put("STMNT_OPEN_BAL",   z(rec.get(CMRCHED.STMNT_OPEN_BAL)));
+                params.put("STMNT_CLOSE_BAL",  z(rec.get(CMRCHED.STMNT_CLOSE_BAL)));
+                params.put("DRS_ENTERED",       z(rec.get(CMRCHED.DRS_ENTERED)));
+                params.put("CRS_ENTERED",       z(rec.get(CMRCHED.CRS_ENTERED)));
+            }
         } catch (Exception e) { log.warn("CMTL02 header: {}", e.getMessage()); }
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO };
         try {
-            jdbc.query(
-                "SELECT doc_date, doc_type, doc_no, payee_1, payee_2, amt, trx_status FROM cmtrans " +
-                "WHERE company_no=? AND bank_code=? AND recon_no=? ORDER BY doc_type, doc_date, doc_no",
-                rs -> {
-                    String dt = trim(rs.getString("doc_type"));
-                    BigDecimal amt = z(rs.getBigDecimal("amt"));
-                    BigDecimal signed = ("1".equals(dt) || "2".equals(dt)) ? amt : amt.negate();
-                    tot[0] = tot[0].add(signed);
-                    Map<String, Object> r = new LinkedHashMap<>();
-                    r.put("docDate", sqlDate(rs.getDate("doc_date")));
-                    r.put("docType", cmDocType(dt));
-                    r.put("docNo", rs.getInt("doc_no"));
-                    r.put("payee", payee(rs.getString("payee_1"), rs.getString("payee_2")));
-                    r.put("amount", signed);
-                    r.put("status", trxStatus(rs.getString("trx_status")));
-                    rows.add(r);
-                }, s.getCompanyNo(), p.bankCode(), recon);
+            dsl.select(CMTRANS.DOC_DATE, CMTRANS.DOC_TYPE, CMTRANS.DOC_NO,
+                       CMTRANS.PAYEE_1, CMTRANS.PAYEE_2, CMTRANS.AMT, CMTRANS.TRX_STATUS)
+               .from(CMTRANS)
+               .where(CMTRANS.COMPANY_NO.eq(s.getCompanyNo())
+                       .and(CMTRANS.BANK_CODE.eq(p.bankCode()))
+                       .and(CMTRANS.RECON_NO.eq(recon)))
+               .orderBy(CMTRANS.DOC_TYPE, CMTRANS.DOC_DATE, CMTRANS.DOC_NO)
+               .fetch()
+               .forEach(r -> {
+                   String dt = trim(r.get(CMTRANS.DOC_TYPE));
+                   BigDecimal amt = z(r.get(CMTRANS.AMT));
+                   BigDecimal signed = ("1".equals(dt) || "2".equals(dt)) ? amt : amt.negate();
+                   tot[0] = tot[0].add(signed);
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docDate", ldToSqlDate(r.get(CMTRANS.DOC_DATE)));
+                   row.put("docType", cmDocType(dt));
+                   row.put("docNo",   r.get(CMTRANS.DOC_NO));
+                   row.put("payee",   payee(r.get(CMTRANS.PAYEE_1), r.get(CMTRANS.PAYEE_2)));
+                   row.put("amount",  signed);
+                   row.put("status",  trxStatus(r.get(CMTRANS.TRX_STATUS)));
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getBankReconStatement: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         params.put("SUM_RECONCILED", tot[0]); params.put("ROW_COUNT", rows.size());
         return result(rows, params);
@@ -578,38 +701,49 @@ public class CmReportDataService {
     /** CMTL30 — foreign-currency cashbook transactions (cmtrans with an FC rate) and amounts. */
     public Map<String, Object> getForeignCurrencyMatch(AppSession s, FcMatchParams p) {
         if (!notBlank(p.bankCode())) return warn("Choose a bank.");
-        StringBuilder sql = new StringBuilder(
-            "SELECT doc_date, doc_type, doc_no, amt, orig_local_amt, orig_parent_amt, curr_local_amt, " +
-            "       orig_exchange_rate, last_exchange_rate, last_reval_date, trx_status " +
-            "FROM cmtrans WHERE company_no=? AND bank_code=? AND orig_exchange_rate <> 0 ");
-        List<Object> args = new ArrayList<>(); args.add(s.getCompanyNo()); args.add(p.bankCode());
-        if (p.startDate() != null) { LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999,12,31);
-            sql.append(" AND doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(e)); }
-        if (p.startDocNo() > 0) { int e = p.endDocNo() > 0 ? p.endDocNo() : 99999999;
-            sql.append(" AND doc_no BETWEEN ? AND ? "); args.add(p.startDocNo()); args.add(e); }
-        sql.append(" ORDER BY doc_date, doc_type, doc_no ");
+
+        Condition where = CMTRANS.COMPANY_NO.eq(s.getCompanyNo())
+                .and(CMTRANS.BANK_CODE.eq(p.bankCode()))
+                .and(CMTRANS.ORIG_EXCHANGE_RATE.ne(BigDecimal.ZERO));
+
+        if (p.startDate() != null) {
+            LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
+            where = where.and(CMTRANS.DOC_DATE.between(p.startDate(), e));
+        }
+        if (p.startDocNo() > 0) {
+            int e = p.endDocNo() > 0 ? p.endDocNo() : 99999999;
+            where = where.and(CMTRANS.DOC_NO.between(p.startDocNo(), e));
+        }
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String dt = trim(rs.getString("doc_type"));
-                BigDecimal local = z(rs.getBigDecimal("amt"));
-                tot[0] = tot[0].add(local);
-                LocalDate rv = ld(rs.getDate("last_reval_date"));
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("docDate", sqlDate(rs.getDate("doc_date")));
-                r.put("docType", cmDocType(dt));
-                r.put("docNo", rs.getInt("doc_no"));
-                r.put("localAmt", local);
-                r.put("origLocalAmt", z(rs.getBigDecimal("orig_local_amt")));
-                r.put("parentAmt", z(rs.getBigDecimal("orig_parent_amt")));
-                r.put("exchangeRate", z(rs.getBigDecimal("orig_exchange_rate")));
-                r.put("lastRate", z(rs.getBigDecimal("last_exchange_rate")));
-                r.put("revalDate", rv != null ? java.sql.Date.valueOf(rv) : null);
-                r.put("status", trxStatus(rs.getString("trx_status")));
-                rows.add(r);
-            }, args.toArray());
+            dsl.select(CMTRANS.DOC_DATE, CMTRANS.DOC_TYPE, CMTRANS.DOC_NO, CMTRANS.AMT,
+                       CMTRANS.ORIG_LOCAL_AMT, CMTRANS.ORIG_PARENT_AMT, CMTRANS.CURR_LOCAL_AMT,
+                       CMTRANS.ORIG_EXCHANGE_RATE, CMTRANS.LAST_EXCHANGE_RATE,
+                       CMTRANS.LAST_REVAL_DATE, CMTRANS.TRX_STATUS)
+               .from(CMTRANS)
+               .where(where)
+               .orderBy(CMTRANS.DOC_DATE, CMTRANS.DOC_TYPE, CMTRANS.DOC_NO)
+               .fetch()
+               .forEach(r -> {
+                   String dt = trim(r.get(CMTRANS.DOC_TYPE));
+                   BigDecimal local = z(r.get(CMTRANS.AMT));
+                   tot[0] = tot[0].add(local);
+                   LocalDate rv = ld(r.get(CMTRANS.LAST_REVAL_DATE));
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("docDate",      ldToSqlDate(r.get(CMTRANS.DOC_DATE)));
+                   row.put("docType",      cmDocType(dt));
+                   row.put("docNo",        r.get(CMTRANS.DOC_NO));
+                   row.put("localAmt",     local);
+                   row.put("origLocalAmt", z(r.get(CMTRANS.ORIG_LOCAL_AMT)));
+                   row.put("parentAmt",    z(r.get(CMTRANS.ORIG_PARENT_AMT)));
+                   row.put("exchangeRate", z(r.get(CMTRANS.ORIG_EXCHANGE_RATE)));
+                   row.put("lastRate",     z(r.get(CMTRANS.LAST_EXCHANGE_RATE)));
+                   row.put("revalDate",    rv != null ? java.sql.Date.valueOf(rv) : null);
+                   row.put("status",       trxStatus(r.get(CMTRANS.TRX_STATUS)));
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getForeignCurrencyMatch: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("BANK_DESC", bankLabel(s, p.bankCode()));
@@ -635,9 +769,11 @@ public class CmReportDataService {
 
     String bankLabel(AppSession s, String bankCode) {
         try {
-            return jdbc.query("SELECT name1 FROM cmbanks WHERE company_no=? AND bank_code=?",
-                rs -> rs.next() ? bankCode + " — " + trim(rs.getString("name1")) : bankCode,
-                s.getCompanyNo(), bankCode);
+            var rec = dsl.select(CMBANKS.NAME1)
+                         .from(CMBANKS)
+                         .where(CMBANKS.COMPANY_NO.eq(s.getCompanyNo()).and(CMBANKS.BANK_CODE.eq(bankCode)))
+                         .fetchOne();
+            return rec != null ? bankCode + " — " + trim(rec.get(CMBANKS.NAME1)) : bankCode;
         } catch (Exception e) { return bankCode; }
     }
 
@@ -660,16 +796,18 @@ public class CmReportDataService {
         return b.isEmpty() ? a : (a + " " + b).trim();
     }
 
-    static java.sql.Date sqlDate(java.sql.Date d) {
+    /** Convert a jOOQ-returned LocalDate to java.sql.Date for Jasper, suppressing sentinel dates. */
+    static java.sql.Date ldToSqlDate(LocalDate d) {
         if (d == null) return null;
-        return d.toLocalDate().isAfter(LocalDate.of(1900, 1, 1)) ? d : null;
+        return d.isAfter(LocalDate.of(1900, 1, 1)) ? java.sql.Date.valueOf(d) : null;
     }
-    static LocalDate ld(Date d) {
+
+    /** Guard against COBOL date sentinels (1899-12-31) — return null for those. */
+    static LocalDate ld(LocalDate d) {
         if (d == null) return null;
-        LocalDate v = d.toLocalDate();
-        return v.isAfter(LocalDate.of(1900, 1, 1)) ? v : null;
+        return d.isAfter(LocalDate.of(1900, 1, 1)) ? d : null;
     }
-    static String qMarks(int n) { return String.join(",", Collections.nCopies(n, "?")); }
+
     static boolean notBlank(String s) { return s != null && !s.trim().isEmpty(); }
     static String trim(String s) { return s == null ? "" : s.trim(); }
     static BigDecimal z(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }

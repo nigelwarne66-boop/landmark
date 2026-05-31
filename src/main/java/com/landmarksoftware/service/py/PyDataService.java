@@ -1,13 +1,21 @@
 package com.landmarksoftware.service.py;
 
 import com.landmarksoftware.model.AppSession;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
+
+import static com.landmarksoftware.db.tables.Gldates.GLDATES;
+import static com.landmarksoftware.db.tables.Paehist.PAEHIST;
+import static com.landmarksoftware.db.tables.Pastaff.PASTAFF;
 
 /**
  * Payroll data service.
@@ -39,10 +47,10 @@ import java.util.*;
 public class PyDataService {
     private static final Logger log = LoggerFactory.getLogger(PyDataService.class);
 
-    private final JdbcTemplate jdbc;
+    private final DSLContext dsl;
 
-    public PyDataService(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public PyDataService(DSLContext dsl) {
+        this.dsl = dsl;
     }
 
     // ── KPI tiles ───────────────────────────────────────────────────────────
@@ -50,9 +58,11 @@ public class PyDataService {
     /** Active employee headcount from pastaff. */
     public int getActiveHeadcount(AppSession s) {
         try {
-            Integer v = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM pastaff WHERE company_no=? AND (employee_status IS NULL OR employee_status = '' OR employee_status = ' ')",
-                Integer.class, s.getCompanyNo());
+            Integer v = dsl.select(DSL.count())
+                           .from(PASTAFF)
+                           .where(PASTAFF.COMPANY_NO.eq(s.getCompanyNo())
+                               .and(activeEmployeeCondition()))
+                           .fetchOne(DSL.count());
             return v != null ? v : 0;
         } catch (Exception e) { return 0; }
     }
@@ -64,12 +74,14 @@ public class PyDataService {
      */
     public BigDecimal getTotalGrossYtd(AppSession s) {
         try {
-            String startDate = s.getYrStartDate() != null ? s.getYrStartDate().toString() : s.getYearNo() + "-01-01";
-            String endDate   = s.getYrEndDate()   != null ? s.getYrEndDate().toString()   : s.getYearNo() + "-12-31";
-            BigDecimal v = jdbc.queryForObject(
-                "SELECT COALESCE(SUM(ext_amt), 0) FROM paehist " +
-                "WHERE company_no=? AND pay_type IN (1,2) AND payrun_date BETWEEN ? AND ?",
-                BigDecimal.class, s.getCompanyNo(), startDate, endDate);
+            LocalDate startDate = yrStart(s);
+            LocalDate endDate   = yrEnd(s);
+            BigDecimal v = dsl.select(DSL.coalesce(DSL.sum(PAEHIST.EXT_AMT), DSL.inline(BigDecimal.ZERO)))
+                              .from(PAEHIST)
+                              .where(PAEHIST.COMPANY_NO.eq(s.getCompanyNo())
+                                  .and(PAEHIST.PAY_TYPE.in(1, 2))
+                                  .and(PAEHIST.PAYRUN_DATE.between(startDate).and(endDate)))
+                              .fetchOne(0, BigDecimal.class);
             return v != null ? v : BigDecimal.ZERO;
         } catch (Exception e) { return BigDecimal.ZERO; }
     }
@@ -79,12 +91,14 @@ public class PyDataService {
      */
     public BigDecimal getTotalTaxYtd(AppSession s) {
         try {
-            String startDate = s.getYrStartDate() != null ? s.getYrStartDate().toString() : s.getYearNo() + "-01-01";
-            String endDate   = s.getYrEndDate()   != null ? s.getYrEndDate().toString()   : s.getYearNo() + "-12-31";
-            BigDecimal v = jdbc.queryForObject(
-                "SELECT COALESCE(SUM(ext_amt), 0) FROM paehist " +
-                "WHERE company_no=? AND pay_type=4 AND payrun_date BETWEEN ? AND ?",
-                BigDecimal.class, s.getCompanyNo(), startDate, endDate);
+            LocalDate startDate = yrStart(s);
+            LocalDate endDate   = yrEnd(s);
+            BigDecimal v = dsl.select(DSL.coalesce(DSL.sum(PAEHIST.EXT_AMT), DSL.inline(BigDecimal.ZERO)))
+                              .from(PAEHIST)
+                              .where(PAEHIST.COMPANY_NO.eq(s.getCompanyNo())
+                                  .and(PAEHIST.PAY_TYPE.eq(4))
+                                  .and(PAEHIST.PAYRUN_DATE.between(startDate).and(endDate)))
+                              .fetchOne(0, BigDecimal.class);
             return v != null ? v : BigDecimal.ZERO;
         } catch (Exception e) { return BigDecimal.ZERO; }
     }
@@ -92,12 +106,13 @@ public class PyDataService {
     /** Pay run count for the year — distinct payrun_no from paehist filtered by date. */
     public int getPayRunCount(AppSession s) {
         try {
-            String startDate = s.getYrStartDate() != null ? s.getYrStartDate().toString() : s.getYearNo() + "-01-01";
-            String endDate   = s.getYrEndDate()   != null ? s.getYrEndDate().toString()   : s.getYearNo() + "-12-31";
-            Integer v = jdbc.queryForObject(
-                "SELECT COUNT(DISTINCT payrun_no) FROM paehist " +
-                "WHERE company_no=? AND payrun_date BETWEEN ? AND ?",
-                Integer.class, s.getCompanyNo(), startDate, endDate);
+            LocalDate startDate = yrStart(s);
+            LocalDate endDate   = yrEnd(s);
+            Integer v = dsl.select(DSL.countDistinct(PAEHIST.PAYRUN_NO))
+                           .from(PAEHIST)
+                           .where(PAEHIST.COMPANY_NO.eq(s.getCompanyNo())
+                               .and(PAEHIST.PAYRUN_DATE.between(startDate).and(endDate)))
+                           .fetchOne(0, Integer.class);
             return v != null ? v : 0;
         } catch (Exception e) { return 0; }
     }
@@ -109,28 +124,30 @@ public class PyDataService {
         List<String>     labels   = new ArrayList<>();
         List<BigDecimal> grossPay = new ArrayList<>();
         try {
-            // Use payrun_date directly — no parunhd join needed
-            // Filter by fiscal year start/end dates from session
-            String startDate = s.getYrStartDate() != null ? s.getYrStartDate().toString() : null;
-            String endDate   = s.getYrEndDate()   != null ? s.getYrEndDate().toString()   : null;
-            if (startDate == null || endDate == null) {
-                // Fall back to calendar year
-                startDate = s.getYearNo() + "-01-01";
-                endDate   = s.getYearNo() + "-12-31";
-            }
-            jdbc.query(
-                "SELECT DATE_FORMAT(payrun_date, '%b %Y') AS month_label, " +
-                "  DATE_FORMAT(payrun_date, '%Y-%m') AS month_sort, " +
-                "  COALESCE(SUM(CASE WHEN pay_type IN (1,2) THEN ext_amt ELSE 0 END), 0) AS gross " +
-                "FROM paehist " +
-                "WHERE company_no=? AND payrun_date BETWEEN ? AND ? " +
-                "GROUP BY month_sort, month_label ORDER BY month_sort",
-                rs -> {
-                    labels.add(rs.getString("month_label"));
-                    BigDecimal g = rs.getBigDecimal("gross");
-                    grossPay.add(g != null ? g : BigDecimal.ZERO);
-                },
-                s.getCompanyNo(), startDate, endDate);
+            LocalDate startDate = yrStart(s);
+            LocalDate endDate   = yrEnd(s);
+
+            // MySQL-specific DATE_FORMAT — use DSL.field for dialect-specific functions
+            Field<String> monthLabel = DSL.field("DATE_FORMAT({0}, {1})", String.class,
+                    PAEHIST.PAYRUN_DATE, DSL.inline("%b %Y")).as("month_label");
+            Field<String> monthSort  = DSL.field("DATE_FORMAT({0}, {1})", String.class,
+                    PAEHIST.PAYRUN_DATE, DSL.inline("%Y-%m")).as("month_sort");
+            Field<BigDecimal> gross = DSL.coalesce(
+                    DSL.sum(DSL.when(PAEHIST.PAY_TYPE.in(1, 2), PAEHIST.EXT_AMT).otherwise(BigDecimal.ZERO)),
+                    DSL.inline(BigDecimal.ZERO)).as("gross");
+
+            dsl.select(monthLabel, monthSort, gross)
+               .from(PAEHIST)
+               .where(PAEHIST.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(PAEHIST.PAYRUN_DATE.between(startDate).and(endDate)))
+               .groupBy(monthSort, monthLabel)
+               .orderBy(monthSort)
+               .fetch()
+               .forEach(r -> {
+                   labels.add(r.get("month_label", String.class));
+                   BigDecimal g = r.get("gross", BigDecimal.class);
+                   grossPay.add(g != null ? g : BigDecimal.ZERO);
+               });
         } catch (Exception e) { log.error("getGrossPayByPeriod: {}", e.getMessage()); }
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("periods", labels); r.put("grossPay", grossPay);
@@ -142,12 +159,21 @@ public class PyDataService {
         List<String>  depts  = new ArrayList<>();
         List<Integer> counts = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT COALESCE(NULLIF(dept,''), 'Unassigned') AS dept_name, COUNT(*) AS cnt " +
-                "FROM pastaff WHERE company_no=? AND (employee_status IS NULL OR employee_status = '' OR employee_status = ' ') " +
-                "GROUP BY dept ORDER BY cnt DESC LIMIT 15",
-                rs -> { depts.add(rs.getString("dept_name")); counts.add(rs.getInt("cnt")); },
-                s.getCompanyNo());
+            Field<String> deptName = DSL.coalesce(
+                    DSL.nullif(PASTAFF.DEPT, ""), DSL.inline("Unassigned")).as("dept_name");
+
+            dsl.select(deptName, DSL.count().as("cnt"))
+               .from(PASTAFF)
+               .where(PASTAFF.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(activeEmployeeCondition()))
+               .groupBy(PASTAFF.DEPT)
+               .orderBy(DSL.count().desc())
+               .limit(15)
+               .fetch()
+               .forEach(r -> {
+                   depts.add(r.get("dept_name", String.class));
+                   counts.add(r.get("cnt", Integer.class));
+               });
         } catch (Exception e) { log.error("Query failed in {}: {}", getClass().getSimpleName(), e.getMessage()); }
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("depts", depts); r.put("counts", counts);
@@ -160,25 +186,31 @@ public class PyDataService {
     public Map<String, Object> getEmployeeListData(AppSession s) {
         List<Map<String, Object>> rows = new ArrayList<>();
         try {
-            jdbc.query(
-                "SELECT e.employee_no, e.surname, e.first_name, e.dept, e.employee_status, " +
-                "  e.pay_freq, e.std_rate_per_hr, e.annual_salary, e.date_started, e.email_address, " +
-                "  COALESCE(NULLIF(e.dept,''), 'Unassigned') AS dept_display " +
-                "FROM pastaff e " +
-                "WHERE e.company_no=? AND e.(employee_status IS NULL OR employee_status = '' OR employee_status = ' ') " +
-                "ORDER BY e.dept, e.surname, e.first_name",
-                rs -> {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("empNo",       rs.getInt("employee_no"));
-                    row.put("name",        rs.getString("surname") + ", " + rs.getString("first_name"));
-                    row.put("dept",        rs.getString("dept_display"));
-                    row.put("payFreq",     rs.getString("pay_freq"));
-                    row.put("hourlyRate",  rs.getBigDecimal("std_rate_per_hr"));
-                    row.put("salary",      rs.getBigDecimal("annual_salary"));
-                    row.put("startDate",   rs.getDate("date_started") != null ? rs.getDate("date_started").toString() : "");
-                    row.put("email",       rs.getString("email_address"));
-                    rows.add(row);
-                }, s.getCompanyNo());
+            Field<String> deptDisplay = DSL.coalesce(
+                    DSL.nullif(PASTAFF.DEPT, ""), DSL.inline("Unassigned")).as("dept_display");
+
+            dsl.select(PASTAFF.EMPLOYEE_NO, PASTAFF.SURNAME, PASTAFF.FIRST_NAME,
+                       PASTAFF.DEPT, PASTAFF.EMPLOYEE_STATUS, PASTAFF.PAY_FREQ,
+                       PASTAFF.STD_RATE_PER_HR, PASTAFF.ANNUAL_SALARY,
+                       PASTAFF.DATE_STARTED, PASTAFF.EMAIL_ADDRESS, deptDisplay)
+               .from(PASTAFF)
+               .where(PASTAFF.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(activeEmployeeCondition()))
+               .orderBy(PASTAFF.DEPT, PASTAFF.SURNAME, PASTAFF.FIRST_NAME)
+               .fetch()
+               .forEach(r -> {
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("empNo",       r.get(PASTAFF.EMPLOYEE_NO));
+                   row.put("name",        r.get(PASTAFF.SURNAME) + ", " + r.get(PASTAFF.FIRST_NAME));
+                   row.put("dept",        r.get("dept_display", String.class));
+                   row.put("payFreq",     r.get(PASTAFF.PAY_FREQ));
+                   row.put("hourlyRate",  r.get(PASTAFF.STD_RATE_PER_HR));
+                   row.put("salary",      r.get(PASTAFF.ANNUAL_SALARY));
+                   LocalDate ds = r.get(PASTAFF.DATE_STARTED);
+                   row.put("startDate",   ds != null ? ds.toString() : "");
+                   row.put("email",       r.get(PASTAFF.EMAIL_ADDRESS));
+                   rows.add(row);
+               });
         } catch (Exception e) { return errorResult(e.getMessage()); }
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -201,30 +233,41 @@ public class PyDataService {
     public Map<String, Object> getPayrollSummaryData(AppSession s) {
         List<Map<String, Object>> rows = new ArrayList<>();
         try {
-            String startDate = s.getYrStartDate() != null ? s.getYrStartDate().toString() : s.getYearNo() + "-01-01";
-            String endDate   = s.getYrEndDate()   != null ? s.getYrEndDate().toString()   : s.getYearNo() + "-12-31";
-            jdbc.query(
-                "SELECT payrun_no, payrun_date, " +
-                "  COALESCE(SUM(CASE WHEN pay_type IN (1,2) THEN ext_amt ELSE 0 END), 0) AS gross_pay, " +
-                "  COALESCE(SUM(CASE WHEN pay_type=18 THEN ext_amt ELSE 0 END), 0) AS tax_withheld, " +
-                "  COALESCE(SUM(CASE WHEN pay_type=20 THEN ext_amt ELSE 0 END), 0) AS super_amt, " +
-                "  COUNT(DISTINCT employee_no) AS employees " +
-                "FROM paehist " +
-                "WHERE company_no=? AND payrun_date BETWEEN ? AND ? " +
-                "GROUP BY payrun_no, payrun_date ORDER BY payrun_date",
-                rs -> {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("payrunNo",  rs.getInt("payrun_no"));
-                    row.put("payDate",   rs.getDate("payrun_date") != null ? rs.getDate("payrun_date").toString() : "");
-                    row.put("pmtDate",   "");
-                    row.put("employees", rs.getInt("employees"));
-                    row.put("grossPay",  rs.getBigDecimal("gross_pay"));
-                    row.put("tax",       rs.getBigDecimal("tax_withheld"));
-                    row.put("super",     rs.getBigDecimal("super_amt"));
-                    row.put("netPay",    rs.getBigDecimal("gross_pay"));
-                    rows.add(row);
-                },
-                s.getCompanyNo(), startDate, endDate);
+            LocalDate startDate = yrStart(s);
+            LocalDate endDate   = yrEnd(s);
+
+            Field<BigDecimal> grossPay = DSL.coalesce(
+                    DSL.sum(DSL.when(PAEHIST.PAY_TYPE.in(1, 2), PAEHIST.EXT_AMT).otherwise(BigDecimal.ZERO)),
+                    DSL.inline(BigDecimal.ZERO)).as("gross_pay");
+            Field<BigDecimal> taxWithheld = DSL.coalesce(
+                    DSL.sum(DSL.when(PAEHIST.PAY_TYPE.eq(18), PAEHIST.EXT_AMT).otherwise(BigDecimal.ZERO)),
+                    DSL.inline(BigDecimal.ZERO)).as("tax_withheld");
+            Field<BigDecimal> superAmt = DSL.coalesce(
+                    DSL.sum(DSL.when(PAEHIST.PAY_TYPE.eq(20), PAEHIST.EXT_AMT).otherwise(BigDecimal.ZERO)),
+                    DSL.inline(BigDecimal.ZERO)).as("super_amt");
+            Field<Integer> employees = DSL.countDistinct(PAEHIST.EMPLOYEE_NO).as("employees");
+
+            dsl.select(PAEHIST.PAYRUN_NO, PAEHIST.PAYRUN_DATE, grossPay, taxWithheld, superAmt, employees)
+               .from(PAEHIST)
+               .where(PAEHIST.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(PAEHIST.PAYRUN_DATE.between(startDate).and(endDate)))
+               .groupBy(PAEHIST.PAYRUN_NO, PAEHIST.PAYRUN_DATE)
+               .orderBy(PAEHIST.PAYRUN_DATE)
+               .fetch()
+               .forEach(r -> {
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("payrunNo",  r.get(PAEHIST.PAYRUN_NO));
+                   LocalDate pd = r.get(PAEHIST.PAYRUN_DATE);
+                   row.put("payDate",   pd != null ? pd.toString() : "");
+                   row.put("pmtDate",   "");
+                   row.put("employees", r.get("employees", Integer.class));
+                   BigDecimal gp = r.get("gross_pay", BigDecimal.class);
+                   row.put("grossPay",  gp);
+                   row.put("tax",       r.get("tax_withheld", BigDecimal.class));
+                   row.put("super",     r.get("super_amt", BigDecimal.class));
+                   row.put("netPay",    gp);
+                   rows.add(row);
+               });
         } catch (Exception e) { return errorResult(e.getMessage()); }
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -252,10 +295,30 @@ public class PyDataService {
      */
     private Integer getYrNo(AppSession s) {
         try {
-            return jdbc.queryForObject(
-                "SELECT yr_no FROM gldates WHERE company_no=? AND year_no=? LIMIT 1",
-                Integer.class, s.getCompanyNo(), s.getYearNo());
+            return dsl.select(GLDATES.YR_NO)
+                      .from(GLDATES)
+                      .where(GLDATES.COMPANY_NO.eq(s.getCompanyNo())
+                          .and(GLDATES.YEAR_NO.eq(s.getYearNo())))
+                      .limit(1)
+                      .fetchOne(GLDATES.YR_NO);
         } catch (Exception e) { return null; }
+    }
+
+    /** Active employee condition — mirrors COBOL: blank or null status = active. */
+    private static Condition activeEmployeeCondition() {
+        return PASTAFF.EMPLOYEE_STATUS.isNull()
+            .or(PASTAFF.EMPLOYEE_STATUS.eq(""))
+            .or(PASTAFF.EMPLOYEE_STATUS.eq(" "));
+    }
+
+    /** Fiscal year start date, falling back to Jan 1 of the session year. */
+    private static LocalDate yrStart(AppSession s) {
+        return s.getYrStartDate() != null ? s.getYrStartDate() : LocalDate.of(s.getYearNo(), 1, 1);
+    }
+
+    /** Fiscal year end date, falling back to Dec 31 of the session year. */
+    private static LocalDate yrEnd(AppSession s) {
+        return s.getYrEndDate() != null ? s.getYrEndDate() : LocalDate.of(s.getYearNo(), 12, 31);
     }
 
     private Map<String, Object> col(String label, String field, String type) {
