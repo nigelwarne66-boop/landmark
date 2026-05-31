@@ -29,9 +29,7 @@
   <field name="beforeAfterTax" class="java.lang.String"/>
 
 
-  <variable name="codeGroup_AMOUNT_sum" class="java.math.BigDecimal" resetType="Group" resetGroup="codeGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{amount}]]></variableExpression>
-  </variable>
+  <field name="codeTotal" class="java.math.BigDecimal"/>
 
   <group name="codeGroup" isReprintHeaderOnEachPage="true">
     <groupExpression><![CDATA[$F{payCode}]]></groupExpression>
@@ -45,15 +43,11 @@
       <band height="14">
         <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
         <staticText><reportElement x="4" y="2" width="300" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Code Total]]></text></staticText>
-        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="2" width="146" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{codeGroup_AMOUNT_sum}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="2" width="146" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{codeTotal}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
 
-
-  <variable name="codeGroup_AMOUNT_sum" class="java.math.BigDecimal" resetType="Group" resetGroup="codeGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{amount}]]></variableExpression>
-  </variable>
 
   <group name="empSubGroup">
     <groupExpression><![CDATA[$F{payCode} + "|" + $F{empNo}]]></groupExpression>

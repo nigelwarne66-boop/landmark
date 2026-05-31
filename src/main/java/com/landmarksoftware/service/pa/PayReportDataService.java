@@ -606,6 +606,14 @@ public class PayReportDataService {
         if (rows.isEmpty()) return warn("No history data matched the selection.");
         for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
+        // Pre-compute per-employee totals (avoids unreliable Jasper Sum variable).
+        Map<Integer, BigDecimal> empTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Integer key = (Integer) row.get("empNo");
+            empTotals.merge(key, z((BigDecimal) row.get("amount")), BigDecimal::add);
+        }
+        for (Map<String, Object> row : rows) row.put("empTotal", empTotals.get((Integer) row.get("empNo")));
+
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
         params.put("DATE_RANGE",   datRangeDesc(p.startDate(), p.endDate()));
@@ -684,6 +692,14 @@ public class PayReportDataService {
         }
         if (rows.isEmpty()) return warn("No deduction/super data matched the selection.");
         for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
+
+        // Pre-compute per-payCode totals (avoids unreliable Jasper Sum variable).
+        Map<String, BigDecimal> codeTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String key = (String) row.get("payCode");
+            codeTotals.merge(key, z((BigDecimal) row.get("amount")), BigDecimal::add);
+        }
+        for (Map<String, Object> row : rows) row.put("codeTotal", codeTotals.get((String) row.get("payCode")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -765,6 +781,14 @@ public class PayReportDataService {
         if (rows.isEmpty()) return warn("No cost data for period " + p.periodDate() + ".");
         for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
+        // Pre-compute per-paygroup totals (avoids unreliable Jasper Sum variable).
+        Map<String, BigDecimal> pgTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String key = (String) row.get("paygroup");
+            pgTotals.merge(key, z((BigDecimal) row.get("amount")), BigDecimal::add);
+        }
+        for (Map<String, Object> row : rows) row.put("pgTotal", pgTotals.get((String) row.get("paygroup")));
+
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
         params.put("PERIOD_DATE",  p.periodDate().toString());
@@ -838,6 +862,14 @@ public class PayReportDataService {
         }
         if (rows.isEmpty()) return warn("No payrun data matched the selection.");
         for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("total")));
+
+        // Pre-compute per-paygroup totals (avoids unreliable Jasper Sum variable).
+        Map<String, BigDecimal> pgTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String key = (String) row.get("paygroup");
+            pgTotals.merge(key, z((BigDecimal) row.get("total")), BigDecimal::add);
+        }
+        for (Map<String, Object> row : rows) row.put("pgTotal", pgTotals.get((String) row.get("paygroup")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -919,6 +951,14 @@ public class PayReportDataService {
         }
         if (rows.isEmpty()) return warn("No GL detail found for payrun " + payrunNo + ".");
         for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
+
+        // Pre-compute per-employee totals (avoids unreliable Jasper Sum variable).
+        Map<Integer, BigDecimal> empTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Integer key = (Integer) row.get("empNo");
+            empTotals.merge(key, z((BigDecimal) row.get("amount")), BigDecimal::add);
+        }
+        for (Map<String, Object> row : rows) row.put("empTotal", empTotals.get((Integer) row.get("empNo")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -1092,6 +1132,14 @@ public class PayReportDataService {
         if (rows.isEmpty()) return warn("No deduction/super data matched the selection.");
         for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
 
+        // Pre-compute per-payCode totals (avoids unreliable Jasper Sum variable).
+        Map<String, BigDecimal> codeTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String key = (String) row.get("payCode");
+            codeTotals.merge(key, z((BigDecimal) row.get("amount")), BigDecimal::add);
+        }
+        for (Map<String, Object> row : rows) row.put("codeTotal", codeTotals.get((String) row.get("payCode")));
+
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
         params.put("DATE_RANGE",   datRangeDesc(p.startDate(), p.endDate()));
@@ -1164,6 +1212,14 @@ public class PayReportDataService {
         }
         if (rows.isEmpty()) return warn("No super data matched the selection.");
         for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
+
+        // Pre-compute per-fundName totals (avoids unreliable Jasper Sum variable).
+        Map<String, BigDecimal> fundTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String key = (String) row.get("fundName");
+            fundTotals.merge(key, z((BigDecimal) row.get("amount")), BigDecimal::add);
+        }
+        for (Map<String, Object> row : rows) row.put("fundTotal", fundTotals.get((String) row.get("fundName")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -1247,6 +1303,14 @@ public class PayReportDataService {
         }
         if (rows.isEmpty()) return warn("No extended super data matched the selection.");
         for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
+
+        // Pre-compute per-payCode totals (avoids unreliable Jasper Sum variable).
+        Map<String, BigDecimal> codeTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String key = (String) row.get("payCode");
+            codeTotals.merge(key, z((BigDecimal) row.get("amount")), BigDecimal::add);
+        }
+        for (Map<String, Object> row : rows) row.put("codeTotal", codeTotals.get((String) row.get("payCode")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());

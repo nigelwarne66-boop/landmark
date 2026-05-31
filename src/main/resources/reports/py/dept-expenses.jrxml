@@ -27,9 +27,7 @@
   <field name="amount"    class="java.math.BigDecimal"/>
 
 
-  <variable name="pgGroup_AMOUNT_sum" class="java.math.BigDecimal" resetType="Group" resetGroup="pgGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{amount}]]></variableExpression>
-  </variable>
+  <field name="pgTotal" class="java.math.BigDecimal"/>
 
   <group name="pgGroup" isReprintHeaderOnEachPage="true">
     <groupExpression><![CDATA[$F{paygroup}]]></groupExpression>
@@ -43,15 +41,11 @@
       <band height="14">
         <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
         <staticText><reportElement x="4" y="2" width="400" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Paygroup Total]]></text></staticText>
-        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="642" y="2" width="136" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{pgGroup_AMOUNT_sum}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="642" y="2" width="136" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{pgTotal}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
 
-
-  <variable name="pgGroup_AMOUNT_sum" class="java.math.BigDecimal" resetType="Group" resetGroup="pgGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{amount}]]></variableExpression>
-  </variable>
 
   <group name="deptGroup">
     <groupExpression><![CDATA[$F{paygroup} + "|" + $F{dept}]]></groupExpression>

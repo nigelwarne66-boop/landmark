@@ -24,6 +24,7 @@
   <field name="surname"   class="java.lang.String"/>
   <field name="firstName" class="java.lang.String"/>
   <field name="amount"    class="java.math.BigDecimal"/>
+  <field name="fundTotal" class="java.math.BigDecimal"/>
 
   <group name="fundGroup" isReprintHeaderOnEachPage="true">
     <groupExpression><![CDATA[$F{fundName}]]></groupExpression>
@@ -37,14 +38,10 @@
       <band height="14">
         <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
         <staticText><reportElement x="4" y="2" width="400" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Fund Total]]></text></staticText>
-        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="642" y="2" width="136" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{fundGroup_AMOUNT_sum}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="642" y="2" width="136" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{fundTotal}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
-
-  <variable name="fundGroup_AMOUNT_sum" class="java.math.BigDecimal" resetType="Group" resetGroup="fundGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{amount}]]></variableExpression>
-  </variable>
 
   <title>
     <band height="52">
