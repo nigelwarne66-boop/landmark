@@ -245,20 +245,38 @@ Client DB credentials are **never** baked into the JAR. Spring Boot's external c
 
 ## jOOQ — type-safe SQL + multi-dialect support
 
-jOOQ 3.21.4 open-source is wired in (`org.jooq` groupId, installed to local Maven repo from `jOOQ-3.21.4/maven-install.bat`). Spring Boot auto-configures a `DSLContext` bean — services can inject it alongside existing `JdbcTemplate` for gradual migration.
+jOOQ 3.21.4 open-source is wired in (`org.jooq` groupId, installed to local Maven repo from `jOOQ-3.21.4/maven-install.bat`). Spring Boot auto-configures a `DSLContext` bean. All reporting services have been migrated from `JdbcTemplate`; payroll write services still use `JdbcTemplate` (they are MySQL-only and not part of the SQL Server reporting scope).
 
 **Generated DSL classes**: `src/main/generated/com/landmarksoftware/db/` — one class per table in `lmextract`, committed to VCS so builds need no live DB. Regenerate when schema changes:
 ```
 mvn generate-sources -Pjooq-codegen
 ```
 
-**Migration approach**: `JdbcTemplate` and `DSLContext` coexist. Migrate service by service. New services should use `DSLContext`; existing services can stay on `JdbcTemplate` until touched.
+**Reporting service migration status (all complete):**
+
+| Service | Typed DSL | Notes |
+|---|---|---|
+| `BasReportDataService` | Fully typed | Reference implementation — follow this pattern |
+| `CpCntrlService` | Fully typed | |
+| `PyDataService` | Mostly typed | `DATE_FORMAT` as `DSL.field()` inline |
+| `GlReportDataService` | Mostly typed | Dynamic period-column expressions as `DSL.field()` |
+| `PoReportDataService` | Fully typed | |
+| `CmReportDataService` | Fully typed | Aliased table JOIN pattern |
+| `GlReportWriterService` | Mostly typed | DDL + 366-col OCCURS table as `dsl.resultQuery()` |
+| `SmReportDataService` | Mostly typed | 2 runtime arithmetic conditions as `DSL.condition()` |
+| `PayReportDataService` | Fully typed | Dynamic GROUP BY/ORDER BY lists |
+| `ApReportDataService` | Partial | Complex dynamic IN/period queries as `dsl.resultQuery()` |
+| `ArReportDataService` | Partial | All queries as `dsl.resultQuery()` (raw SQL, typed params) |
+
+**`dsl.resultQuery()` cases** pass `LocalDate` bind params correctly and use jOOQ's connection management, but raw SQL strings don't get dialect translation. A future pass should convert these to typed DSL when SQL Server integration begins.
+
+**New services**: always use `DSLContext`, never `JdbcTemplate`.
 
 **SQL Server upgrade path** (when the commercial client is onboarded):
-1. Replace `spring-boot-starter-jooq` in pom with the `org.jooq.pro` equivalent (same version 3.21.4 — version is already aligned)
+1. Replace `spring-boot-starter-jooq` groupId with `org.jooq.pro` in pom (same version 3.21.4 — already aligned)
 2. Set `spring.jooq.sql-dialect=SQLSERVER` in the client's `config/application.properties`
-3. Run `mvn generate-sources -Pjooq-codegen` pointed at the SQL Server schema (update jdbc block in the `jooq-codegen` pom profile)
-4. Migrate services — jOOQ renders `LIMIT`→`TOP`, `NOW()`→`GETDATE()`, `ON DUPLICATE KEY`→`MERGE INTO` etc. automatically
+3. Run `mvn generate-sources -Pjooq-codegen` against the SQL Server schema (update jdbc block in the `jooq-codegen` pom profile)
+4. Convert remaining `dsl.resultQuery()` calls in AP/AR to typed DSL — jOOQ then renders `LIMIT`→`TOP`, `NOW()`→`GETDATE()`, etc. automatically
 
 ---
 
