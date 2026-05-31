@@ -593,3 +593,64 @@ Use same navy/blue palette as GL reports:
 
 ### Excel extras rule
 Wherever PDF shows only a code, Excel adds the description column adjacent.
+
+---
+
+## Implementation learnings (2026-05-30 build)
+
+These were discovered during the initial build and should not be repeated.
+
+### Resource paths — module ID is `"py"`, not `"pa"`
+All payroll report resources must live under `py/` (the hub module ID), not `pa/`:
+- FXML: `fxml/reports/py/<name>.fxml`
+- jrxml: `reports/py/<name>.jrxml` and `<name>-excel.jrxml`
+- Controller jrxml paths: `"py/<name>"` and `"py/<name>-excel"`
+
+### Hub registration — never call `openSelectionScreen()` directly
+In `buildModuleRegistry()`, every report card already auto-wires click → `openSelectionScreen()`.
+Set `setRunner(fmt -> comingSoon(title))` as a fallback only. Calling `openSelectionScreen()` directly
+in `buildModuleRegistry()` fires at startup before a scene is built → NPE on `getScene().getWindow()`.
+
+### `isStretchWithOverflow` — apply to ALL textFields in the band
+Jasper 6.21 bug: in a band with ANY `<textField isStretchWithOverflow="true">`, all subsequent
+textFields WITHOUT that flag are silently skipped. Every `<textField>` in every detail/group band must
+carry `isStretchWithOverflow="true"`. Does not affect `<staticText>`.
+
+### `mapDataSource()` — do not use `JRBeanCollectionDataSource`
+`JRBeanCollectionDataSource` uses Apache BeanUtils which silently returns null for BigDecimal fields
+on `Map<String,Object>` rows in this class-loader context (String fields work fine). Use the direct
+`mapDataSource()` anonymous helper in each controller instead — it calls `map.get(field.getName())`
+directly. Copy the helper from `PaEmployeeYtdPaymentsController` to every new controller.
+
+### jOOQ row access — use string-based, not Field-reference
+`row.get(aliasedTable.field(SCHEMA.COL))` creates a new Field object at call time; when that object
+doesn't match the selected field by identity, jOOQ silently returns null for the last-positioned
+fields in the SELECT. **Always use** `row.get("column_name", Type.class)` in PA service methods.
+`PayReportDataService` is fully jOOQ-based (DSLContext, not JdbcTemplate).
+
+### Jasper variable ordering — variables before groups
+`<variable>` elements must appear BEFORE `<group>` elements in the jrxml (XSD order:
+parameter → field → variable → group). Variables declared after their group cause a
+SAXParseException "invalid content" at the variable element. A PowerShell script
+(`fix-variable-ordering.ps1` style) can batch-fix this across multiple files.
+
+### Pre-compute group totals in service, don't rely on Jasper Sum variables
+`calculation="Sum"` group variables are unreliable with `JRBeanCollectionDataSource` + Map rows.
+Pattern that works (GLRP40 style): service emits header/detail/total rows with a `rowKind` field
+(`"header"`, `"detail"`, `"total"`); the total row carries the pre-computed sum as `$F{payAmt}`;
+`printWhenExpression` controls which textField variant renders per row kind. All textField variants
+must have `isStretchWithOverflow="true"` (see above).
+
+### Conditional style forecolor bleeds between records
+If a conditional style sets `forecolor="#ffffff"` for one row kind but provides no explicit
+forecolor for the "detail" row kind, the PDF renderer keeps white as the active colour →
+amounts appear blank on white background. Add an explicit conditional for EVERY row kind
+(including the default data rows) setting `forecolor="#000000"`.
+
+### `JasperReportService` cache — timestamp-based since 2026-05-30
+`compile()` now compares `resource.lastModified()` vs the cached `.jasper` mtime. Any edit to a
+jrxml in `target/classes` will trigger automatic recompilation on next use. The previous version
+used any existing `.jasper` unconditionally — jrxml edits had no effect while the app was running.
+
+### `paytd.year_no` is 4-digit (corrected from instructions above)
+The paytd table uses 4-digit years (2026 = FY 2025-26), not 2-digit as initially documented.
