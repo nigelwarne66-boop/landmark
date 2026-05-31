@@ -346,6 +346,12 @@ public class PayReportDataService {
         return r;
     }
 
+    /** Convert LocalDate → java.sql.Date for Jasper fields; returns null for null or 1899 sentinel. */
+    private static java.sql.Date toSqlDate(LocalDate d) {
+        if (d == null || d.getYear() < 1900) return null;
+        return java.sql.Date.valueOf(d);
+    }
+
     private static String fmtAmt(BigDecimal b) {
         if (b == null || b.signum() == 0) return "";
         if (b.signum() < 0) return "(" + String.format("%,.2f", b.negate()) + ")";
@@ -447,7 +453,7 @@ public class PayReportDataService {
                    rowMap.put("paygroup",   trim(row.get("paygroup", String.class)));
                    rowMap.put("dept",       trim(row.get("dept", String.class)));
                    rowMap.put("payrunNo",   row.get("payrun_no", Integer.class));
-                   rowMap.put("payrunDate", row.get("payrun_date", LocalDate.class));
+                   rowMap.put("payrunDate", toSqlDate(row.get("payrun_date", LocalDate.class)));
                    rowMap.put("payCode",    trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
                    Integer hrsVal = row.get("hrs", Integer.class);
@@ -463,7 +469,15 @@ public class PayReportDataService {
         }
         if (rows.isEmpty()) return warn("No history data matched the selection.");
 
-        for (Map<String, Object> row : rows) grandTotal = grandTotal.add(z((BigDecimal) row.get("amount")));
+        // Pre-compute per-employee totals and stamp onto every row (avoids unreliable Sum variable).
+        Map<Integer, BigDecimal> empTotals = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Integer emp = (Integer) row.get("empNo");
+            BigDecimal amt = (BigDecimal) row.get("amount");
+            empTotals.merge(emp, amt, BigDecimal::add);
+            grandTotal = grandTotal.add(amt);
+        }
+        for (Map<String, Object> row : rows) row.put("empTotal", empTotals.get((Integer) row.get("empNo")));
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("COMPANY_NAME", s.getCompanyName());
@@ -582,7 +596,7 @@ public class PayReportDataService {
                 rowMap.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
                 rowMap.put("amount", z(row.get("total_amt", BigDecimal.class)));
                 rowMap.put("payrunNo",   byPayrun ? row.get("payrun_no", Integer.class)   : null);
-                rowMap.put("payrunDate", byPayrun ? row.get("payrun_date", LocalDate.class) : null);
+                rowMap.put("payrunDate", byPayrun ? toSqlDate(row.get("payrun_date", LocalDate.class)) : null);
                 rows.add(rowMap);
             });
         } catch (Exception e) {
@@ -806,7 +820,7 @@ public class PayReportDataService {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
                    rowMap.put("paygroup",   trim(row.get("paygroup", String.class)));
                    rowMap.put("payrunNo",   row.get("payrun_no", Integer.class));
-                   rowMap.put("payrunDate", row.get("payrun_date", LocalDate.class));
+                   rowMap.put("payrunDate", toSqlDate(row.get("payrun_date", LocalDate.class)));
                    rowMap.put("normalPay",  z(row.get("normal_pay",  BigDecimal.class)));
                    rowMap.put("overtime",   z(row.get("overtime",    BigDecimal.class)));
                    rowMap.put("leavePay",   z(row.get("leave_pay",   BigDecimal.class)));
@@ -980,9 +994,9 @@ public class PayReportDataService {
                    rowMap.put("firstName",  trim(row.get("first_name", String.class)));
                    rowMap.put("dept",       trim(row.get("dept", String.class)));
                    rowMap.put("payrunNo",   row.get("payrun_no", Integer.class));
-                   rowMap.put("payrunDate", row.get("payrun_date", LocalDate.class));
-                   rowMap.put("startDate",  row.get("start_date", LocalDate.class));
-                   rowMap.put("endDate",    row.get("end_date", LocalDate.class));
+                   rowMap.put("payrunDate", toSqlDate(row.get("payrun_date", LocalDate.class)));
+                   rowMap.put("startDate",  toSqlDate(row.get("start_date", LocalDate.class)));
+                   rowMap.put("endDate",    toSqlDate(row.get("end_date", LocalDate.class)));
                    rowMap.put("payCode",    trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
                    Integer hrsVal = row.get("hrs", Integer.class);
@@ -1065,7 +1079,7 @@ public class PayReportDataService {
                    rowMap.put("empNo",      row.get("employee_no", Integer.class));
                    rowMap.put("surname",    trim(row.get("surname", String.class)));
                    rowMap.put("firstName",  trim(row.get("first_name", String.class)));
-                   rowMap.put("payrunDate", row.get("payrun_date", LocalDate.class));
+                   rowMap.put("payrunDate", toSqlDate(row.get("payrun_date", LocalDate.class)));
                    rowMap.put("amount",     z(row.get("ext_amt", BigDecimal.class)));
                    String pf = row.get("paid_flag", String.class);
                    rowMap.put("paidFlag",   pf != null ? pf.trim() : "");
@@ -1221,7 +1235,7 @@ public class PayReportDataService {
                    rowMap.put("firstName",    trim(row.get("first_name", String.class)));
                    Long tfnLong = row.get("tax_file_no", Long.class);
                    rowMap.put("maskedTfn",    com.landmarksoftware.payroll.model.Employee.maskTfn(String.valueOf(tfnLong != null ? tfnLong : 0L)));
-                   rowMap.put("payrunDate",   row.get("payrun_date", LocalDate.class));
+                   rowMap.put("payrunDate",   toSqlDate(row.get("payrun_date", LocalDate.class)));
                    rowMap.put("amount",       z(row.get("ext_amt", BigDecimal.class)));
                    String bat = row.get("super_before_after_tax", String.class);
                    rowMap.put("beforeAfterTax", bat != null ? bat.trim() : "");

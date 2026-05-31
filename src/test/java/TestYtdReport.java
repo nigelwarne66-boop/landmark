@@ -16,6 +16,7 @@ public class TestYtdReport {
 
     public static void main(String[] args) throws Exception {
         // Hardcoded rows mirroring what PayReportDataService produces
+        testHistoryDetail();
         testSuperByFundExcel();
 
         List<Map<String, Object>> rows = buildRows();
@@ -179,6 +180,32 @@ public class TestYtdReport {
         r.put("hours",     null);
         r.put("payAmt",    BigDecimal.valueOf(amt));
         return r;
+    }
+
+    /** Quick test: render employee-history-detail PDF with hardcoded rows. */
+    static void testHistoryDetail() throws Exception {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        java.sql.Date d1 = java.sql.Date.valueOf("2024-06-07");
+        java.sql.Date d2 = java.sql.Date.valueOf("2024-10-01");
+        // Employee 1 - WARNE SARA - 2 payruns
+        for (java.sql.Date pd : new java.sql.Date[]{d1, d2}) {
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("empNo", 1); r.put("surname", "WARNE"); r.put("firstName", "SARA");
+            r.put("paygroup", "1"); r.put("dept", "1");
+            r.put("payrunNo", pd == d1 ? 1 : 3); r.put("payrunDate", pd);
+            r.put("payCode", "PAY"); r.put("codeDesc", "ORDINARY PAY");
+            r.put("hours", null); r.put("amount", new BigDecimal(pd == d1 ? "1000.00" : "29375.00"));
+            r.put("empTotal", new BigDecimal("30375.00"));
+            r.put("ref", "");
+            rows.add(r);
+        }
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("COMPANY_NAME", "Test Company"); params.put("DATE_RANGE", "01/01/2024 to 31/12/2024");
+        params.put("GRAND_TOTAL", new BigDecimal("30375.00")); params.put("ROW_COUNT", 2);
+
+        renderAndSave("src/main/resources/reports/py/employee-history-detail.jrxml",
+            params, mapDataSource(rows), "C:/temp/test-hist-detail.pdf", "Employee History Detail");
     }
 
     /** Quick test: render super-by-fund Excel with hardcoded rows. */
