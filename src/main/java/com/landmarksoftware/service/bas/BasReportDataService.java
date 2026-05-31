@@ -1,9 +1,12 @@
 package com.landmarksoftware.service.bas;
 
 import com.landmarksoftware.model.AppSession;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -11,23 +14,31 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
 
+import static com.landmarksoftware.db.tables.Cpbascd.CPBASCD;
+import static com.landmarksoftware.db.tables.Cpbasgr.CPBASGR;
+import static com.landmarksoftware.db.tables.Cpbashd.CPBASHD;
+import static com.landmarksoftware.db.tables.Cpbastx.CPBASTX;
+import static com.landmarksoftware.db.tables.Cpgstcd.CPGSTCD;
+import static com.landmarksoftware.db.tables.Glchart.GLCHART;
+
 /**
  * Business Activity Statement (BAS / Australian GST) <b>report</b> data service —
  * one query method per BAS report card in the JavaFX Reports Hub.
  *
- * <p>All JDBC lives here. Ported from {@code C:\landmark\cobol\cp2\cpba*}, columns
- * verified against the live {@code lmextract} schema. A BAS run is identified by
- * the composite key {@code (bas_group, bas_no)}. The header summary lives in
- * {@code cpbashd}; the transaction detail in {@code cpbastx} (the line table
- * {@code cpbasln} is empty in the extract and is not used).
+ * <p>Migrated from JdbcTemplate to jOOQ DSLContext. Dialect-neutral: renders
+ * correct SQL for MySQL, MariaDB, and SQL Server without code changes.
+ *
+ * <p>A BAS run is identified by the composite key {@code (bas_group, bas_no)}.
+ * The header summary lives in {@code cpbashd}; the transaction detail in
+ * {@code cpbastx} (the line table {@code cpbasln} is empty and not used).
  */
 @Service
 public class BasReportDataService {
 
     private static final Logger log = LoggerFactory.getLogger(BasReportDataService.class);
-    private final JdbcTemplate jdbc;
+    private final DSLContext dsl;
 
-    public BasReportDataService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public BasReportDataService(DSLContext dsl) { this.dsl = dsl; }
 
     /** A selectable code with a display label; {@code toString()} drives ComboBox rendering. */
     public record CodeName(String code, String label) {
@@ -40,10 +51,15 @@ public class BasReportDataService {
     public List<CodeName> getBasGroups(AppSession s) {
         List<CodeName> list = new ArrayList<>();
         try {
-            jdbc.query("SELECT bas_group, bas_group_name FROM cpbasgr WHERE company_no=? ORDER BY bas_group",
-                rs -> { list.add(new CodeName(trim(rs.getString("bas_group")),
-                                              trim(rs.getString("bas_group")) + " — " + trim(rs.getString("bas_group_name")))); },
-                s.getCompanyNo());
+            dsl.select(CPBASGR.BAS_GROUP, CPBASGR.BAS_GROUP_NAME)
+               .from(CPBASGR)
+               .where(CPBASGR.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(CPBASGR.BAS_GROUP)
+               .fetch()
+               .forEach(r -> {
+                   String code = trim(r.get(CPBASGR.BAS_GROUP));
+                   list.add(new CodeName(code, code + " — " + trim(r.get(CPBASGR.BAS_GROUP_NAME))));
+               });
         } catch (Exception e) { log.warn("getBasGroups: {}", e.getMessage()); }
         return list;
     }
@@ -53,12 +69,17 @@ public class BasReportDataService {
         List<CodeName> list = new ArrayList<>();
         if (notBlank(basGroup)) {
             try {
-                jdbc.query("SELECT bas_no, a3_from_date, a4_to_date FROM cpbashd WHERE company_no=? AND bas_group=? ORDER BY bas_no DESC",
-                    rs -> { LocalDate f = ld(rs.getDate("a3_from_date")), t = ld(rs.getDate("a4_to_date"));
-                            String lbl = String.valueOf(rs.getInt("bas_no"));
-                            if (f != null && t != null) lbl += " — " + f + " to " + t;
-                            list.add(new CodeName(String.valueOf(rs.getInt("bas_no")), lbl)); },
-                    s.getCompanyNo(), basGroup);
+                dsl.select(CPBASHD.BAS_NO, CPBASHD.A3_FROM_DATE, CPBASHD.A4_TO_DATE)
+                   .from(CPBASHD)
+                   .where(CPBASHD.COMPANY_NO.eq(s.getCompanyNo()).and(CPBASHD.BAS_GROUP.eq(basGroup)))
+                   .orderBy(CPBASHD.BAS_NO.desc())
+                   .fetch()
+                   .forEach(r -> {
+                       LocalDate f = ld(r.get(CPBASHD.A3_FROM_DATE)), t = ld(r.get(CPBASHD.A4_TO_DATE));
+                       String lbl = String.valueOf(r.get(CPBASHD.BAS_NO));
+                       if (f != null && t != null) lbl += " — " + f + " to " + t;
+                       list.add(new CodeName(String.valueOf(r.get(CPBASHD.BAS_NO)), lbl));
+                   });
             } catch (Exception e) { log.warn("getBasNumbers: {}", e.getMessage()); }
         }
         return list;
@@ -77,10 +98,15 @@ public class BasReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All tax codes)"));
         try {
-            jdbc.query("SELECT gst_code, gst_desc FROM cpgstcd WHERE company_no=? ORDER BY gst_code",
-                rs -> { String c = trim(rs.getString("gst_code")); if (!c.isEmpty())
-                            list.add(new CodeName(c, c + " — " + trim(rs.getString("gst_desc")))); },
-                s.getCompanyNo());
+            dsl.select(CPGSTCD.GST_CODE, CPGSTCD.GST_DESC)
+               .from(CPGSTCD)
+               .where(CPGSTCD.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(CPGSTCD.GST_CODE)
+               .fetch()
+               .forEach(r -> {
+                   String c = trim(r.get(CPGSTCD.GST_CODE));
+                   if (!c.isEmpty()) list.add(new CodeName(c, c + " — " + trim(r.get(CPGSTCD.GST_DESC))));
+               });
         } catch (Exception e) { log.warn("getGstCodes: {}", e.getMessage()); }
         return list;
     }
@@ -120,34 +146,30 @@ public class BasReportDataService {
         if (!notBlank(p.basGroup()) || !notBlank(p.basNo())) return warn("Choose a BAS group and number.");
         int basNo = Integer.parseInt(p.basNo());
 
-        StringBuilder cols = new StringBuilder(
-            "company_name, a2_abn, a3_from_date, a4_to_date, a5_due_date, a6_pay_date");
-        for (String[] l : BAS_LABELS) cols.append(", ").append(l[3]);
-
         Map<String, Object> params = new LinkedHashMap<>();
         List<Map<String, Object>> rows = new ArrayList<>();
         try {
-            boolean found = Boolean.TRUE.equals(jdbc.query(
-                "SELECT " + cols + " FROM cpbashd WHERE company_no=? AND bas_group=? AND bas_no=?",
-                rs -> {
-                    if (!rs.next()) return Boolean.FALSE;
-                    params.put("BAS_DESC", p.basGroup() + " / " + basNo);
-                    params.put("ENTITY_NAME", trim(rs.getString("company_name")));
-                    params.put("ABN", trim(rs.getString("a2_abn")));
-                    LocalDate f = ld(rs.getDate("a3_from_date")), t = ld(rs.getDate("a4_to_date")),
-                              due = ld(rs.getDate("a5_due_date")), pay = ld(rs.getDate("a6_pay_date"));
-                    params.put("PERIOD", (f != null ? f.toString() : "") + " to " + (t != null ? t.toString() : ""));
-                    params.put("DUE_DATE", due != null ? due.toString() : "");
-                    params.put("PAY_DATE", pay != null ? pay.toString() : "");
-                    for (String[] l : BAS_LABELS) {
-                        Map<String, Object> row = new LinkedHashMap<>();
-                        row.put("section", l[0]); row.put("label", l[1]); row.put("description", l[2]);
-                        row.put("amount", z(rs.getBigDecimal(l[3])));
-                        rows.add(row);
-                    }
-                    return Boolean.TRUE;
-                }, s.getCompanyNo(), p.basGroup(), basNo));
-            if (!found) return warn("No BAS found for " + p.basGroup() + " / " + basNo + ".");
+            var record = dsl.selectFrom(CPBASHD)
+                .where(CPBASHD.COMPANY_NO.eq(s.getCompanyNo())
+                    .and(CPBASHD.BAS_GROUP.eq(p.basGroup()))
+                    .and(CPBASHD.BAS_NO.eq(basNo)))
+                .fetchOne();
+            if (record == null) return warn("No BAS found for " + p.basGroup() + " / " + basNo + ".");
+
+            params.put("BAS_DESC", p.basGroup() + " / " + basNo);
+            params.put("ENTITY_NAME", trim(record.get(CPBASHD.COMPANY_NAME)));
+            params.put("ABN", trim(record.get(CPBASHD.A2_ABN)));
+            LocalDate f = ld(record.get(CPBASHD.A3_FROM_DATE)), t = ld(record.get(CPBASHD.A4_TO_DATE));
+            LocalDate due = ld(record.get(CPBASHD.A5_DUE_DATE)), pay = ld(record.get(CPBASHD.A6_PAY_DATE));
+            params.put("PERIOD", (f != null ? f.toString() : "") + " to " + (t != null ? t.toString() : ""));
+            params.put("DUE_DATE", due != null ? due.toString() : "");
+            params.put("PAY_DATE", pay != null ? pay.toString() : "");
+            for (String[] l : BAS_LABELS) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("section", l[0]); row.put("label", l[1]); row.put("description", l[2]);
+                row.put("amount", z(record.get(l[3], BigDecimal.class)));
+                rows.add(row);
+            }
         } catch (Exception e) {
             log.error("getBasStatement: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -168,55 +190,68 @@ public class BasReportDataService {
         int basNo = Integer.parseInt(p.basNo());
         boolean detail = "D".equalsIgnoreCase(p.detailSummary());
 
+        Field<String> party = DSL.coalesce(
+            DSL.nullif(DSL.trim(CPBASTX.SUPPLIER_NAME), ""),
+            CPBASTX.CUST_NAME
+        ).as("party");
+        Condition where = CPBASTX.COMPANY_NO.eq(s.getCompanyNo())
+            .and(CPBASTX.BAS_GROUP.eq(p.basGroup()))
+            .and(CPBASTX.BAS_NO.eq(basNo));
+
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };
         try {
             if (detail) {
-                jdbc.query(
-                    "SELECT x.bas_code, COALESCE(c.desc_1,'') AS code_desc, x.trx_date, x.posting_date, " +
-                    "       x.gst_code, x.trx_gross_amt, x.tax_amt, x.ref_1, " +
-                    "       COALESCE(NULLIF(TRIM(x.supplier_name),''), x.cust_name) AS party " +
-                    "FROM cpbastx x LEFT JOIN cpbascd c ON c.bas_code=x.bas_code " +
-                    "WHERE x.company_no=? AND x.bas_group=? AND x.bas_no=? " +
-                    "ORDER BY x.bas_code, x.trx_date",
-                    rs -> {
-                        BigDecimal g = z(rs.getBigDecimal("trx_gross_amt")), t = z(rs.getBigDecimal("tax_amt"));
-                        tot[0] = tot[0].add(g); tot[1] = tot[1].add(t);
-                        Map<String, Object> r = new LinkedHashMap<>();
-                        r.put("basCode", trim(rs.getString("bas_code")));
-                        r.put("codeDesc", trim(rs.getString("code_desc")));
-                        r.put("trxDate", sqlDate(rs.getDate("trx_date")));
-                        r.put("postingDate", sqlDate(rs.getDate("posting_date")));
-                        r.put("gstCode", trim(rs.getString("gst_code")));
-                        r.put("party", trim(rs.getString("party")));
-                        r.put("reference", rs.getString("ref_1"));
-                        r.put("grossAmt", g); r.put("taxAmt", t);
-                        rows.add(r);
-                    }, s.getCompanyNo(), p.basGroup(), basNo);
+                dsl.select(CPBASTX.BAS_CODE, DSL.coalesce(CPBASCD.DESC_1, "").as("code_desc"),
+                           CPBASTX.TRX_DATE, CPBASTX.POSTING_DATE, CPBASTX.GST_CODE,
+                           party, CPBASTX.REF_1, CPBASTX.TRX_GROSS_AMT, CPBASTX.TAX_AMT)
+                   .from(CPBASTX)
+                   .leftJoin(CPBASCD).on(CPBASCD.BAS_CODE.eq(CPBASTX.BAS_CODE))
+                   .where(where)
+                   .orderBy(CPBASTX.BAS_CODE, CPBASTX.TRX_DATE)
+                   .fetch()
+                   .forEach(r -> {
+                       BigDecimal g = z(r.get(CPBASTX.TRX_GROSS_AMT)), tx = z(r.get(CPBASTX.TAX_AMT));
+                       tot[0] = tot[0].add(g); tot[1] = tot[1].add(tx);
+                       Map<String, Object> row = new LinkedHashMap<>();
+                       row.put("basCode",     trim(r.get(CPBASTX.BAS_CODE)));
+                       row.put("codeDesc",    trim(r.get("code_desc", String.class)));
+                       row.put("trxDate",     toSqlDate(ld(r.get(CPBASTX.TRX_DATE))));
+                       row.put("postingDate", toSqlDate(ld(r.get(CPBASTX.POSTING_DATE))));
+                       row.put("gstCode",     trim(r.get(CPBASTX.GST_CODE)));
+                       row.put("party",       trim(r.get("party", String.class)));
+                       row.put("reference",   r.get(CPBASTX.REF_1));
+                       row.put("grossAmt", g); row.put("taxAmt", tx);
+                       rows.add(row);
+                   });
             } else {
-                jdbc.query(
-                    "SELECT x.bas_code, COALESCE(c.desc_1,'') AS code_desc, " +
-                    "       SUM(x.trx_gross_amt) AS gross, SUM(x.tax_amt) AS tax, COUNT(*) AS cnt " +
-                    "FROM cpbastx x LEFT JOIN cpbascd c ON c.bas_code=x.bas_code " +
-                    "WHERE x.company_no=? AND x.bas_group=? AND x.bas_no=? " +
-                    "GROUP BY x.bas_code, c.desc_1 ORDER BY x.bas_code",
-                    rs -> {
-                        BigDecimal g = z(rs.getBigDecimal("gross")), t = z(rs.getBigDecimal("tax"));
-                        tot[0] = tot[0].add(g); tot[1] = tot[1].add(t);
-                        Map<String, Object> r = new LinkedHashMap<>();
-                        r.put("basCode", trim(rs.getString("bas_code")));
-                        r.put("codeDesc", trim(rs.getString("code_desc")));
-                        r.put("count", rs.getInt("cnt"));
-                        r.put("grossAmt", g); r.put("taxAmt", t);
-                        rows.add(r);
-                    }, s.getCompanyNo(), p.basGroup(), basNo);
+                dsl.select(CPBASTX.BAS_CODE, DSL.coalesce(CPBASCD.DESC_1, "").as("code_desc"),
+                           DSL.sum(CPBASTX.TRX_GROSS_AMT).as("gross"),
+                           DSL.sum(CPBASTX.TAX_AMT).as("tax"),
+                           DSL.count().as("cnt"))
+                   .from(CPBASTX)
+                   .leftJoin(CPBASCD).on(CPBASCD.BAS_CODE.eq(CPBASTX.BAS_CODE))
+                   .where(where)
+                   .groupBy(CPBASTX.BAS_CODE, CPBASCD.DESC_1)
+                   .orderBy(CPBASTX.BAS_CODE)
+                   .fetch()
+                   .forEach(r -> {
+                       BigDecimal g = z(r.get("gross", BigDecimal.class)), tx = z(r.get("tax", BigDecimal.class));
+                       tot[0] = tot[0].add(g); tot[1] = tot[1].add(tx);
+                       Map<String, Object> row = new LinkedHashMap<>();
+                       row.put("basCode",  trim(r.get(CPBASTX.BAS_CODE)));
+                       row.put("codeDesc", trim(r.get("code_desc", String.class)));
+                       row.put("count",    r.get("cnt", Integer.class));
+                       row.put("grossAmt", g); row.put("taxAmt", tx);
+                       rows.add(row);
+                   });
             }
         } catch (Exception e) { log.error("getDetailedBas: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         if (rows.isEmpty()) return warn("No BAS transactions for " + p.basGroup() + " / " + basNo + ".");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("BAS_DESC", p.basGroup() + " / " + basNo);
-        params.put("MODE_DESC", detail ? "Detail" : "Summary");
-        params.put("SUM_GROSS", tot[0]); params.put("SUM_TAX", tot[1]); params.put("ROW_COUNT", rows.size());
+        params.put("BAS_DESC",   p.basGroup() + " / " + basNo);
+        params.put("MODE_DESC",  detail ? "Detail" : "Summary");
+        params.put("SUM_GROSS",  tot[0]); params.put("SUM_TAX", tot[1]); params.put("ROW_COUNT", rows.size());
         return result(rows, params);
     }
 
@@ -231,52 +266,59 @@ public class BasReportDataService {
 
     /** CPBA06 — BAS transaction listing from cpbastx, with date / group / tax-code filters. */
     public Map<String, Object> getBasTransactions(AppSession s, BasTxnParams p) {
-        String dateCol = "P".equalsIgnoreCase(p.dateInd()) ? "x.posting_date" : "x.trx_date";
-        StringBuilder sql = new StringBuilder(
-            "SELECT x.bas_group, x.bas_no, x.bas_code, x.trx_date, x.posting_date, x.gst_code, " +
-            "       x.trx_gross_amt, x.tax_amt, x.source, x.batch_no, x.company_no, x.ref_1, " +
-            "       x.tax_clearing_main, x.tax_clearing_sub, x.cmtrans_doc_type, x.cmtrans_doc_no, " +
-            "       COALESCE(NULLIF(TRIM(x.supplier_name),''), x.cust_name) AS party " +
-            "FROM cpbastx x WHERE x.company_no=? ");
-        List<Object> args = new ArrayList<>(); args.add(s.getCompanyNo());
-        if (notBlank(p.basGroup())) { sql.append(" AND x.bas_group=? "); args.add(p.basGroup()); }
-        if (notBlank(p.basNo()))    { sql.append(" AND x.bas_no=? ");    args.add(Integer.parseInt(p.basNo())); }
+        Field<LocalDate> dateField = "P".equalsIgnoreCase(p.dateInd()) ? CPBASTX.POSTING_DATE : CPBASTX.TRX_DATE;
+
+        Condition where = CPBASTX.COMPANY_NO.eq(s.getCompanyNo());
+        if (notBlank(p.basGroup())) where = where.and(CPBASTX.BAS_GROUP.eq(p.basGroup()));
+        if (notBlank(p.basNo()))    where = where.and(CPBASTX.BAS_NO.eq(Integer.parseInt(p.basNo())));
         if (p.startDate() != null) {
-            LocalDate e = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
-            sql.append(" AND ").append(dateCol).append(" BETWEEN ? AND ? ");
-            args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(e));
+            LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
+            where = where.and(dateField.between(p.startDate()).and(end));
         }
-        if (notBlank(p.gstCode())) { sql.append(" AND x.gst_code=? "); args.add(p.gstCode()); }
-        sql.append(" ORDER BY x.bas_group, x.bas_no, x.bas_code, ").append(dateCol);
+        if (notBlank(p.gstCode())) where = where.and(CPBASTX.GST_CODE.eq(p.gstCode()));
+
+        Field<String> party = DSL.coalesce(
+            DSL.nullif(DSL.trim(CPBASTX.SUPPLIER_NAME), ""),
+            CPBASTX.CUST_NAME
+        ).as("party");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal g = z(rs.getBigDecimal("trx_gross_amt")), t = z(rs.getBigDecimal("tax_amt"));
-                tot[0] = tot[0].add(g); tot[1] = tot[1].add(t);
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("basGroup", trim(rs.getString("bas_group")));
-                r.put("basNo", rs.getInt("bas_no"));
-                r.put("basCode", trim(rs.getString("bas_code")));
-                r.put("trxDate", sqlDate(rs.getDate("trx_date")));
-                r.put("postingDate", sqlDate(rs.getDate("posting_date")));
-                r.put("gstCode", trim(rs.getString("gst_code")));
-                r.put("party", trim(rs.getString("party")));
-                r.put("reference", rs.getString("ref_1"));
-                r.put("glAcct", rs.getInt("tax_clearing_main") + "-" + rs.getInt("tax_clearing_sub"));
-                r.put("source", trim(rs.getString("source")));
-                r.put("batchNo", rs.getInt("batch_no"));
-                r.put("docRef", trim(rs.getString("cmtrans_doc_type")) + " " + trim(rs.getString("cmtrans_doc_no")));
-                r.put("grossAmt", g); r.put("taxAmt", t);
-                rows.add(r);
-            }, args.toArray());
+            dsl.select(CPBASTX.BAS_GROUP, CPBASTX.BAS_NO, CPBASTX.BAS_CODE,
+                       CPBASTX.TRX_DATE, CPBASTX.POSTING_DATE, CPBASTX.GST_CODE,
+                       CPBASTX.TRX_GROSS_AMT, CPBASTX.TAX_AMT, CPBASTX.SOURCE, CPBASTX.BATCH_NO,
+                       CPBASTX.TAX_CLEARING_MAIN, CPBASTX.TAX_CLEARING_SUB,
+                       CPBASTX.CMTRANS_DOC_TYPE, CPBASTX.CMTRANS_DOC_NO, CPBASTX.REF_1, party)
+               .from(CPBASTX)
+               .where(where)
+               .orderBy(CPBASTX.BAS_GROUP, CPBASTX.BAS_NO, CPBASTX.BAS_CODE, dateField)
+               .fetch()
+               .forEach(r -> {
+                   BigDecimal g = z(r.get(CPBASTX.TRX_GROSS_AMT)), tx = z(r.get(CPBASTX.TAX_AMT));
+                   tot[0] = tot[0].add(g); tot[1] = tot[1].add(tx);
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("basGroup",    trim(r.get(CPBASTX.BAS_GROUP)));
+                   row.put("basNo",       r.get(CPBASTX.BAS_NO));
+                   row.put("basCode",     trim(r.get(CPBASTX.BAS_CODE)));
+                   row.put("trxDate",     toSqlDate(ld(r.get(CPBASTX.TRX_DATE))));
+                   row.put("postingDate", toSqlDate(ld(r.get(CPBASTX.POSTING_DATE))));
+                   row.put("gstCode",     trim(r.get(CPBASTX.GST_CODE)));
+                   row.put("party",       trim(r.get("party", String.class)));
+                   row.put("reference",   r.get(CPBASTX.REF_1));
+                   row.put("glAcct",      r.get(CPBASTX.TAX_CLEARING_MAIN) + "-" + r.get(CPBASTX.TAX_CLEARING_SUB));
+                   row.put("source",      trim(r.get(CPBASTX.SOURCE)));
+                   row.put("batchNo",     r.get(CPBASTX.BATCH_NO));
+                   row.put("docRef",      trim(r.get(CPBASTX.CMTRANS_DOC_TYPE)) + " " + r.get(CPBASTX.CMTRANS_DOC_NO));
+                   row.put("grossAmt", g); row.put("taxAmt", tx);
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getBasTransactions: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         if (rows.isEmpty()) return warn("No BAS transactions matched the selection.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("BAS_DESC", notBlank(p.basGroup()) ? p.basGroup() + (notBlank(p.basNo()) ? " / " + p.basNo() : "") : "All BAS groups");
+        params.put("BAS_DESC",        notBlank(p.basGroup()) ? p.basGroup() + (notBlank(p.basNo()) ? " / " + p.basNo() : "") : "All BAS groups");
         params.put("DATE_BASIS_DESC", "P".equalsIgnoreCase(p.dateInd()) ? "Posting date" : "Transaction date");
-        params.put("DATE_RANGE", p.startDate() != null ? p.startDate() + " to " + (p.endDate() != null ? p.endDate() : "…") : "All dates");
+        params.put("DATE_RANGE",      p.startDate() != null ? p.startDate() + " to " + (p.endDate() != null ? p.endDate() : "…") : "All dates");
         params.put("SUM_GROSS", tot[0]); params.put("SUM_TAX", tot[1]); params.put("ROW_COUNT", rows.size());
         return result(rows, params);
     }
@@ -295,29 +337,38 @@ public class BasReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };
         try {
-            jdbc.query(
-                "SELECT x.tax_clearing_main, x.tax_clearing_sub, COALESCE(g.desc1,'') AS gl_desc, " +
-                "       x.bas_code, SUM(x.trx_gross_amt) AS gross, SUM(x.tax_amt) AS tax, COUNT(*) AS cnt " +
-                "FROM cpbastx x LEFT JOIN glchart g ON g.company_no=x.company_no " +
-                "             AND g.acct_main_no=x.tax_clearing_main AND g.acct_sub_no=x.tax_clearing_sub " +
-                "WHERE x.company_no=? AND x.bas_group=? AND x.bas_no=? " +
-                "GROUP BY x.tax_clearing_main, x.tax_clearing_sub, g.desc1, x.bas_code " +
-                "ORDER BY x.tax_clearing_main, x.tax_clearing_sub, x.bas_code",
-                rs -> {
-                    BigDecimal g = z(rs.getBigDecimal("gross")), t = z(rs.getBigDecimal("tax"));
-                    tot[0] = tot[0].add(g); tot[1] = tot[1].add(t);
-                    Map<String, Object> r = new LinkedHashMap<>();
-                    r.put("glAcct", rs.getInt("tax_clearing_main") + "-" + rs.getInt("tax_clearing_sub"));
-                    r.put("glDesc", trim(rs.getString("gl_desc")));
-                    r.put("basCode", trim(rs.getString("bas_code")));
-                    r.put("count", rs.getInt("cnt"));
-                    r.put("grossAmt", g); r.put("taxAmt", t);
-                    rows.add(r);
-                }, s.getCompanyNo(), p.basGroup(), basNo);
+            dsl.select(CPBASTX.TAX_CLEARING_MAIN, CPBASTX.TAX_CLEARING_SUB,
+                       DSL.coalesce(GLCHART.DESC1, "").as("gl_desc"),
+                       CPBASTX.BAS_CODE,
+                       DSL.sum(CPBASTX.TRX_GROSS_AMT).as("gross"),
+                       DSL.sum(CPBASTX.TAX_AMT).as("tax"),
+                       DSL.count().as("cnt"))
+               .from(CPBASTX)
+               .leftJoin(GLCHART).on(
+                   GLCHART.COMPANY_NO.eq(CPBASTX.COMPANY_NO)
+                   .and(GLCHART.ACCT_MAIN_NO.eq(CPBASTX.TAX_CLEARING_MAIN))
+                   .and(GLCHART.ACCT_SUB_NO.eq(CPBASTX.TAX_CLEARING_SUB)))
+               .where(CPBASTX.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(CPBASTX.BAS_GROUP.eq(p.basGroup()))
+                   .and(CPBASTX.BAS_NO.eq(basNo)))
+               .groupBy(CPBASTX.TAX_CLEARING_MAIN, CPBASTX.TAX_CLEARING_SUB, GLCHART.DESC1, CPBASTX.BAS_CODE)
+               .orderBy(CPBASTX.TAX_CLEARING_MAIN, CPBASTX.TAX_CLEARING_SUB, CPBASTX.BAS_CODE)
+               .fetch()
+               .forEach(r -> {
+                   BigDecimal g = z(r.get("gross", BigDecimal.class)), tx = z(r.get("tax", BigDecimal.class));
+                   tot[0] = tot[0].add(g); tot[1] = tot[1].add(tx);
+                   Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("glAcct",  r.get(CPBASTX.TAX_CLEARING_MAIN) + "-" + r.get(CPBASTX.TAX_CLEARING_SUB));
+                   row.put("glDesc",  trim(r.get("gl_desc", String.class)));
+                   row.put("basCode", trim(r.get(CPBASTX.BAS_CODE)));
+                   row.put("count",   r.get("cnt", Integer.class));
+                   row.put("grossAmt", g); row.put("taxAmt", tx);
+                   rows.add(row);
+               });
         } catch (Exception e) { log.error("getBasByGl: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
         if (rows.isEmpty()) return warn("No BAS transactions for " + p.basGroup() + " / " + basNo + ".");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("BAS_DESC", p.basGroup() + " / " + basNo);
+        params.put("BAS_DESC",  p.basGroup() + " / " + basNo);
         params.put("SUM_GROSS", tot[0]); params.put("SUM_TAX", tot[1]); params.put("ROW_COUNT", rows.size());
         return result(rows, params);
     }
@@ -329,15 +380,15 @@ public class BasReportDataService {
         m.put("rows", rows); m.put("params", params); m.put("rowCount", rows.size());
         return m;
     }
-    static java.sql.Date sqlDate(java.sql.Date d) {
-        if (d == null) return null;
-        return d.toLocalDate().isAfter(LocalDate.of(1900, 1, 1)) ? d : null;
+
+    /** Convert LocalDate to java.sql.Date for Jasper report parameters; null for sentinel pre-1900 dates. */
+    static Date toSqlDate(LocalDate d) { return d != null ? Date.valueOf(d) : null; }
+
+    /** Sentinel filter — jOOQ returns LocalDate directly; null or pre-1900 → null. */
+    static LocalDate ld(LocalDate d) {
+        return (d != null && d.isAfter(LocalDate.of(1900, 1, 1))) ? d : null;
     }
-    static LocalDate ld(Date d) {
-        if (d == null) return null;
-        LocalDate v = d.toLocalDate();
-        return v.isAfter(LocalDate.of(1900, 1, 1)) ? v : null;
-    }
+
     static boolean notBlank(String s) { return s != null && !s.trim().isEmpty(); }
     static String trim(String s) { return s == null ? "" : s.trim(); }
     static BigDecimal z(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
