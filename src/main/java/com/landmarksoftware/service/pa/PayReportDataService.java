@@ -238,17 +238,18 @@ public class PayReportDataService {
                .fetch()
                .forEach(r -> {
                    Map<String, Object> row = new LinkedHashMap<>();
-                   row.put("empNo",     r.get(t.field(PAYTD.EMPLOYEE_NO)));
-                   row.put("surname",   trim(r.get(s2.field(PASTAFF.SURNAME))));
-                   row.put("firstName", trim(r.get(s2.field(PASTAFF.FIRST_NAME))));
-                   row.put("paygroup",  trim(r.get(s2.field(PASTAFF.PAYGROUP))));
-                   row.put("dept",      trim(r.get(s2.field(PASTAFF.DEPT))));
-                   row.put("payType",   r.get(t.field(PAYTD.PAY_TYPE)));
-                   row.put("payCode",   trim(r.get(t.field(PAYTD.PAY_CODE))));
+                   row.put("empNo",     r.get("employee_no", Integer.class));
+                   row.put("surname",   trim(r.get("surname", String.class)));
+                   row.put("firstName", trim(r.get("first_name", String.class)));
+                   row.put("paygroup",  trim(r.get("paygroup", String.class)));
+                   row.put("dept",      trim(r.get("dept", String.class)));
+                   row.put("payType",   r.get("pay_type", Integer.class));
+                   row.put("payCode",   trim(r.get("pay_code", String.class)));
                    row.put("codeDesc",  trim(r.get("code_desc", String.class)));
-                   int mins = r.get(t.field(PAYTD.HRS));
+                   Integer hrsVal = r.get("hrs", Integer.class);
+                   int mins = hrsVal != null ? hrsVal : 0;
                    row.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                   BigDecimal amt0 = z(r.get(t.field(PAYTD.AMT)));
+                   BigDecimal amt0 = z(r.get("amt", BigDecimal.class));
                    row.put("payAmt", amt0);
                    row.put("amtStr", fmtAmt(amt0));
                    rawRows.add(row);
@@ -440,19 +441,20 @@ public class PayReportDataService {
                .fetch()
                .forEach(row -> {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
-                   rowMap.put("empNo",      row.get(h.field(PAEHIST.EMPLOYEE_NO)));
-                   rowMap.put("surname",    trim(row.get(s2.field(PASTAFF.SURNAME))));
-                   rowMap.put("firstName",  trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
-                   rowMap.put("paygroup",   trim(row.get(s2.field(PASTAFF.PAYGROUP))));
-                   rowMap.put("dept",       trim(row.get(s2.field(PASTAFF.DEPT))));
-                   rowMap.put("payrunNo",   row.get(h.field(PAEHIST.PAYRUN_NO)));
-                   rowMap.put("payrunDate", row.get(h.field(PAEHIST.PAYRUN_DATE)));
-                   rowMap.put("payCode",    trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("empNo",      row.get("employee_no", Integer.class));
+                   rowMap.put("surname",    trim(row.get("surname", String.class)));
+                   rowMap.put("firstName",  trim(row.get("first_name", String.class)));
+                   rowMap.put("paygroup",   trim(row.get("paygroup", String.class)));
+                   rowMap.put("dept",       trim(row.get("dept", String.class)));
+                   rowMap.put("payrunNo",   row.get("payrun_no", Integer.class));
+                   rowMap.put("payrunDate", row.get("payrun_date", LocalDate.class));
+                   rowMap.put("payCode",    trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
-                   int mins = row.get(h.field(PAEHIST.HRS));
+                   Integer hrsVal = row.get("hrs", Integer.class);
+                   int mins = hrsVal != null ? hrsVal : 0;
                    rowMap.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                   rowMap.put("amount",     z(row.get(h.field(PAEHIST.EXT_AMT))));
-                   rowMap.put("ref",        trim(row.get(h.field(PAEHIST.REF))));
+                   rowMap.put("amount",     z(row.get("ext_amt", BigDecimal.class)));
+                   rowMap.put("ref",        trim(row.get("ref", String.class)));
                    rows.add(rowMap);
                });
         } catch (Exception e) {
@@ -568,13 +570,13 @@ public class PayReportDataService {
 
             selectStep.fetch().forEach(row -> {
                 Map<String, Object> rowMap = new LinkedHashMap<>();
-                rowMap.put("empNo",     row.get(h.field(PAEHIST.EMPLOYEE_NO)));
-                rowMap.put("surname",   trim(row.get(s2.field(PASTAFF.SURNAME))));
-                rowMap.put("firstName", trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
-                rowMap.put("paygroup",  trim(row.get(s2.field(PASTAFF.PAYGROUP))));
-                rowMap.put("dept",      trim(row.get(s2.field(PASTAFF.DEPT))));
-                rowMap.put("payType",   row.get(h.field(PAEHIST.PAY_TYPE)));
-                rowMap.put("payCode",   trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                rowMap.put("empNo",     row.get("employee_no", Integer.class));
+                rowMap.put("surname",   trim(row.get("surname", String.class)));
+                rowMap.put("firstName", trim(row.get("first_name", String.class)));
+                rowMap.put("paygroup",  trim(row.get("paygroup", String.class)));
+                rowMap.put("dept",      trim(row.get("dept", String.class)));
+                rowMap.put("payType",   row.get("pay_type", Integer.class));
+                rowMap.put("payCode",   trim(row.get("pay_code", String.class)));
                 rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
                 int mins = row.get("total_hrs", Integer.class) != null ? row.get("total_hrs", Integer.class) : 0;
                 rowMap.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
@@ -652,12 +654,12 @@ public class PayReportDataService {
                .fetch()
                .forEach(row -> {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
-                   rowMap.put("payCode",   trim(row.get(t.field(PAYTD.PAY_CODE))));
-                   rowMap.put("payType",   row.get(t.field(PAYTD.PAY_TYPE)));
+                   rowMap.put("payCode",   trim(row.get("pay_code", String.class)));
+                   rowMap.put("payType",   row.get("pay_type", Integer.class));
                    rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
                    rowMap.put("fundName",  trim(row.get("fund_name", String.class)));
-                   rowMap.put("empNo",     row.get(t.field(PAYTD.EMPLOYEE_NO)));
-                   rowMap.put("surname",   trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("empNo",     row.get("employee_no", Integer.class));
+                   rowMap.put("surname",   trim(row.get("surname", String.class)));
                    rowMap.put("firstName", trim(row.get("first_name", String.class)));
                    rowMap.put("amount",    z(row.get("amt", BigDecimal.class)));
                    rows.add(rowMap);
@@ -729,16 +731,17 @@ public class PayReportDataService {
                .fetch()
                .forEach(row -> {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
-                   rowMap.put("paygroup",  trim(row.get(k.field(PACOSTS.PAYGROUP))));
+                   rowMap.put("paygroup",  trim(row.get("paygroup", String.class)));
                    rowMap.put("pgDesc",    trim(row.get("pg_desc", String.class)));
-                   rowMap.put("dept",      trim(row.get(k.field(PACOSTS.DEPT))));
+                   rowMap.put("dept",      trim(row.get("dept", String.class)));
                    rowMap.put("deptDesc",  trim(row.get("dept_desc", String.class)));
-                   rowMap.put("payType",   row.get(k.field(PACOSTS.PAY_TYPE)));
-                   rowMap.put("payCode",   trim(row.get(k.field(PACOSTS.PAY_CODE))));
+                   rowMap.put("payType",   row.get("pay_type", Integer.class));
+                   rowMap.put("payCode",   trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
-                   int mins = row.get(k.field(PACOSTS.HRS));
+                   Integer hrsVal = row.get("hrs", Integer.class);
+                   int mins = hrsVal != null ? hrsVal : 0;
                    rowMap.put("hours", mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                   rowMap.put("amount",    z(row.get(k.field(PACOSTS.AMT))));
+                   rowMap.put("amount",    z(row.get("amt", BigDecimal.class)));
                    rows.add(rowMap);
                });
         } catch (Exception e) {
@@ -801,9 +804,9 @@ public class PayReportDataService {
                .fetch()
                .forEach(row -> {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
-                   rowMap.put("paygroup",   trim(row.get(h.field(PAEHIST.PAYGROUP))));
-                   rowMap.put("payrunNo",   row.get(h.field(PAEHIST.PAYRUN_NO)));
-                   rowMap.put("payrunDate", row.get(r2.field(PARUNHD.PAYRUN_DATE)));
+                   rowMap.put("paygroup",   trim(row.get("paygroup", String.class)));
+                   rowMap.put("payrunNo",   row.get("payrun_no", Integer.class));
+                   rowMap.put("payrunDate", row.get("payrun_date", LocalDate.class));
                    rowMap.put("normalPay",  z(row.get("normal_pay",  BigDecimal.class)));
                    rowMap.put("overtime",   z(row.get("overtime",    BigDecimal.class)));
                    rowMap.put("leavePay",   z(row.get("leave_pay",   BigDecimal.class)));
@@ -884,16 +887,16 @@ public class PayReportDataService {
                .fetch()
                .forEach(row -> {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
-                   rowMap.put("empNo",      row.get(h.field(PAEHIST.EMPLOYEE_NO)));
-                   rowMap.put("surname",    trim(row.get(s2.field(PASTAFF.SURNAME))));
-                   rowMap.put("firstName",  trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
-                   rowMap.put("payType",    row.get(h.field(PAEHIST.PAY_TYPE)));
-                   rowMap.put("payCode",    trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("empNo",      row.get("employee_no", Integer.class));
+                   rowMap.put("surname",    trim(row.get("surname", String.class)));
+                   rowMap.put("firstName",  trim(row.get("first_name", String.class)));
+                   rowMap.put("payType",    row.get("pay_type", Integer.class));
+                   rowMap.put("payCode",    trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
-                   rowMap.put("glAcctMain", row.get(h.field(PAEHIST.GL_ACCT_NO_MAIN)));
-                   rowMap.put("glAcctSub",  row.get(h.field(PAEHIST.GL_ACCT_NO_SUB)));
+                   rowMap.put("glAcctMain", row.get("gl_acct_no_main", Integer.class));
+                   rowMap.put("glAcctSub",  row.get("gl_acct_no_sub", Integer.class));
                    rowMap.put("glDesc",     trim(row.get("gl_desc", String.class)));
-                   rowMap.put("amount",     z(row.get(h.field(PAEHIST.EXT_AMT))));
+                   rowMap.put("amount",     z(row.get("ext_amt", BigDecimal.class)));
                    rows.add(rowMap);
                });
         } catch (Exception e) {
@@ -971,23 +974,24 @@ public class PayReportDataService {
                .fetch()
                .forEach(row -> {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
-                   rowMap.put("paygroup",   trim(row.get(h.field(PAEHIST.PAYGROUP))));
-                   rowMap.put("empNo",      row.get(h.field(PAEHIST.EMPLOYEE_NO)));
-                   rowMap.put("surname",    trim(row.get(s2.field(PASTAFF.SURNAME))));
-                   rowMap.put("firstName",  trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
-                   rowMap.put("dept",       trim(row.get(s2.field(PASTAFF.DEPT))));
-                   rowMap.put("payrunNo",   row.get(h.field(PAEHIST.PAYRUN_NO)));
-                   rowMap.put("payrunDate", row.get(h.field(PAEHIST.PAYRUN_DATE)));
-                   rowMap.put("startDate",  row.get(r2.field(PARUNHD.START_DATE)));
-                   rowMap.put("endDate",    row.get(r2.field(PARUNHD.END_DATE)));
-                   rowMap.put("payCode",    trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("paygroup",   trim(row.get("paygroup", String.class)));
+                   rowMap.put("empNo",      row.get("employee_no", Integer.class));
+                   rowMap.put("surname",    trim(row.get("surname", String.class)));
+                   rowMap.put("firstName",  trim(row.get("first_name", String.class)));
+                   rowMap.put("dept",       trim(row.get("dept", String.class)));
+                   rowMap.put("payrunNo",   row.get("payrun_no", Integer.class));
+                   rowMap.put("payrunDate", row.get("payrun_date", LocalDate.class));
+                   rowMap.put("startDate",  row.get("start_date", LocalDate.class));
+                   rowMap.put("endDate",    row.get("end_date", LocalDate.class));
+                   rowMap.put("payCode",    trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
-                   int mins = row.get(h.field(PAEHIST.HRS));
+                   Integer hrsVal = row.get("hrs", Integer.class);
+                   int mins = hrsVal != null ? hrsVal : 0;
                    rowMap.put("hours",    mins > 0 ? BigDecimal.valueOf(mins).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP) : null);
-                   rowMap.put("qty",      row.get(h.field(PAEHIST.QTY)));
-                   rowMap.put("ratePerc", row.get(h.field(PAEHIST.RATE_PERC)));
-                   rowMap.put("amount",   z(row.get(h.field(PAEHIST.EXT_AMT))));
-                   rowMap.put("ref",      trim(row.get(h.field(PAEHIST.REF))));
+                   rowMap.put("qty",      row.get("qty", BigDecimal.class));
+                   rowMap.put("ratePerc", row.get("rate_perc", BigDecimal.class));
+                   rowMap.put("amount",   z(row.get("ext_amt", BigDecimal.class)));
+                   rowMap.put("ref",      trim(row.get("ref", String.class)));
                    rows.add(rowMap);
                });
         } catch (Exception e) {
@@ -1055,15 +1059,15 @@ public class PayReportDataService {
                .fetch()
                .forEach(row -> {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
-                   rowMap.put("payCode",    trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("payCode",    trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",   trim(row.get("code_desc", String.class)));
                    rowMap.put("fundName",   trim(row.get("fund_name", String.class)));
-                   rowMap.put("empNo",      row.get(h.field(PAEHIST.EMPLOYEE_NO)));
-                   rowMap.put("surname",    trim(row.get(s2.field(PASTAFF.SURNAME))));
-                   rowMap.put("firstName",  trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
-                   rowMap.put("payrunDate", row.get(h.field(PAEHIST.PAYRUN_DATE)));
-                   rowMap.put("amount",     z(row.get(h.field(PAEHIST.EXT_AMT))));
-                   String pf = row.get(h.field(PAEHIST.PAID_FLAG));
+                   rowMap.put("empNo",      row.get("employee_no", Integer.class));
+                   rowMap.put("surname",    trim(row.get("surname", String.class)));
+                   rowMap.put("firstName",  trim(row.get("first_name", String.class)));
+                   rowMap.put("payrunDate", row.get("payrun_date", LocalDate.class));
+                   rowMap.put("amount",     z(row.get("ext_amt", BigDecimal.class)));
+                   String pf = row.get("paid_flag", String.class);
                    rowMap.put("paidFlag",   pf != null ? pf.trim() : "");
                    rows.add(rowMap);
                });
@@ -1132,10 +1136,10 @@ public class PayReportDataService {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
                    rowMap.put("fundName",  trim(row.get("fund_name", String.class)));
                    rowMap.put("fundAbn",   trim(row.get("fund_abn",  String.class)));
-                   rowMap.put("payCode",   trim(row.get(t.field(PAYTD.PAY_CODE))));
+                   rowMap.put("payCode",   trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
-                   rowMap.put("empNo",     row.get(t.field(PAYTD.EMPLOYEE_NO)));
-                   rowMap.put("surname",   trim(row.get(s2.field(PASTAFF.SURNAME))));
+                   rowMap.put("empNo",     row.get("employee_no", Integer.class));
+                   rowMap.put("surname",   trim(row.get("surname", String.class)));
                    rowMap.put("firstName", trim(row.get("first_name", String.class)));
                    rowMap.put("amount",    z(row.get("amt", BigDecimal.class)));
                    rows.add(rowMap);
@@ -1208,19 +1212,18 @@ public class PayReportDataService {
                .fetch()
                .forEach(row -> {
                    Map<String, Object> rowMap = new LinkedHashMap<>();
-                   rowMap.put("payCode",      trim(row.get(h.field(PAEHIST.PAY_CODE))));
+                   rowMap.put("payCode",      trim(row.get("pay_code", String.class)));
                    rowMap.put("codeDesc",     trim(row.get("code_desc", String.class)));
                    rowMap.put("fundName",     trim(row.get("fund_name", String.class)));
                    rowMap.put("fundAbn",      trim(row.get("fund_abn",  String.class)));
-                   rowMap.put("empNo",        row.get(h.field(PAEHIST.EMPLOYEE_NO)));
-                   rowMap.put("surname",      trim(row.get(s2.field(PASTAFF.SURNAME))));
-                   rowMap.put("firstName",    trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
-                   long tfnLong = row.get(s2.field(PASTAFF.TAX_FILE_NO)) != null
-                       ? row.get(s2.field(PASTAFF.TAX_FILE_NO)) : 0L;
-                   rowMap.put("maskedTfn",    com.landmarksoftware.payroll.model.Employee.maskTfn(String.valueOf(tfnLong)));
-                   rowMap.put("payrunDate",   row.get(h.field(PAEHIST.PAYRUN_DATE)));
-                   rowMap.put("amount",       z(row.get(h.field(PAEHIST.EXT_AMT))));
-                   String bat = row.get(c.field(PACODES.SUPER_BEFORE_AFTER_TAX));
+                   rowMap.put("empNo",        row.get("employee_no", Integer.class));
+                   rowMap.put("surname",      trim(row.get("surname", String.class)));
+                   rowMap.put("firstName",    trim(row.get("first_name", String.class)));
+                   Long tfnLong = row.get("tax_file_no", Long.class);
+                   rowMap.put("maskedTfn",    com.landmarksoftware.payroll.model.Employee.maskTfn(String.valueOf(tfnLong != null ? tfnLong : 0L)));
+                   rowMap.put("payrunDate",   row.get("payrun_date", LocalDate.class));
+                   rowMap.put("amount",       z(row.get("ext_amt", BigDecimal.class)));
+                   String bat = row.get("super_before_after_tax", String.class);
                    rowMap.put("beforeAfterTax", bat != null ? bat.trim() : "");
                    rows.add(rowMap);
                });
