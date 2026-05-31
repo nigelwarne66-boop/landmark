@@ -388,6 +388,33 @@
       </build>
     </profile>
 
+    <!-- ICO generator:  mvn javafx:run -Pgenerate-ico
+         Renders the Landmark pin-mark at 16/32/48/256 px and writes
+         deploy/landmark.ico for use by jpackage (icon arg) in the dist profile.
+         Run once; commit the resulting ICO file. -->
+    <profile>
+      <id>generate-ico</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-maven-plugin</artifactId>
+            <configuration>
+              <mainClass>com.landmarksoftware.util.GenerateLandmarkIco</mainClass>
+              <options>
+                <option>--add-opens</option>
+                <option>javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</option>
+                <option>--add-opens</option>
+                <option>java.base/java.lang=ALL-UNNAMED</option>
+                <option>--add-modules</option>
+                <option>java.desktop</option>
+              </options>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!-- Reporting-only build:  mvn javafx:run -Preporting
          Boots the same Spring context + login, then branches on AppMode
          to load /fxml/reports-hub.fxml instead of MainMenuController. -->
