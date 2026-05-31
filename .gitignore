@@ -21,3 +21,12 @@ land*.pdf
 
 # Local OZEDI credentials override (env var pattern is the source of truth)
 ozedi-local.properties
+
+# Session scratch files
+.mcp.json
+.tmp_cp.txt
+.tmp_zip/
+cc.txt
+cl.bat
+JrxmlValidate.java
+test-ytd-*.pdf
