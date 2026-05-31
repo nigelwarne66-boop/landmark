@@ -658,8 +658,8 @@ public class PayReportDataService {
                    rowMap.put("fundName",  trim(row.get("fund_name", String.class)));
                    rowMap.put("empNo",     row.get(t.field(PAYTD.EMPLOYEE_NO)));
                    rowMap.put("surname",   trim(row.get(s2.field(PASTAFF.SURNAME))));
-                   rowMap.put("firstName", trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
-                   rowMap.put("amount",    z(row.get(t.field(PAYTD.AMT))));
+                   rowMap.put("firstName", trim(row.get("first_name", String.class)));
+                   rowMap.put("amount",    z(row.get("amt", BigDecimal.class)));
                    rows.add(rowMap);
                });
         } catch (Exception e) {
@@ -1136,8 +1136,8 @@ public class PayReportDataService {
                    rowMap.put("codeDesc",  trim(row.get("code_desc", String.class)));
                    rowMap.put("empNo",     row.get(t.field(PAYTD.EMPLOYEE_NO)));
                    rowMap.put("surname",   trim(row.get(s2.field(PASTAFF.SURNAME))));
-                   rowMap.put("firstName", trim(row.get(s2.field(PASTAFF.FIRST_NAME))));
-                   rowMap.put("amount",    z(row.get(t.field(PAYTD.AMT))));
+                   rowMap.put("firstName", trim(row.get("first_name", String.class)));
+                   rowMap.put("amount",    z(row.get("amt", BigDecimal.class)));
                    rows.add(rowMap);
                });
         } catch (Exception e) {

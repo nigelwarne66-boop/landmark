@@ -16,6 +16,8 @@ public class TestYtdReport {
 
     public static void main(String[] args) throws Exception {
         // Hardcoded rows mirroring what PayReportDataService produces
+        testSuperByFundExcel();
+
         List<Map<String, Object>> rows = buildRows();
         System.out.println("Row count: " + rows.size());
         for (Map<String, Object> r : rows) {
@@ -177,6 +179,36 @@ public class TestYtdReport {
         r.put("hours",     null);
         r.put("payAmt",    BigDecimal.valueOf(amt));
         return r;
+    }
+
+    /** Quick test: render super-by-fund Excel with hardcoded rows. */
+    static void testSuperByFundExcel() throws Exception {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        // One row: should show in all 8 columns
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("fundName",  "AustralianSuper");
+        r.put("fundAbn",   "65714394898");
+        r.put("payCode",   "SACAUS");
+        r.put("codeDesc",  "SALARY SACRIFICE AUSTRALIAN SUPER");
+        r.put("empNo",     5);
+        r.put("surname",   "LENNON");
+        r.put("firstName", "ABIGAIL");   // ← this is G
+        r.put("amount",    new BigDecimal("7500.00")); // ← this is H
+        rows.add(r);
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("COMPANY_NAME", "Test Co"); params.put("YEAR_NO", 2026);
+        params.put("GRAND_TOTAL", new BigDecimal("7500.00")); params.put("ROW_COUNT", 1);
+        params.put(net.sf.jasperreports.engine.JRParameter.IS_IGNORE_PAGINATION, Boolean.TRUE);
+
+        try (InputStream in = new FileInputStream("src/main/resources/reports/py/super-by-fund-excel.jrxml")) {
+            JasperReport compiled = JasperCompileManager.compileReport(in);
+            JasperPrint print = JasperFillManager.fillReport(compiled, params, mapDataSource(rows));
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            net.sf.jasperreports.engine.JasperExportManager.exportReportToPdfStream(print, baos);
+            Files.write(java.nio.file.Path.of("C:/temp/test-super-fund.pdf"), baos.toByteArray());
+            System.out.println("Saved super-by-fund test PDF → C:/temp/test-super-fund.pdf (" + baos.size() + " bytes)");
+        }
     }
 
     static JRDataSource mapDataSource(List<Map<String, Object>> rows) {
