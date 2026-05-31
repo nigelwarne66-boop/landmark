@@ -231,7 +231,7 @@ The `pa_audit` table (option B from the chat — batch-level metadata only) sits
 - JRE 1.8.0_421 is referenced only by the ProGuard plugin as a library jar (workaround for ProGuard 7.7.0 class-file version cap) — it is not the runtime.
 - `mvn -q compile` to build, `mvn javafx:run` to launch.
 - **Reporting-only build**: `mvn javafx:run -Preporting` — same Spring context + login, swaps MENU01 for the Reports Hub (see "Reporting build" section below).
-- **Distribution build**: `mvn package -Preporting,dist` — runs ProGuard, jlink (bundled JRE), jpackage (Windows EXE installer). Requires WiX Toolset 3.x for the EXE; use `--type app-image` in pom dist profile to skip WiX and produce a plain folder instead. Output: `target/installer/`.
+- **Distribution build**: `mvn package -Preporting,dist` — runs ProGuard, jlink (bundled JRE), jpackage (Windows EXE installer). Requires WiX Toolset 3.x for the EXE; use `--type app-image` in pom dist profile to skip WiX and produce a plain folder instead. Output: `target/installer/`. Icon: `deploy/landmark.ico` (committed — regenerate with `mvn javafx:run -Pgenerate-ico` if logo changes).
 - ProGuard runs at `package` phase (rules in `src/main/proguard/rules.pro`) — not in normal dev cycle.
 
 ## Per-client database configuration
