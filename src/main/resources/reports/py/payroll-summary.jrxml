@@ -22,11 +22,11 @@
     <![CDATA[
       SELECT r.payrun_no, r.payrun_date, r.paymt_date,
              COUNT(DISTINCT h.employee_no) AS no_of_employees_paid,
-             COALESCE(SUM(CASE WHEN h.pay_type IN (1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,23) THEN h.ext_amt ELSE 0 END),0) AS gross_pay,
-             COALESCE(SUM(CASE WHEN h.pay_type=22 THEN h.ext_amt ELSE 0 END),0) AS tax_withheld,
-             COALESCE(SUM(CASE WHEN h.pay_type=21 THEN h.ext_amt ELSE 0 END),0) AS super_amt,
-             COALESCE(SUM(CASE WHEN h.pay_type IN (1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,23) THEN h.ext_amt
-                               WHEN h.pay_type IN (19,20,22) THEN -h.ext_amt ELSE 0 END),0) AS net_pay
+             COALESCE(SUM(CASE WHEN h.pay_type IN (1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,23) THEN h.ext_amt ELSE 0 END),0) AS gross_pay,
+             COALESCE(SUM(CASE WHEN h.pay_type IN (18,22) THEN h.ext_amt ELSE 0 END),0) AS tax_withheld,
+             COALESCE(SUM(CASE WHEN h.pay_type IN (20,21) THEN h.ext_amt ELSE 0 END),0) AS super_amt,
+             COALESCE(SUM(CASE WHEN h.pay_type IN (1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,23) THEN h.ext_amt
+                               WHEN h.pay_type IN (18,19,22) THEN -h.ext_amt ELSE 0 END),0) AS net_pay
       FROM parunhd r
       LEFT JOIN paehist h ON h.company_no=r.company_no AND h.payrun_no=r.payrun_no
       JOIN gldates d ON d.company_no=r.company_no AND d.yr_no=r.yr_no
