@@ -1,9 +1,12 @@
 package com.landmarksoftware.service.ap;
 
 import com.landmarksoftware.model.AppSession;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.SortField;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -11,6 +14,10 @@ import java.math.RoundingMode;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
+
+import static com.landmarksoftware.db.tables.Apledgr.APLEDGR;
+import static com.landmarksoftware.db.tables.Apsupps.APSUPPS;
+import static com.landmarksoftware.db.tables.Aptrans.APTRANS;
 
 /**
  * Accounts Payable <b>report</b> data service — one query method per AP report
@@ -28,9 +35,9 @@ import java.util.*;
 public class ApReportDataService {
 
     private static final Logger log = LoggerFactory.getLogger(ApReportDataService.class);
-    private final JdbcTemplate jdbc;
+    private final DSLContext dsl;
 
-    public ApReportDataService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public ApReportDataService(DSLContext dsl) { this.dsl = dsl; }
 
     // ── Picker lookups (shared by every AP selection screen) ─────────────────
 
@@ -44,10 +51,15 @@ public class ApReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All sub ledgers)"));
         try {
-            jdbc.query("SELECT sub_ledger, name1 FROM apledgr WHERE company_no=? ORDER BY sub_ledger",
-                rs -> { list.add(new CodeName(trim(rs.getString("sub_ledger")),
-                                              trim(rs.getString("sub_ledger")) + " — " + trim(rs.getString("name1")))); },
-                s.getCompanyNo());
+            dsl.select(APLEDGR.SUB_LEDGER, APLEDGR.NAME1)
+               .from(APLEDGR)
+               .where(APLEDGR.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(APLEDGR.SUB_LEDGER)
+               .fetch()
+               .forEach(r -> {
+                   String code = trim(r.get(APLEDGR.SUB_LEDGER));
+                   list.add(new CodeName(code, code + " — " + trim(r.get(APLEDGR.NAME1))));
+               });
         } catch (Exception e) { log.warn("getSubLedgers: {}", e.getMessage()); }
         return list;
     }
@@ -60,12 +72,18 @@ public class ApReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All suppliers)"));
         try {
-            String order = byAlpha ? "alpha_key, alpha_supplier_no" : "supplier_no";
-            jdbc.query("SELECT supplier_no, alpha_key, name_1 FROM apsupps WHERE company_no=? ORDER BY " + order,
-                rs -> {
-                    String code = byAlpha ? trim(rs.getString("alpha_key")) : trim(rs.getString("supplier_no"));
-                    list.add(new CodeName(code, code + " — " + trim(rs.getString("name_1"))));
-                }, s.getCompanyNo());
+            var orderBy = byAlpha
+                ? new SortField[]{APSUPPS.ALPHA_KEY.asc(), APSUPPS.ALPHA_SUPPLIER_NO.asc()}
+                : new SortField[]{APSUPPS.SUPPLIER_NO.asc()};
+            dsl.select(APSUPPS.SUPPLIER_NO, APSUPPS.ALPHA_KEY, APSUPPS.NAME_1)
+               .from(APSUPPS)
+               .where(APSUPPS.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(orderBy)
+               .fetch()
+               .forEach(r -> {
+                   String code = byAlpha ? trim(r.get(APSUPPS.ALPHA_KEY)) : trim(r.get(APSUPPS.SUPPLIER_NO));
+                   list.add(new CodeName(code, code + " — " + trim(r.get(APSUPPS.NAME_1))));
+               });
         } catch (Exception e) { log.warn("getSuppliers: {}", e.getMessage()); }
         return list;
     }
@@ -198,29 +216,31 @@ public class ApReportDataService {
         String err = null;
 
         try {
-            jdbc.query(sql.toString(), rsArgs -> {
-                String docType = trim(rsArgs.getString("doc_type"));
-                String trxStatus = trim(rsArgs.getString("trx_status"));
+            // Complex multi-join with dynamic column list (doc_type IN, status OR group, supplier/date ranges)
+            // — kept as DSL.resultQuery for safe parameterised execution
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String docType = trim(r.get("doc_type", String.class));
+                String trxStatus = trim(r.get("trx_status", String.class));
 
-                BigDecimal amt        = z(rsArgs.getBigDecimal("amt"));
-                BigDecimal retent     = z(rsArgs.getBigDecimal("retent_amt"));
-                BigDecimal discTaken  = z(rsArgs.getBigDecimal("disc_taken"));
-                BigDecimal amtPaid    = z(rsArgs.getBigDecimal("amt_paid"));
-                BigDecimal fcFluct    = z(rsArgs.getBigDecimal("for_curr_fluct_amt"));
+                BigDecimal amt        = z(r.get("amt", BigDecimal.class));
+                BigDecimal retent     = z(r.get("retent_amt", BigDecimal.class));
+                BigDecimal discTaken  = z(r.get("disc_taken", BigDecimal.class));
+                BigDecimal amtPaid    = z(r.get("amt_paid", BigDecimal.class));
+                BigDecimal fcFluct    = z(r.get("for_curr_fluct_amt", BigDecimal.class));
 
                 // CALC-TRX-BAL
                 BigDecimal bal = "P".equals(docType)
                     ? amt.add(discTaken).subtract(amtPaid)
                     : amt.subtract(retent).subtract(amtPaid).subtract(discTaken).subtract(fcFluct);
-                if (rsArgs.getInt("recon_zeroed") == 1) bal = BigDecimal.ZERO;
+                if (Integer.valueOf(1).equals(r.get("recon_zeroed", Integer.class))) bal = BigDecimal.ZERO;
 
                 // include-paid filter (CHECK-SELECTIONS): N => skip zero-balance
                 if (!includePaid && bal.signum() == 0) return;
 
                 // CHECK-HOLD-TRXS — only on-hold invoices are further filtered
                 if ("H".equals(trxStatus) && "I".equals(docType)) {
-                    if (!holdTrxAccepted(rsArgs.getString("fully_delivered_flag"),
-                                         rsArgs.getString("within_tolerance_flag"),
+                    if (!holdTrxAccepted(r.get("fully_delivered_flag", String.class),
+                                         r.get("within_tolerance_flag", String.class),
                                          amtPaid, p)) return;
                 }
 
@@ -235,20 +255,22 @@ public class ApReportDataService {
 
                 tot.add(docType, amt, retent, discTaken);
 
+                LocalDate docDateLd = r.get("doc_date", LocalDate.class);
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("rowType",       "T");
-                row.put("suppNo",        rsArgs.getString("supplier_no"));
-                row.put("name",          rsArgs.getString("name_1"));
-                row.put("subLedger",     rsArgs.getString("sub_ledger"));
-                row.put("subLedgerName", rsArgs.getString("sub_ledger_name"));
-                row.put("docDate",       sqlDate(rsArgs.getDate("doc_date")));
-                row.put("postDate",      sqlDate(rsArgs.getDate("posting_date")));
-                row.put("auditDate",     sqlDate(rsArgs.getDate("audit_date")));
+                row.put("suppNo",        r.get("supplier_no", String.class));
+                row.put("name",          r.get("name_1", String.class));
+                row.put("subLedger",     r.get("sub_ledger", String.class));
+                row.put("subLedgerName", r.get("sub_ledger_name", String.class));
+                row.put("docDate",       ldSqlDate(docDateLd));
+                row.put("postDate",      ldSqlDate(r.get("posting_date", LocalDate.class)));
+                row.put("auditDate",     ldSqlDate(r.get("audit_date", LocalDate.class)));
                 row.put("docType",       docTypeLabel(docType));
-                row.put("retentFlag",    rsArgs.getString("retent_flag"));
-                row.put("docNo",         rsArgs.getString("doc_no"));
-                row.put("seqNo",         seqDisplay(rsArgs.getInt("seq_no"),
-                                                    rsArgs.getString("standing_doc_flag")));
+                row.put("retentFlag",    r.get("retent_flag", String.class));
+                row.put("docNo",         r.get("doc_no", String.class));
+                row.put("seqNo",         seqDisplay(
+                                             zeroIfNull(r.get("seq_no", Integer.class)),
+                                             r.get("standing_doc_flag", String.class)));
                 row.put("amt",           amt);
                 row.put("retentAmt",     retent);
                 row.put("debit",         debit);
@@ -256,20 +278,20 @@ public class ApReportDataService {
                 row.put("amtPaid",       amtPaid);
                 row.put("discTaken",     discTaken);
                 row.put("balance",       bal);
-                row.put("taxAmt",        z(rsArgs.getBigDecimal("tax_amt")));
-                row.put("paidFlag",      rsArgs.getString("paid_flag"));
-                row.put("paidDocDate",   sqlDate(rsArgs.getDate("last_paid_doc_date")));
-                row.put("paidPostDate",  sqlDate(rsArgs.getDate("last_paid_post_date")));
-                row.put("batchNo",       rsArgs.getInt("batch_no"));
-                row.put("reconNo",       rsArgs.getInt("recon_no"));
-                row.put("archiveFlag",   rsArgs.getString("archive_flag"));
-                row.put("auditUser",     rsArgs.getString("audit_user_id"));
+                row.put("taxAmt",        z(r.get("tax_amt", BigDecimal.class)));
+                row.put("paidFlag",      r.get("paid_flag", String.class));
+                row.put("paidDocDate",   ldSqlDate(r.get("last_paid_doc_date", LocalDate.class)));
+                row.put("paidPostDate",  ldSqlDate(r.get("last_paid_post_date", LocalDate.class)));
+                row.put("batchNo",       zeroIfNull(r.get("batch_no", Integer.class)));
+                row.put("reconNo",       zeroIfNull(r.get("recon_no", Integer.class)));
+                row.put("archiveFlag",   r.get("archive_flag", String.class));
+                row.put("auditUser",     r.get("audit_user_id", String.class));
                 row.put("auditTime",     String.format("%02d:%02d:%02d",
-                                            rsArgs.getInt("audit_time_hr"),
-                                            rsArgs.getInt("audit_time_min"),
-                                            rsArgs.getInt("audit_time_sec")));
-                row.put("poNo",          trim(rsArgs.getString("po_no")));
-                row.put("_docDateRaw",   rsArgs.getDate("doc_date"));   // raw key for dist-line lookup
+                                            zeroIfNull(r.get("audit_time_hr", Integer.class)),
+                                            zeroIfNull(r.get("audit_time_min", Integer.class)),
+                                            zeroIfNull(r.get("audit_time_sec", Integer.class))));
+                row.put("poNo",          trim(r.get("po_no", String.class)));
+                row.put("_docDateRaw",   docDateLd != null ? Date.valueOf(docDateLd) : null);  // raw for dist-line lookup
                 // line-only fields kept present (null) so the bean shape is uniform
                 for (String f : LINE_FIELDS) row.put(f, null);
 
@@ -280,7 +302,7 @@ public class ApReportDataService {
                     rows.add(row);
                     if (printLines) appendDistLines(s, row, rows);   // PDF: indented sub-lines
                 }
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getTransactionListingData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -309,31 +331,31 @@ public class ApReportDataService {
     private List<Map<String, Object>> fetchDistLines(AppSession s, Map<String, Object> txn) {
         List<Map<String, Object>> lines = new ArrayList<>();
         try {
-            jdbc.query(
+            dsl.resultQuery(
                 "SELECT line_no, line_type, gl_acct_main, gl_acct_sub, qty, unit_per, unit_cost, " +
                 "       amt, tax_code, tax_amt, gst_gross_amt, for_curr_amt, desc_1, ref " +
                 "FROM apdistn WHERE company_no=? AND supplier_no=? AND doc_date=? AND doc_type=? " +
                 "  AND retent_flag=? AND doc_no=? ORDER BY line_no",
-                rs -> {
-                    Map<String, Object> ln = new LinkedHashMap<>();
-                    ln.put("lineNo",       rs.getInt("line_no"));
-                    ln.put("lineType",     rs.getString("line_type"));
-                    ln.put("glAcctMain",   rs.getInt("gl_acct_main"));
-                    ln.put("glAcctSub",    rs.getInt("gl_acct_sub"));
-                    ln.put("qty",          z(rs.getBigDecimal("qty")));
-                    ln.put("unitPer",      rs.getString("unit_per"));
-                    ln.put("unitCost",     z(rs.getBigDecimal("unit_cost")));
-                    ln.put("amtExTax",     z(rs.getBigDecimal("amt")));
-                    ln.put("taxCode",      rs.getString("tax_code"));
-                    ln.put("lineTaxAmt",   z(rs.getBigDecimal("tax_amt")));
-                    ln.put("amtIncTax",    z(rs.getBigDecimal("gst_gross_amt")));
-                    ln.put("fcAmt",        z(rs.getBigDecimal("for_curr_amt")));
-                    ln.put("description",  rs.getString("desc_1"));
-                    ln.put("reference",    rs.getString("ref"));
-                    lines.add(ln);
-                },
                 s.getCompanyNo(), txn.get("suppNo"), txn.get("_docDateRaw"),
-                rawDocType(txn.get("docType")), txn.get("retentFlag"), txn.get("docNo"));
+                rawDocType(txn.get("docType")), txn.get("retentFlag"), txn.get("docNo"))
+            .fetch().forEach(r -> {
+                Map<String, Object> ln = new LinkedHashMap<>();
+                ln.put("lineNo",       zeroIfNull(r.get("line_no", Integer.class)));
+                ln.put("lineType",     r.get("line_type", String.class));
+                ln.put("glAcctMain",   zeroIfNull(r.get("gl_acct_main", Integer.class)));
+                ln.put("glAcctSub",    zeroIfNull(r.get("gl_acct_sub", Integer.class)));
+                ln.put("qty",          z(r.get("qty", BigDecimal.class)));
+                ln.put("unitPer",      r.get("unit_per", String.class));
+                ln.put("unitCost",     z(r.get("unit_cost", BigDecimal.class)));
+                ln.put("amtExTax",     z(r.get("amt", BigDecimal.class)));
+                ln.put("taxCode",      r.get("tax_code", String.class));
+                ln.put("lineTaxAmt",   z(r.get("tax_amt", BigDecimal.class)));
+                ln.put("amtIncTax",    z(r.get("gst_gross_amt", BigDecimal.class)));
+                ln.put("fcAmt",        z(r.get("for_curr_amt", BigDecimal.class)));
+                ln.put("description",  r.get("desc_1", String.class));
+                ln.put("reference",    r.get("ref", String.class));
+                lines.add(ln);
+            });
         } catch (Exception e) {
             log.warn("fetchDistLines {} {}: {}", txn.get("suppNo"), txn.get("docNo"), e.getMessage());
         }
@@ -468,83 +490,84 @@ public class ApReportDataService {
         String err = null;
 
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String txnKey = rs.getString("supplier_no") + "|" + rs.getString("doc_date") + "|"
-                              + rs.getString("doc_type") + "|" + rs.getString("retent_flag") + "|"
-                              + rs.getString("doc_no");
+            // Complex multi-join with dynamic date column and optional ranges — kept as resultQuery
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String txnKey = r.get("supplier_no", String.class) + "|" + r.get("doc_date", String.class) + "|"
+                              + r.get("doc_type", String.class) + "|" + r.get("retent_flag", String.class) + "|"
+                              + r.get("doc_no", String.class);
                 boolean firstLine = !txnKey.equals(lastTxn[0]);
                 lastTxn[0] = txnKey;
 
-                String docType = trim(rs.getString("doc_type"));
-                BigDecimal lineAmt = z(rs.getBigDecimal("line_amt"));
-                BigDecimal lineTax = z(rs.getBigDecimal("line_tax"));
-                String taxCode = trim(rs.getString("tax_code"));
+                String docType = trim(r.get("doc_type", String.class));
+                BigDecimal lineAmt = z(r.get("line_amt", BigDecimal.class));
+                BigDecimal lineTax = z(r.get("line_tax", BigDecimal.class));
+                String taxCode = trim(r.get("tax_code", String.class));
 
                 // tax-code grand totals (only T/E/C/N/D/J/Z accumulate)
                 BigDecimal[] tt = taxTotals.get(taxCode);
                 if (tt != null) { tt[0] = tt[0].add(lineAmt); tt[1] = tt[1].add(lineTax); }
                 grand[0] = grand[0].add(lineAmt); grand[1] = grand[1].add(lineTax);
 
-                String glDesc = glAcctStatus(rs.getString("gl_found"), rs.getString("abbrev_desc"),
-                                             rs.getString("fin_acct_flag"), rs.getString("posting_flag"));
-                String glAcct = rs.getInt("gl_acct_main") + "-" + rs.getInt("gl_acct_sub");
+                String glDesc = glAcctStatus(r.get("gl_found", String.class), r.get("abbrev_desc", String.class),
+                                             r.get("fin_acct_flag", String.class), r.get("posting_flag", String.class));
+                String glAcct = zeroIfNull(r.get("gl_acct_main", Integer.class)) + "-" + zeroIfNull(r.get("gl_acct_sub", Integer.class));
 
                 if (excelLayout) {
                     Map<String, Object> row = new LinkedHashMap<>();
                     // header detail — repeated on every line
-                    row.put("suppNo",        rs.getString("supplier_no"));
-                    row.put("name",          rs.getString("name_1"));
-                    row.put("subLedger",     rs.getString("sub_ledger"));
-                    row.put("subLedgerName", rs.getString("sub_ledger_name"));
+                    row.put("suppNo",        r.get("supplier_no", String.class));
+                    row.put("name",          r.get("name_1", String.class));
+                    row.put("subLedger",     r.get("sub_ledger", String.class));
+                    row.put("subLedgerName", r.get("sub_ledger_name", String.class));
                     row.put("docType",       docTypeLabel(docType));
-                    row.put("retentFlag",    rs.getString("retent_flag"));
-                    row.put("docDate",       sqlDate(rs.getDate("doc_date")));
-                    row.put("docNo",         rs.getString("doc_no"));
-                    row.put("postDate",      sqlDate(rs.getDate("posting_date")));
-                    row.put("dueDate",       sqlDate(rs.getDate("due_date")));
-                    row.put("poNo",          trim(rs.getString("po_no")));
-                    row.put("transRef",      rs.getString("trans_ref"));
-                    row.put("abn",           rs.getString("abn"));
-                    row.put("batchNo",       rs.getInt("batch_no"));
-                    row.put("mustPay",       rs.getString("must_pay_flag"));
-                    row.put("promptPay",     rs.getString("prompt_pay_flag"));
+                    row.put("retentFlag",    r.get("retent_flag", String.class));
+                    row.put("docDate",       ldSqlDate(r.get("doc_date", LocalDate.class)));
+                    row.put("docNo",         r.get("doc_no", String.class));
+                    row.put("postDate",      ldSqlDate(r.get("posting_date", LocalDate.class)));
+                    row.put("dueDate",       ldSqlDate(r.get("due_date", LocalDate.class)));
+                    row.put("poNo",          trim(r.get("po_no", String.class)));
+                    row.put("transRef",      r.get("trans_ref", String.class));
+                    row.put("abn",           r.get("abn", String.class));
+                    row.put("batchNo",       zeroIfNull(r.get("batch_no", Integer.class)));
+                    row.put("mustPay",       r.get("must_pay_flag", String.class));
+                    row.put("promptPay",     r.get("prompt_pay_flag", String.class));
                     // header amounts — first line of the transaction only
                     if (firstLine) {
-                        row.put("transAmt",  z(rs.getBigDecimal("trans_amt")));
-                        row.put("retentAmt", z(rs.getBigDecimal("retent_amt")));
+                        row.put("transAmt",  z(r.get("trans_amt", BigDecimal.class)));
+                        row.put("retentAmt", z(r.get("retent_amt", BigDecimal.class)));
                     }
                     // line fields
-                    putLineFields(row, rs, glAcct, glDesc, lineAmt, lineTax);
+                    putLineFields(row, r, glAcct, glDesc, lineAmt, lineTax);
                     rows.add(row);
                 } else {
                     if (firstLine) {
                         Map<String, Object> h = new LinkedHashMap<>();
                         h.put("rowType",    "T");
-                        h.put("suppNo",     rs.getString("supplier_no"));
-                        h.put("name",       rs.getString("name_1"));
-                        h.put("subLedger",  rs.getString("sub_ledger"));
-                        h.put("subLedgerName", rs.getString("sub_ledger_name"));
-                        h.put("acctStatus", acctStatusLabel(rs.getString("acct_status")));
+                        h.put("suppNo",     r.get("supplier_no", String.class));
+                        h.put("name",       r.get("name_1", String.class));
+                        h.put("subLedger",  r.get("sub_ledger", String.class));
+                        h.put("subLedgerName", r.get("sub_ledger_name", String.class));
+                        h.put("acctStatus", acctStatusLabel(r.get("acct_status", String.class)));
                         h.put("docType",    docTypeLabel(docType));
-                        h.put("retentFlag", rs.getString("retent_flag"));
-                        h.put("docDate",    sqlDate(rs.getDate("doc_date")));
-                        h.put("docNo",      rs.getString("doc_no"));
-                        h.put("transAmt",   z(rs.getBigDecimal("trans_amt")));
-                        h.put("retentAmt",  z(rs.getBigDecimal("retent_amt")));
-                        h.put("postDate",   sqlDate(rs.getDate("posting_date")));
-                        h.put("dueDate",    sqlDate(rs.getDate("due_date")));
-                        h.put("poNo",       trim(rs.getString("po_no")));
-                        h.put("transRef",   rs.getString("trans_ref"));
+                        h.put("retentFlag", r.get("retent_flag", String.class));
+                        h.put("docDate",    ldSqlDate(r.get("doc_date", LocalDate.class)));
+                        h.put("docNo",      r.get("doc_no", String.class));
+                        h.put("transAmt",   z(r.get("trans_amt", BigDecimal.class)));
+                        h.put("retentAmt",  z(r.get("retent_amt", BigDecimal.class)));
+                        h.put("postDate",   ldSqlDate(r.get("posting_date", LocalDate.class)));
+                        h.put("dueDate",    ldSqlDate(r.get("due_date", LocalDate.class)));
+                        h.put("poNo",       trim(r.get("po_no", String.class)));
+                        h.put("transRef",   r.get("trans_ref", String.class));
                         rows.add(h);
                     }
                     Map<String, Object> ln = new LinkedHashMap<>();
                     ln.put("rowType", "L");
-                    ln.put("suppNo",  rs.getString("supplier_no"));
-                    ln.put("docNo",   rs.getString("doc_no"));
-                    putLineFields(ln, rs, glAcct, glDesc, lineAmt, lineTax);
+                    ln.put("suppNo",  r.get("supplier_no", String.class));
+                    ln.put("docNo",   r.get("doc_no", String.class));
+                    putLineFields(ln, r, glAcct, glDesc, lineAmt, lineTax);
                     rows.add(ln);
                 }
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getDetailedTransactionData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -572,23 +595,23 @@ public class ApReportDataService {
         return result;
     }
 
-    private void putLineFields(Map<String, Object> row, java.sql.ResultSet rs, String glAcct,
-                               String glDesc, BigDecimal lineAmt, BigDecimal lineTax) throws java.sql.SQLException {
-        row.put("lineNo",      rs.getInt("line_no"));
-        row.put("lineType",    rs.getString("line_type"));
+    private void putLineFields(Map<String, Object> row, org.jooq.Record r, String glAcct,
+                               String glDesc, BigDecimal lineAmt, BigDecimal lineTax) {
+        row.put("lineNo",      zeroIfNull(r.get("line_no", Integer.class)));
+        row.put("lineType",    r.get("line_type", String.class));
         row.put("glAcct",      glAcct);
         row.put("glDesc",      glDesc);
-        row.put("desc1",       rs.getString("desc_1"));
-        row.put("qty",         z(rs.getBigDecimal("qty")));
-        row.put("unitPer",     rs.getString("unit_per"));
-        row.put("unitCost",    z(rs.getBigDecimal("unit_cost")));
+        row.put("desc1",       r.get("desc_1", String.class));
+        row.put("qty",         z(r.get("qty", BigDecimal.class)));
+        row.put("unitPer",     r.get("unit_per", String.class));
+        row.put("unitCost",    z(r.get("unit_cost", BigDecimal.class)));
         row.put("lineAmt",     lineAmt);
-        row.put("taxCode",     rs.getString("tax_code"));
+        row.put("taxCode",     r.get("tax_code", String.class));
         row.put("lineTaxAmt",  lineTax);
-        row.put("amtPaid",     z(rs.getBigDecimal("amt_paid")));
-        row.put("analysisCode", rs.getString("analysis_code"));
-        row.put("ledgerType",  rs.getString("ledger_type"));
-        row.put("ledgerCode",  rs.getString("ledger_code"));
+        row.put("amtPaid",     z(r.get("amt_paid", BigDecimal.class)));
+        row.put("analysisCode", r.get("analysis_code", String.class));
+        row.put("ledgerType",  r.get("ledger_type", String.class));
+        row.put("ledgerCode",  r.get("ledger_code", String.class));
     }
 
     /** CHECK-GL-ACCT-STATUS — status text replaces the description when the GL account is unusable. */
@@ -624,15 +647,19 @@ public class ApReportDataService {
         Date chosen = Date.valueOf(p.periodEndDate());
 
         // 1. locate the financial-year row containing this period end
+        // (dynamic 13-column IN list — kept as resultQuery)
         List<LocalDate> ends = new ArrayList<>();
         try {
             StringBuilder cols = new StringBuilder();
             for (int i = 1; i <= 13; i++) cols.append(i > 1 ? "," : "").append(String.format("period_end_%02d", i));
-            jdbc.query("SELECT " + cols + " FROM gldates WHERE company_no=? AND ? IN (" + cols + ")",
-                rs -> { for (int i = 1; i <= 13; i++) {
-                    Date d = rs.getDate(String.format("period_end_%02d", i));
-                    if (d != null) ends.add(d.toLocalDate());
-                } }, s.getCompanyNo(), chosen);
+            dsl.resultQuery("SELECT " + cols + " FROM gldates WHERE company_no=? AND ? IN (" + cols + ")",
+                s.getCompanyNo(), chosen)
+               .fetch().forEach(r -> {
+                   for (int i = 1; i <= 13; i++) {
+                       LocalDate d = r.get(String.format("period_end_%02d", i), LocalDate.class);
+                       if (d != null) ends.add(d);
+                   }
+               });
         } catch (Exception e) { return warn("Calendar lookup failed: " + e.getMessage()); }
         if (ends.isEmpty())
             return warn("Period end date must be a period-ending date in the financial calendar.");
@@ -652,49 +679,56 @@ public class ApReportDataService {
 
         Map<String, Map<String, Object>> bySl = new LinkedHashMap<>();   // sub_ledger -> accumulator
         try {
-            jdbc.query("SELECT sub_ledger, name1 FROM apledgr WHERE company_no=? AND sub_ledger BETWEEN ? AND ? ORDER BY sub_ledger",
-                rs -> {
-                    Map<String, Object> a = newPeriodAcc(rs.getString("sub_ledger"), rs.getString("name1"));
-                    bySl.put(rs.getString("sub_ledger"), a);
-                }, s.getCompanyNo(), startSL, endSL);
+            dsl.select(APLEDGR.SUB_LEDGER, APLEDGR.NAME1)
+               .from(APLEDGR)
+               .where(APLEDGR.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(APLEDGR.SUB_LEDGER.between(startSL, endSL)))
+               .orderBy(APLEDGR.SUB_LEDGER)
+               .fetch()
+               .forEach(r -> {
+                   Map<String, Object> a = newPeriodAcc(r.get(APLEDGR.SUB_LEDGER), r.get(APLEDGR.NAME1));
+                   bySl.put(r.get(APLEDGR.SUB_LEDGER), a);
+               });
         } catch (Exception e) { return warn("Sub-ledger lookup failed: " + e.getMessage()); }
         if (bySl.isEmpty()) return warn("No sub ledgers in the selected range.");
 
-        // 3. apsumry rows for the opening, prior and current periods
+        // 3. apsumry rows for the opening, prior and current periods (dynamic IN list — resultQuery)
         String inMarks = qMarks(inDates.size());
         List<Object> args = new ArrayList<>();
         args.add(s.getCompanyNo()); args.add(startSL); args.add(endSL); args.addAll(inDates);
         final LocalDate chosenLd = p.periodEndDate();
         final boolean fc = forCurr;
         try {
-            jdbc.query("SELECT * FROM apsumry WHERE company_no=? AND sub_ledger BETWEEN ? AND ? " +
-                       "AND period_end_date IN (" + inMarks + ")",
-                rs -> {
-                    Map<String, Object> a = bySl.get(rs.getString("sub_ledger"));
-                    if (a == null) return;
-                    LocalDate ped = rs.getDate("period_end_date").toLocalDate();
-                    BigDecimal inv = z(rs.getBigDecimal("ap_inv_value")), crn = z(rs.getBigDecimal("ap_cr_note_value")),
-                               drn = z(rs.getBigDecimal("ap_dr_note_value")), chq = z(rs.getBigDecimal("ap_chq_value")),
-                               vd  = z(rs.getBigDecimal("ap_void_chqs_value")), disc = z(rs.getBigDecimal("ap_disc_taken_value")),
-                               cf  = z(rs.getBigDecimal("ap_curr_fluctuation")), pf = z(rs.getBigDecimal("ap_prov_fluctuation")),
-                               rded = z(rs.getBigDecimal("ap_retent_deducted")), rbil = z(rs.getBigDecimal("ap_retent_billed"));
-                    if (ped.isBefore(LocalDate.of(1900, 1, 1))) {                 // opening (zero-key) row
-                        acc(a, "opening", z(rs.getBigDecimal("open_bal")));
-                        acc(a, "retentOpening", z(rs.getBigDecimal("retent_open_bal")));
-                    } else if (ped.isBefore(chosenLd)) {                          // prior period — accumulate into opening
-                        acc(a, "opening", inv.add(crn).add(drn).add(chq).add(vd).add(disc).add(cf).add(pf));
-                        acc(a, "retentOpening", rded.subtract(rbil));
-                    } else {                                                       // current period
-                        acc(a, "invoices", inv); a.put("invNo", rs.getInt("ap_inv_no"));
-                        acc(a, "crNotes", crn);  a.put("crNo", rs.getInt("ap_cr_note_no"));
-                        acc(a, "drNotes", drn);  a.put("drNo", rs.getInt("ap_dr_note_no"));
-                        acc(a, "payments", chq); a.put("chqNo", rs.getInt("ap_chq_no"));
-                        acc(a, "voidChqs", vd);  a.put("voidNo", rs.getInt("ap_void_chqs_no"));
-                        acc(a, "discount", disc);
-                        acc(a, "currFluct", cf); acc(a, "provFluct", pf);
-                        acc(a, "retentDeducted", rded); acc(a, "retentBilled", rbil);
-                    }
-                }, args.toArray());
+            dsl.resultQuery("SELECT * FROM apsumry WHERE company_no=? AND sub_ledger BETWEEN ? AND ? " +
+                            "AND period_end_date IN (" + inMarks + ")",
+                args.toArray())
+               .fetch().forEach(r -> {
+                   Map<String, Object> a = bySl.get(r.get("sub_ledger", String.class));
+                   if (a == null) return;
+                   LocalDate ped = r.get("period_end_date", LocalDate.class);
+                   if (ped == null) return;
+                   BigDecimal inv = z(r.get("ap_inv_value", BigDecimal.class)), crn = z(r.get("ap_cr_note_value", BigDecimal.class)),
+                              drn = z(r.get("ap_dr_note_value", BigDecimal.class)), chq = z(r.get("ap_chq_value", BigDecimal.class)),
+                              vd  = z(r.get("ap_void_chqs_value", BigDecimal.class)), disc = z(r.get("ap_disc_taken_value", BigDecimal.class)),
+                              cf  = z(r.get("ap_curr_fluctuation", BigDecimal.class)), pf = z(r.get("ap_prov_fluctuation", BigDecimal.class)),
+                              rded = z(r.get("ap_retent_deducted", BigDecimal.class)), rbil = z(r.get("ap_retent_billed", BigDecimal.class));
+                   if (ped.isBefore(LocalDate.of(1900, 1, 1))) {                 // opening (zero-key) row
+                       acc(a, "opening", z(r.get("open_bal", BigDecimal.class)));
+                       acc(a, "retentOpening", z(r.get("retent_open_bal", BigDecimal.class)));
+                   } else if (ped.isBefore(chosenLd)) {                          // prior period — accumulate into opening
+                       acc(a, "opening", inv.add(crn).add(drn).add(chq).add(vd).add(disc).add(cf).add(pf));
+                       acc(a, "retentOpening", rded.subtract(rbil));
+                   } else {                                                       // current period
+                       acc(a, "invoices", inv); a.put("invNo", zeroIfNull(r.get("ap_inv_no", Integer.class)));
+                       acc(a, "crNotes", crn);  a.put("crNo", zeroIfNull(r.get("ap_cr_note_no", Integer.class)));
+                       acc(a, "drNotes", drn);  a.put("drNo", zeroIfNull(r.get("ap_dr_note_no", Integer.class)));
+                       acc(a, "payments", chq); a.put("chqNo", zeroIfNull(r.get("ap_chq_no", Integer.class)));
+                       acc(a, "voidChqs", vd);  a.put("voidNo", zeroIfNull(r.get("ap_void_chqs_no", Integer.class)));
+                       acc(a, "discount", disc);
+                       acc(a, "currFluct", cf); acc(a, "provFluct", pf);
+                       acc(a, "retentDeducted", rded); acc(a, "retentBilled", rbil);
+                   }
+               });
         } catch (Exception e) { return warn("Period data query failed: " + e.getMessage()); }
 
         // 4. finalise per sub-ledger + grand totals
@@ -780,24 +814,25 @@ public class ApReportDataService {
         BigDecimal[] totals = {BigDecimal.ZERO, BigDecimal.ZERO};   // [control, expense]
         String err = null;
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String at = trim(rs.getString("acct_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt"));
+            // Multi-join with optional sub-ledger filter — kept as resultQuery
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String at = trim(r.get("acct_type", String.class));
+                BigDecimal amt = z(r.get("amt", BigDecimal.class));
                 if ("C".equals(at)) totals[0] = totals[0].add(amt); else totals[1] = totals[1].add(amt);
 
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("subLedger",     rs.getString("sub_ledger"));
-                row.put("subLedgerName", rs.getString("sub_ledger_name"));
+                row.put("subLedger",     r.get("sub_ledger", String.class));
+                row.put("subLedgerName", r.get("sub_ledger_name", String.class));
                 row.put("acctTypeRaw",   at);
                 row.put("acctType",      "C".equals(at) ? "CONTROL" : "DISTRIBUTION");
-                row.put("glAcctMain",    rs.getInt("gl_acct_main_no"));
-                row.put("glAcctSub",     rs.getInt("gl_acct_sub_no"));
-                row.put("glAcct",        rs.getInt("gl_acct_main_no") + "-" + rs.getInt("gl_acct_sub_no"));
-                row.put("glDesc",        glAcctStatus(rs.getString("gl_found"), rs.getString("desc1"),
-                                                      rs.getString("fin_acct_flag"), rs.getString("posting_flag")));
+                row.put("glAcctMain",    zeroIfNull(r.get("gl_acct_main_no", Integer.class)));
+                row.put("glAcctSub",     zeroIfNull(r.get("gl_acct_sub_no", Integer.class)));
+                row.put("glAcct",        zeroIfNull(r.get("gl_acct_main_no", Integer.class)) + "-" + zeroIfNull(r.get("gl_acct_sub_no", Integer.class)));
+                row.put("glDesc",        glAcctStatus(r.get("gl_found", String.class), r.get("desc1", String.class),
+                                                      r.get("fin_acct_flag", String.class), r.get("posting_flag", String.class)));
                 row.put("amount",        amt);
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getGlDistributionsData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -838,19 +873,20 @@ public class ApReportDataService {
     public Map<String, Object> getPurchaseHistoryData(AppSession s, PurchaseHistParams p) {
         if (p.periodEndDate() == null) return warn("Enter a period ending date.");
 
-        // locate year + period index P from gldates
+        // locate year + period index P from gldates (dynamic 13-column IN list — resultQuery)
         int[] yearNo = {0}; int[] period = {0};
         try {
             StringBuilder cols = new StringBuilder();
             for (int i = 1; i <= 13; i++) cols.append(i > 1 ? "," : "").append(String.format("period_end_%02d", i));
-            jdbc.query("SELECT year_no," + cols + " FROM gldates WHERE company_no=? AND ? IN (" + cols + ")",
-                rs -> {
-                    yearNo[0] = rs.getInt("year_no");
-                    for (int i = 1; i <= 13; i++) {
-                        Date d = rs.getDate(String.format("period_end_%02d", i));
-                        if (d != null && d.toLocalDate().equals(p.periodEndDate())) period[0] = i;
-                    }
-                }, s.getCompanyNo(), Date.valueOf(p.periodEndDate()));
+            dsl.resultQuery("SELECT year_no," + cols + " FROM gldates WHERE company_no=? AND ? IN (" + cols + ")",
+                s.getCompanyNo(), Date.valueOf(p.periodEndDate()))
+               .fetch().forEach(r -> {
+                   yearNo[0] = zeroIfNull(r.get("year_no", Integer.class));
+                   for (int i = 1; i <= 13; i++) {
+                       LocalDate d = r.get(String.format("period_end_%02d", i), LocalDate.class);
+                       if (d != null && d.equals(p.periodEndDate())) period[0] = i;
+                   }
+               });
         } catch (Exception e) { return warn("Calendar lookup failed: " + e.getMessage()); }
         if (period[0] == 0)
             return warn("Period ending date must be a period-ending date in the financial calendar.");
@@ -884,13 +920,14 @@ public class ApReportDataService {
         Arrays.fill(gt, BigDecimal.ZERO);
         String err = null;
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal perThis = z(rs.getBigDecimal("c" + String.format("%02d", P)));
-                BigDecimal perLast = z(rs.getBigDecimal("l" + String.format("%02d", P)));
+            // Dynamic 26-column appurch self-join (period columns) — kept as resultQuery
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                BigDecimal perThis = z(r.get("c" + String.format("%02d", P), BigDecimal.class));
+                BigDecimal perLast = z(r.get("l" + String.format("%02d", P), BigDecimal.class));
                 BigDecimal ytdThis = BigDecimal.ZERO, ytdLast = BigDecimal.ZERO;
                 for (int i = 1; i <= P; i++) {
-                    ytdThis = ytdThis.add(z(rs.getBigDecimal("c" + String.format("%02d", i))));
-                    ytdLast = ytdLast.add(z(rs.getBigDecimal("l" + String.format("%02d", i))));
+                    ytdThis = ytdThis.add(z(r.get("c" + String.format("%02d", i), BigDecimal.class)));
+                    ytdLast = ytdLast.add(z(r.get("l" + String.format("%02d", i), BigDecimal.class)));
                 }
                 BigDecimal perVar = perThis.subtract(perLast);
                 BigDecimal ytdVar = ytdThis.subtract(ytdLast);
@@ -899,10 +936,10 @@ public class ApReportDataService {
                         && ytdThis.signum() == 0 && ytdLast.signum() == 0) return;
 
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("subLedger",     rs.getString("sub_ledger"));
-                row.put("subLedgerName", rs.getString("sub_ledger_name"));
-                row.put("supplierNo",    rs.getString("supplier_no"));
-                row.put("name",          rs.getString("name_1"));
+                row.put("subLedger",     r.get("sub_ledger", String.class));
+                row.put("subLedgerName", r.get("sub_ledger_name", String.class));
+                row.put("supplierNo",    r.get("supplier_no", String.class));
+                row.put("name",          r.get("name_1", String.class));
                 row.put("perThis", perThis); row.put("perLast", perLast);
                 row.put("perVar",  perVar);  row.put("perVarPct", pct(perVar, perThis));
                 row.put("ytdThis", ytdThis); row.put("ytdLast", ytdLast);
@@ -910,7 +947,7 @@ public class ApReportDataService {
                 rows.add(row);
                 gt[0] = gt[0].add(perThis); gt[1] = gt[1].add(perLast); gt[2] = gt[2].add(perVar);
                 gt[3] = gt[3].add(ytdThis); gt[4] = gt[4].add(ytdLast); gt[5] = gt[5].add(ytdVar);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getPurchaseHistoryData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -988,25 +1025,26 @@ public class ApReportDataService {
         Set<String> suppliers = new HashSet<>();
         String err = null;
         try {
-            jdbc.query(sql.toString(), rs -> {
+            // Dynamic balance test expressions in WHERE — kept as resultQuery
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("supplierNo", rs.getString("supplier_no"));
-                row.put("name",       rs.getString("name_1"));
-                row.put("subLedger",  rs.getString("sub_ledger"));
-                row.put("alphaKey",   rs.getString("alpha_key"));
-                row.put("reconNo",    rs.getInt("recon_no"));
-                BigDecimal gb = z(rs.getBigDecimal("gross_bal")), ob = z(rs.getBigDecimal("outstanding_bal")),
-                           cb = z(rs.getBigDecimal("claim_bal")), fg = z(rs.getBigDecimal("for_curr_gross_bal")),
-                           fo = z(rs.getBigDecimal("for_curr_outst_bal")), fcb = z(rs.getBigDecimal("for_curr_claim_bal"));
+                row.put("supplierNo", r.get("supplier_no", String.class));
+                row.put("name",       r.get("name_1", String.class));
+                row.put("subLedger",  r.get("sub_ledger", String.class));
+                row.put("alphaKey",   r.get("alpha_key", String.class));
+                row.put("reconNo",    zeroIfNull(r.get("recon_no", Integer.class)));
+                BigDecimal gb = z(r.get("gross_bal", BigDecimal.class)), ob = z(r.get("outstanding_bal", BigDecimal.class)),
+                           cb = z(r.get("claim_bal", BigDecimal.class)), fg = z(r.get("for_curr_gross_bal", BigDecimal.class)),
+                           fo = z(r.get("for_curr_outst_bal", BigDecimal.class)), fcb = z(r.get("for_curr_claim_bal", BigDecimal.class));
                 row.put("grossBal", gb); row.put("outstandingBal", ob); row.put("claimBal", cb);
-                row.put("forCurrCode", rs.getString("for_curr_code"));
+                row.put("forCurrCode", r.get("for_curr_code", String.class));
                 row.put("fcGrossBal", fg); row.put("fcOutstBal", fo); row.put("fcClaimBal", fcb);
-                row.put("lastDocDate", sqlDate(rs.getDate("last_doc_date")));
+                row.put("lastDocDate", ldSqlDate(r.get("last_doc_date", LocalDate.class)));
                 rows.add(row);
                 gt[0] = gt[0].add(gb); gt[1] = gt[1].add(ob); gt[2] = gt[2].add(cb);
                 gt[3] = gt[3].add(fg); gt[4] = gt[4].add(fo); gt[5] = gt[5].add(fcb);
-                suppliers.add(rs.getString("supplier_no"));
-            }, args.toArray());
+                suppliers.add(r.get("supplier_no", String.class));
+            });
         } catch (Exception e) {
             log.error("getUnbalancedReconData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -1086,11 +1124,12 @@ public class ApReportDataService {
         BigDecimal[] gt = {BigDecimal.ZERO, BigDecimal.ZERO};   // grand net, grand docAmt
         String err = null;
         try {
-            jdbc.query(sql.toString(), rs -> {
-                int reconNo = rs.getInt("recon_no");
-                boolean reconFound = rs.getObject("recon_found") != null;
-                BigDecimal gb = z(rs.getBigDecimal("gross_bal")), ob = z(rs.getBigDecimal("outstanding_bal")),
-                           cb = z(rs.getBigDecimal("claim_bal"));
+            // Complex recon-balance filter + optional FC/recon range — kept as resultQuery
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                int reconNo = zeroIfNull(r.get("recon_no", Integer.class));
+                boolean reconFound = r.get("recon_found") != null;
+                BigDecimal gb = z(r.get("gross_bal", BigDecimal.class)), ob = z(r.get("outstanding_bal", BigDecimal.class)),
+                           cb = z(r.get("claim_bal", BigDecimal.class));
                 boolean balanced = reconFound && gb.signum() == 0 && ob.signum() == 0 && cb.signum() == 0;
 
                 // balanced/unbalanced selection (Java — needs recon_no=0 special case)
@@ -1098,12 +1137,12 @@ public class ApReportDataService {
                 else if ("B".equals(ub)) { if (!(reconNo > 0 && balanced)) return; }
                 // "A" → keep all
 
-                String docType = trim(rs.getString("doc_type"));
-                BigDecimal docAmt   = z(fc ? rs.getBigDecimal("for_curr_amt")        : rs.getBigDecimal("amt"));
-                BigDecimal retent   = z(fc ? rs.getBigDecimal("for_curr_retent_amt") : rs.getBigDecimal("retent_amt"));
-                BigDecimal disc     = z(fc ? rs.getBigDecimal("for_curr_disc_taken") : rs.getBigDecimal("disc_taken"));
-                BigDecimal paid     = z(fc ? rs.getBigDecimal("for_curr_amt_paid")   : rs.getBigDecimal("amt_paid"));
-                BigDecimal fluct    = z(rs.getBigDecimal("for_curr_fluct_amt"));
+                String docType = trim(r.get("doc_type", String.class));
+                BigDecimal docAmt   = z(fc ? r.get("for_curr_amt", BigDecimal.class)        : r.get("amt", BigDecimal.class));
+                BigDecimal retent   = z(fc ? r.get("for_curr_retent_amt", BigDecimal.class) : r.get("retent_amt", BigDecimal.class));
+                BigDecimal disc     = z(fc ? r.get("for_curr_disc_taken", BigDecimal.class) : r.get("disc_taken", BigDecimal.class));
+                BigDecimal paid     = z(fc ? r.get("for_curr_amt_paid", BigDecimal.class)   : r.get("amt_paid", BigDecimal.class));
+                BigDecimal fluct    = z(r.get("for_curr_fluct_amt", BigDecimal.class));
 
                 BigDecimal invGross = BigDecimal.ZERO, crGross = BigDecimal.ZERO;
                 if ("P".equals(docType)) {
@@ -1119,27 +1158,27 @@ public class ApReportDataService {
                     : docAmt.subtract(retent).subtract(paid).subtract(disc).subtract(fc ? BigDecimal.ZERO : fluct);
                 if (balanced) net = BigDecimal.ZERO;
 
-                String displayDocNo = rs.getString("doc_no");
+                String displayDocNo = r.get("doc_no", String.class);
                 if ("Y".equalsIgnoreCase(p.paymtDocNoInd()) && ("P".equals(docType) || "V".equals(docType))
-                        && notBlank(rs.getString("cmtrans_bank_code"))) {
-                    String t = "3".equals(trim(rs.getString("cmtrans_doc_type"))) ? "chq"
-                             : "4".equals(trim(rs.getString("cmtrans_doc_type"))) ? "eft" : "pmt";
-                    displayDocNo = t + "/" + trim(rs.getString("cmtrans_bank_code")) + "/" + rs.getInt("cmtrans_doc_no");
+                        && notBlank(r.get("cmtrans_bank_code", String.class))) {
+                    String t = "3".equals(trim(r.get("cmtrans_doc_type", String.class))) ? "chq"
+                             : "4".equals(trim(r.get("cmtrans_doc_type", String.class))) ? "eft" : "pmt";
+                    displayDocNo = t + "/" + trim(r.get("cmtrans_bank_code", String.class)) + "/" + zeroIfNull(r.get("cmtrans_doc_no", Integer.class));
                 }
 
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("supplierNo", rs.getString("supplier_no"));
-                row.put("name",       rs.getString("name_1"));
-                row.put("subLedger",  rs.getString("sub_ledger"));
+                row.put("supplierNo", r.get("supplier_no", String.class));
+                row.put("name",       r.get("name_1", String.class));
+                row.put("subLedger",  r.get("sub_ledger", String.class));
                 row.put("reconNo",    reconNo);
-                row.put("reconKey",   rs.getString("supplier_no") + "|" + reconNo);
+                row.put("reconKey",   r.get("supplier_no", String.class) + "|" + reconNo);
                 row.put("reconLabel", reconNo == 0 ? "Unreconciled" : "Recon " + reconNo);
-                row.put("seqNo",      rs.getInt("recon_seq_no") == 0 ? "UNPOST" : String.valueOf(rs.getInt("recon_seq_no")));
+                row.put("seqNo",      zeroIfNull(r.get("recon_seq_no", Integer.class)) == 0 ? "UNPOST" : String.valueOf(r.get("recon_seq_no", Integer.class)));
                 row.put("docType",    reconDocTypeLabel(docType));
-                row.put("retentFlag", rs.getString("retent_flag"));
+                row.put("retentFlag", r.get("retent_flag", String.class));
                 row.put("docNo",      displayDocNo);
-                row.put("docDate",    sqlDate(rs.getDate("doc_date")));
-                row.put("postDate",   sqlDate(rs.getDate("posting_date")));
+                row.put("docDate",    ldSqlDate(r.get("doc_date", LocalDate.class)));
+                row.put("postDate",   ldSqlDate(r.get("posting_date", LocalDate.class)));
                 row.put("docAmt",     docAmt);
                 row.put("retentAmt",  retent);
                 row.put("invGross",   invGross);
@@ -1147,15 +1186,15 @@ public class ApReportDataService {
                 row.put("amtPaid",    paid);
                 row.put("discTaken",  disc);
                 row.put("net",        net);
-                row.put("forCurrCode", rs.getString("for_curr_code"));
+                row.put("forCurrCode", r.get("for_curr_code", String.class));
                 row.put("grossBal", gb); row.put("outstandingBal", ob); row.put("claimBal", cb);
-                row.put("fcGrossBal", z(rs.getBigDecimal("for_curr_gross_bal")));
-                row.put("fcOutstBal", z(rs.getBigDecimal("for_curr_outst_bal")));
-                row.put("fcClaimBal", z(rs.getBigDecimal("for_curr_claim_bal")));
+                row.put("fcGrossBal", z(r.get("for_curr_gross_bal", BigDecimal.class)));
+                row.put("fcOutstBal", z(r.get("for_curr_outst_bal", BigDecimal.class)));
+                row.put("fcClaimBal", z(r.get("for_curr_claim_bal", BigDecimal.class)));
                 rows.add(row);
                 gt[0] = gt[0].add(net); gt[1] = gt[1].add(docAmt);
-                if (seenSupp.add(rs.getString("supplier_no"))) supplierCount[0]++;
-            }, args.toArray());
+                if (seenSupp.add(r.get("supplier_no", String.class))) supplierCount[0]++;
+            });
         } catch (Exception e) {
             log.error("getAccountReconData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -1242,16 +1281,18 @@ public class ApReportDataService {
         Arrays.fill(gt, BigDecimal.ZERO);
         String err = null;
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String docType = trim(rs.getString("doc_type"));
-                LocalDate dueDate = ld(rs.getDate("due_date"));
-                LocalDate disc1 = ld(rs.getDate("disc_1_date")), disc2 = ld(rs.getDate("disc_2_date"));
-                boolean mustPayTx = "Y".equalsIgnoreCase(trim(rs.getString("must_pay_flag")));
-                boolean promptTx  = "Y".equalsIgnoreCase(trim(rs.getString("prompt_pay_flag")));
+            // Complex multi-join with dynamic status/selection filters and disc/due date logic — resultQuery
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String docType = trim(r.get("doc_type", String.class));
+                LocalDate dueDate = ldFromLocalDate(r.get("due_date", LocalDate.class));
+                LocalDate disc1 = ldFromLocalDate(r.get("disc_1_date", LocalDate.class));
+                LocalDate disc2 = ldFromLocalDate(r.get("disc_2_date", LocalDate.class));
+                boolean mustPayTx = "Y".equalsIgnoreCase(trim(r.get("must_pay_flag", String.class)));
+                boolean promptTx  = "Y".equalsIgnoreCase(trim(r.get("prompt_pay_flag", String.class)));
 
-                BigDecimal amt = z(rs.getBigDecimal("amt")), retent = z(rs.getBigDecimal("retent_amt")),
-                           amtPaid = z(rs.getBigDecimal("amt_paid")), discTaken = z(rs.getBigDecimal("disc_taken")),
-                           fcFluct = z(rs.getBigDecimal("for_curr_fluct_amt")), holdAmt = z(rs.getBigDecimal("hold_paymt_amt"));
+                BigDecimal amt = z(r.get("amt", BigDecimal.class)), retent = z(r.get("retent_amt", BigDecimal.class)),
+                           amtPaid = z(r.get("amt_paid", BigDecimal.class)), discTaken = z(r.get("disc_taken", BigDecimal.class)),
+                           fcFluct = z(r.get("for_curr_fluct_amt", BigDecimal.class)), holdAmt = z(r.get("hold_paymt_amt", BigDecimal.class));
 
                 // CALC-TRX-BALANCE
                 BigDecimal bal;
@@ -1261,10 +1302,10 @@ public class ApReportDataService {
                     bal = amt.subtract(retent).subtract(amtPaid).subtract(discTaken).subtract(fcFluct);
                     if (p.deductWithholding()) bal = bal.subtract(holdAmt);
                 }
-                boolean reconBalanced = rs.getObject("recon_found") != null
-                        && z(rs.getBigDecimal("gross_bal")).signum() == 0
-                        && z(rs.getBigDecimal("outstanding_bal")).signum() == 0
-                        && z(rs.getBigDecimal("claim_bal")).signum() == 0;
+                boolean reconBalanced = r.get("recon_found") != null
+                        && z(r.get("gross_bal", BigDecimal.class)).signum() == 0
+                        && z(r.get("outstanding_bal", BigDecimal.class)).signum() == 0
+                        && z(r.get("claim_bal", BigDecimal.class)).signum() == 0;
                 if (reconBalanced) bal = BigDecimal.ZERO;
 
                 // TEST-RECORD-SELECTION-02 gate 6 (any enabled allocation rule)
@@ -1278,13 +1319,13 @@ public class ApReportDataService {
                 if (!inc) return;
 
                 // CHECK-FOR-DISCOUNT
-                int alwaysTake = parseAlwaysTake(rs.getString("always_take_disc_ind"));
+                int alwaysTake = parseAlwaysTake(r.get("always_take_disc_ind", String.class));
                 BigDecimal discAvailAmt = BigDecimal.ZERO;
                 if (!"P".equals(docType)) {
                     if ((disc1 != null && !before(disc1, pay)) || alwaysTake == 1)
-                        discAvailAmt = z(rs.getBigDecimal("disc_1_amt")).subtract(discTaken);
+                        discAvailAmt = z(r.get("disc_1_amt", BigDecimal.class)).subtract(discTaken);
                     else if ((disc2 != null && !before(disc2, pay)) || alwaysTake == 2)
-                        discAvailAmt = z(rs.getBigDecimal("disc_2_amt")).subtract(discTaken);
+                        discAvailAmt = z(r.get("disc_2_amt", BigDecimal.class)).subtract(discTaken);
                 }
 
                 // CLASSIFY-AMT — assign the balance to exactly one bucket
@@ -1313,33 +1354,33 @@ public class ApReportDataService {
                 gt[3] = gt[3].add(nowB); gt[4] = gt[4].add(discB); gt[5] = gt[5].add(discAvailAmt);
 
                 if (summary) {
-                    Map<String, Object> a = bySupplier.computeIfAbsent(rs.getString("supplier_no"), k -> {
+                    Map<String, Object> a = bySupplier.computeIfAbsent(r.get("supplier_no", String.class), k -> {
                         Map<String, Object> m = new LinkedHashMap<>();
                         m.put("supplierNo", k); m.put("name", null); m.put("subLedger", null);
                         for (String b : new String[]{"mustPay", "promptPay", "overdue", "nowDue", "discDue", "discAvail", "total"})
                             m.put(b, BigDecimal.ZERO);
                         return m;
                     });
-                    a.put("name", rs.getString("name_1")); a.put("subLedger", rs.getString("sub_ledger"));
+                    a.put("name", r.get("name_1", String.class)); a.put("subLedger", r.get("sub_ledger", String.class));
                     acc(a, "mustPay", mustB); acc(a, "promptPay", promptB); acc(a, "overdue", overB);
                     acc(a, "nowDue", nowB); acc(a, "discDue", discB); acc(a, "discAvail", discAvailAmt);
                     acc(a, "total", total);
                 } else {
                     Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("supplierNo", rs.getString("supplier_no"));
-                    row.put("name",       rs.getString("name_1"));
-                    row.put("subLedger",  rs.getString("sub_ledger"));
+                    row.put("supplierNo", r.get("supplier_no", String.class));
+                    row.put("name",       r.get("name_1", String.class));
+                    row.put("subLedger",  r.get("sub_ledger", String.class));
                     row.put("docType",    docTypeLabel(docType));
-                    row.put("docNo",      rs.getString("doc_no"));
-                    row.put("docDate",    sqlDate(rs.getDate("doc_date")));
-                    row.put("dueDate",    sqlDate(rs.getDate("due_date")));
+                    row.put("docNo",      r.get("doc_no", String.class));
+                    row.put("docDate",    ldSqlDate(r.get("doc_date", LocalDate.class)));
+                    row.put("dueDate",    ldSqlDate(r.get("due_date", LocalDate.class)));
                     row.put("mustPay", mustB); row.put("promptPay", promptB); row.put("overdue", overB);
                     row.put("nowDue", nowB); row.put("discDue", discB); row.put("discAvail", discAvailAmt);
                     row.put("total", total);
-                    row.put("onHold", "H".equals(trim(rs.getString("trx_status"))) ? "HOLD" : "");
+                    row.put("onHold", "H".equals(trim(r.get("trx_status", String.class))) ? "HOLD" : "");
                     detailRows.add(row);
                 }
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getCashRequirementsData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -1465,11 +1506,12 @@ public class ApReportDataService {
         BigDecimal[] reval = {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};  // inv,dr,cr,grand
         String err = null;
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String docType = trim(rs.getString("doc_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt")), retent = z(rs.getBigDecimal("retent_amt")),
-                           amtPaid = z(rs.getBigDecimal("amt_paid")), disc = z(rs.getBigDecimal("disc_taken")),
-                           fcFluct = z(rs.getBigDecimal("for_curr_fluct_amt")), revalAmt = z(rs.getBigDecimal("reval_amt"));
+            // FC revaluation: multi-join with dynamic date column + supplier/recon/date filters — resultQuery
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String docType = trim(r.get("doc_type", String.class));
+                BigDecimal amt = z(r.get("amt", BigDecimal.class)), retent = z(r.get("retent_amt", BigDecimal.class)),
+                           amtPaid = z(r.get("amt_paid", BigDecimal.class)), disc = z(r.get("disc_taken", BigDecimal.class)),
+                           fcFluct = z(r.get("for_curr_fluct_amt", BigDecimal.class)), revalAmt = z(r.get("reval_amt", BigDecimal.class));
                 BigDecimal dr = BigDecimal.ZERO, cr = BigDecimal.ZERO;
                 if ("I".equals(docType) || "D".equals(docType)) dr = amt.subtract(retent); else cr = amt.subtract(retent);
                 BigDecimal trxBal = amt.subtract(retent).subtract(amtPaid).subtract(disc).subtract(fcFluct);
@@ -1483,28 +1525,28 @@ public class ApReportDataService {
                 reval[3] = reval[3].add(revalAmt);
 
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("supplierNo", rs.getString("supplier_no"));
-                row.put("name",       rs.getString("name_1"));
-                row.put("subLedger",  rs.getString("sub_ledger"));
-                row.put("forCurrCode", rs.getString("for_curr_code"));
+                row.put("supplierNo", r.get("supplier_no", String.class));
+                row.put("name",       r.get("name_1", String.class));
+                row.put("subLedger",  r.get("sub_ledger", String.class));
+                row.put("forCurrCode", r.get("for_curr_code", String.class));
                 row.put("docType",    docTypeLabel(docType));
-                row.put("retentFlag", rs.getString("retent_flag"));
-                row.put("docNo",      rs.getString("doc_no"));
-                row.put("seqNo",      rs.getInt("seq_no"));
-                row.put("docDate",    sqlDate(rs.getDate("doc_date")));
-                row.put("postDate",   sqlDate(rs.getDate("posting_date")));
-                row.put("reconNo",    rs.getInt("recon_no"));
-                row.put("docAmt",     z(rs.getBigDecimal("amt_orig")));
+                row.put("retentFlag", r.get("retent_flag", String.class));
+                row.put("docNo",      r.get("doc_no", String.class));
+                row.put("seqNo",      zeroIfNull(r.get("seq_no", Integer.class)));
+                row.put("docDate",    ldSqlDate(r.get("doc_date", LocalDate.class)));
+                row.put("postDate",   ldSqlDate(r.get("posting_date", LocalDate.class)));
+                row.put("reconNo",    zeroIfNull(r.get("recon_no", Integer.class)));
+                row.put("docAmt",     z(r.get("amt_orig", BigDecimal.class)));
                 row.put("retentAmt",  retent);
                 row.put("drAmt", dr); row.put("crAmt", cr);
                 row.put("amtPaid", amtPaid); row.put("discTaken", disc);
                 row.put("trxBal", trxBal);
-                row.put("fcAmt",      z(rs.getBigDecimal("for_curr_amt")));
-                row.put("revalDate",  sqlDate(rs.getDate(post ? "match_posting_date" : "match_doc_date")));
+                row.put("fcAmt",      z(r.get("for_curr_amt", BigDecimal.class)));
+                row.put("revalDate",  ldSqlDate(r.get(post ? "match_posting_date" : "match_doc_date", LocalDate.class)));
                 row.put("revalAmt",   revalAmt);
-                row.put("revalFluct", z(rs.getBigDecimal("reval_curr_fluct_amt")));
+                row.put("revalFluct", z(r.get("reval_curr_fluct_amt", BigDecimal.class)));
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getFcRevaluationData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -1527,9 +1569,12 @@ public class ApReportDataService {
     /** Distinct FC codes present in aptrans — feeds the APRC11 currency picker (cpfccod isn't extracted). */
     public List<String> getForeignCurrencyCodes(AppSession s) {
         try {
-            return jdbc.queryForList(
-                "SELECT DISTINCT for_curr_code FROM aptrans WHERE company_no=? AND TRIM(for_curr_code)<>'' ORDER BY for_curr_code",
-                String.class, s.getCompanyNo());
+            return dsl.selectDistinct(APTRANS.FOR_CURR_CODE)
+                      .from(APTRANS)
+                      .where(APTRANS.COMPANY_NO.eq(s.getCompanyNo())
+                          .and(DSL.trim(APTRANS.FOR_CURR_CODE).ne("")))
+                      .orderBy(APTRANS.FOR_CURR_CODE)
+                      .fetch(APTRANS.FOR_CURR_CODE);
         } catch (Exception e) { return List.of(); }
     }
 
@@ -1576,30 +1621,27 @@ public class ApReportDataService {
         // suppliers in range
         Map<String, SupAcc> accs = new LinkedHashMap<>();
         try {
-            StringBuilder sql = new StringBuilder(
-                "SELECT supplier_no, name_1, sub_ledger, city, state, postcode, country, for_curr_code " +
-                "FROM apsupps WHERE company_no=? ");
-            List<Object> args = new ArrayList<>();
-            args.add(s.getCompanyNo());
-            if (notBlank(p.startSupplier())) {
-                sql.append(" AND supplier_no BETWEEN ? AND ? ");
-                args.add(p.startSupplier());
-                args.add(notBlank(p.endSupplier()) ? p.endSupplier() : "zzzzzzzzzz");
-            }
-            if (notBlank(p.startSubLedger())) {
-                sql.append(" AND sub_ledger BETWEEN ? AND ? ");
-                args.add(p.startSubLedger());
-                args.add(notBlank(p.endSubLedger()) ? p.endSubLedger() : "zzzz");
-            }
-            sql.append(" ORDER BY supplier_no");
-            jdbc.query(sql.toString(), rs -> {
-                SupAcc a = new SupAcc(n);
-                a.supplierNo = rs.getString("supplier_no"); a.name = rs.getString("name_1");
-                a.subLedger = rs.getString("sub_ledger"); a.city = rs.getString("city");
-                a.state = rs.getString("state"); a.postcode = rs.getString("postcode");
-                a.country = rs.getString("country"); a.forCurrCode = rs.getString("for_curr_code");
-                accs.put(a.supplierNo, a);
-            }, args.toArray());
+            Condition where = APSUPPS.COMPANY_NO.eq(s.getCompanyNo());
+            if (notBlank(p.startSupplier()))
+                where = where.and(APSUPPS.SUPPLIER_NO.between(p.startSupplier(),
+                    notBlank(p.endSupplier()) ? p.endSupplier() : "zzzzzzzzzz"));
+            if (notBlank(p.startSubLedger()))
+                where = where.and(APSUPPS.SUB_LEDGER.between(p.startSubLedger(),
+                    notBlank(p.endSubLedger()) ? p.endSubLedger() : "zzzz"));
+            dsl.select(APSUPPS.SUPPLIER_NO, APSUPPS.NAME_1, APSUPPS.SUB_LEDGER,
+                       APSUPPS.CITY, APSUPPS.STATE, APSUPPS.POSTCODE, APSUPPS.COUNTRY, APSUPPS.FOR_CURR_CODE)
+               .from(APSUPPS)
+               .where(where)
+               .orderBy(APSUPPS.SUPPLIER_NO)
+               .fetch()
+               .forEach(r -> {
+                   SupAcc a = new SupAcc(n);
+                   a.supplierNo = r.get(APSUPPS.SUPPLIER_NO); a.name = r.get(APSUPPS.NAME_1);
+                   a.subLedger = r.get(APSUPPS.SUB_LEDGER); a.city = r.get(APSUPPS.CITY);
+                   a.state = r.get(APSUPPS.STATE); a.postcode = r.get(APSUPPS.POSTCODE);
+                   a.country = r.get(APSUPPS.COUNTRY); a.forCurrCode = r.get(APSUPPS.FOR_CURR_CODE);
+                   accs.put(a.supplierNo, a);
+               });
         } catch (Exception e) {
             return new SupplierAnalysisResult(monthEnds, List.of(), 0, BigDecimal.ZERO,
                 new int[n], zeros(n), "Supplier lookup failed: " + e.getMessage());
@@ -1610,23 +1652,26 @@ public class ApReportDataService {
 
         // transactions, bucketed per supplier per month
         try {
-            jdbc.query(
-                "SELECT supplier_no, doc_date, amt FROM aptrans " +
-                "WHERE company_no=? AND doc_type IN ('I','D','C') AND trx_status<>'U' " +
-                "  AND doc_date BETWEEN ? AND ?",
-                rs -> {
-                    SupAcc a = accs.get(rs.getString("supplier_no"));
-                    if (a == null) return;
-                    LocalDate dd = rs.getDate("doc_date").toLocalDate();
-                    int idx = -1;
-                    for (int i = 0; i < monthEnds.size(); i++) {
-                        if (!dd.isAfter(monthEnds.get(i))) { idx = i; break; }
-                    }
-                    if (idx < 0) return;
-                    BigDecimal amt = z(rs.getBigDecimal("amt"));
-                    a.totalNo++; a.totalValue = a.totalValue.add(amt);
-                    a.monthNo[idx]++; a.monthValue[idx] = a.monthValue[idx].add(amt);
-                }, s.getCompanyNo(), Date.valueOf(reportStart), Date.valueOf(end));
+            dsl.select(APTRANS.SUPPLIER_NO, APTRANS.DOC_DATE, APTRANS.AMT)
+               .from(APTRANS)
+               .where(APTRANS.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(APTRANS.DOC_TYPE.in("I", "D", "C"))
+                   .and(APTRANS.TRX_STATUS.ne("U"))
+                   .and(APTRANS.DOC_DATE.between(reportStart, end)))
+               .fetch()
+               .forEach(r -> {
+                   SupAcc a = accs.get(r.get(APTRANS.SUPPLIER_NO));
+                   if (a == null) return;
+                   LocalDate dd = r.get(APTRANS.DOC_DATE);
+                   int idx = -1;
+                   for (int i = 0; i < monthEnds.size(); i++) {
+                       if (!dd.isAfter(monthEnds.get(i))) { idx = i; break; }
+                   }
+                   if (idx < 0) return;
+                   BigDecimal amt = z(r.get(APTRANS.AMT));
+                   a.totalNo++; a.totalValue = a.totalValue.add(amt);
+                   a.monthNo[idx]++; a.monthValue[idx] = a.monthValue[idx].add(amt);
+               });
         } catch (Exception e) {
             return new SupplierAnalysisResult(monthEnds, List.of(), 0, BigDecimal.ZERO,
                 new int[n], zeros(n), "Transaction query failed: " + e.getMessage());
@@ -1789,10 +1834,25 @@ public class ApReportDataService {
         return d.toLocalDate().isAfter(LocalDate.of(1900, 1, 1)) ? d : null;
     }
 
+    /** jOOQ returns LocalDate from DATE columns — convert to java.sql.Date for Jasper, suppressing sentinels. */
+    private static Date ldSqlDate(LocalDate ld) {
+        if (ld == null) return null;
+        return ld.isAfter(LocalDate.of(1900, 1, 1)) ? Date.valueOf(ld) : null;
+    }
+
+    /** jOOQ returns null for sentinel dates; return null so Jasper renders blank. */
+    private static LocalDate ldFromLocalDate(LocalDate ld) {
+        if (ld == null) return null;
+        return ld.isAfter(LocalDate.of(1900, 1, 1)) ? ld : null;
+    }
+
+    private static int zeroIfNull(Integer v) { return v != null ? v : 0; }
+
     /** Single-value query returning null on any error (used for optional config flags). */
     private String scalarString(String sql, Object... args) {
-        try { return jdbc.queryForObject(sql, String.class, args); }
-        catch (Exception e) { return null; }
+        try {
+            return dsl.resultQuery(sql, args).fetchOne(0, String.class);
+        } catch (Exception e) { return null; }
     }
 
     private Map<String, Object> warn(String msg) {

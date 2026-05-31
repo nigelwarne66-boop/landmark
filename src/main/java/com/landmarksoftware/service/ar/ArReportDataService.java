@@ -1,13 +1,12 @@
 package com.landmarksoftware.service.ar;
 
 import com.landmarksoftware.model.AppSession;
+import org.jooq.DSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -27,9 +26,9 @@ import java.util.*;
 public class ArReportDataService {
 
     private static final Logger log = LoggerFactory.getLogger(ArReportDataService.class);
-    private final JdbcTemplate jdbc;
+    private final DSLContext dsl;
 
-    public ArReportDataService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public ArReportDataService(DSLContext dsl) { this.dsl = dsl; }
 
     // ── Picker lookups (shared by every AR selection screen) ─────────────────
 
@@ -43,10 +42,11 @@ public class ArReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All sub ledgers)"));
         try {
-            jdbc.query("SELECT sub_ledger, name1 FROM arledgr WHERE company_no=? ORDER BY sub_ledger",
-                rs -> { list.add(new CodeName(trim(rs.getString("sub_ledger")),
-                                              trim(rs.getString("sub_ledger")) + " — " + trim(rs.getString("name1")))); },
-                s.getCompanyNo());
+            dsl.resultQuery("SELECT sub_ledger, name1 FROM arledgr WHERE company_no=? ORDER BY sub_ledger",
+                s.getCompanyNo())
+               .fetch()
+               .forEach(r -> list.add(new CodeName(trim(r.get("sub_ledger", String.class)),
+                                                   trim(r.get("sub_ledger", String.class)) + " — " + trim(r.get("name1", String.class)))));
         } catch (Exception e) { log.warn("getSubLedgers: {}", e.getMessage()); }
         return list;
     }
@@ -57,11 +57,13 @@ public class ArReportDataService {
         list.add(new CodeName("", "(All customers)"));
         try {
             String order = byAlpha ? "alpha_key, alpha_cust_no" : "cust_no";
-            jdbc.query("SELECT cust_no, alpha_key, name_1 FROM arcusts WHERE company_no=? ORDER BY " + order,
-                rs -> {
-                    String code = byAlpha ? trim(rs.getString("alpha_key")) : trim(rs.getString("cust_no"));
-                    list.add(new CodeName(code, code + " — " + trim(rs.getString("name_1"))));
-                }, s.getCompanyNo());
+            dsl.resultQuery("SELECT cust_no, alpha_key, name_1 FROM arcusts WHERE company_no=? ORDER BY " + order,
+                s.getCompanyNo())
+               .fetch()
+               .forEach(r -> {
+                   String code = byAlpha ? trim(r.get("alpha_key", String.class)) : trim(r.get("cust_no", String.class));
+                   list.add(new CodeName(code, code + " — " + trim(r.get("name_1", String.class))));
+               });
         } catch (Exception e) { log.warn("getCustomers: {}", e.getMessage()); }
         return list;
     }
@@ -71,10 +73,11 @@ public class ArReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All salespeople)"));
         try {
-            jdbc.query("SELECT salesman_code, name1 FROM arcodsm WHERE company_no=? ORDER BY salesman_code",
-                rs -> { list.add(new CodeName(trim(rs.getString("salesman_code")),
-                                              trim(rs.getString("salesman_code")) + " — " + trim(rs.getString("name1")))); },
-                s.getCompanyNo());
+            dsl.resultQuery("SELECT salesman_code, name1 FROM arcodsm WHERE company_no=? ORDER BY salesman_code",
+                s.getCompanyNo())
+               .fetch()
+               .forEach(r -> list.add(new CodeName(trim(r.get("salesman_code", String.class)),
+                                                   trim(r.get("salesman_code", String.class)) + " — " + trim(r.get("name1", String.class)))));
         } catch (Exception e) { log.warn("getSalesmen: {}", e.getMessage()); }
         return list;
     }
@@ -84,10 +87,11 @@ public class ArReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All customer types)"));
         try {
-            jdbc.query("SELECT cust_type_code, desc1 FROM arcodct WHERE company_no=? ORDER BY cust_type_code",
-                rs -> { list.add(new CodeName(trim(rs.getString("cust_type_code")),
-                                              trim(rs.getString("cust_type_code")) + " — " + trim(rs.getString("desc1")))); },
-                s.getCompanyNo());
+            dsl.resultQuery("SELECT cust_type_code, desc1 FROM arcodct WHERE company_no=? ORDER BY cust_type_code",
+                s.getCompanyNo())
+               .fetch()
+               .forEach(r -> list.add(new CodeName(trim(r.get("cust_type_code", String.class)),
+                                                   trim(r.get("cust_type_code", String.class)) + " — " + trim(r.get("desc1", String.class)))));
         } catch (Exception e) { log.warn("getCustomerTypes: {}", e.getMessage()); }
         return list;
     }
@@ -97,10 +101,11 @@ public class ArReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All product types)"));
         try {
-            jdbc.query("SELECT product_type_code, desc1 FROM smcodpt WHERE company_no=? ORDER BY product_type_code",
-                rs -> { list.add(new CodeName(trim(rs.getString("product_type_code")),
-                                              trim(rs.getString("product_type_code")) + " — " + trim(rs.getString("desc1")))); },
-                s.getCompanyNo());
+            dsl.resultQuery("SELECT product_type_code, desc1 FROM smcodpt WHERE company_no=? ORDER BY product_type_code",
+                s.getCompanyNo())
+               .fetch()
+               .forEach(r -> list.add(new CodeName(trim(r.get("product_type_code", String.class)),
+                                                   trim(r.get("product_type_code", String.class)) + " — " + trim(r.get("desc1", String.class)))));
         } catch (Exception e) { log.warn("getProductTypes: {}", e.getMessage()); }
         return list;
     }
@@ -110,9 +115,10 @@ public class ArReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All currencies)"));
         try {
-            jdbc.query("SELECT DISTINCT for_curr_code FROM artrans WHERE company_no=? AND TRIM(for_curr_code)<>'' ORDER BY for_curr_code",
-                rs -> { String c = trim(rs.getString("for_curr_code")); if (!c.isEmpty()) list.add(new CodeName(c, c)); },
-                s.getCompanyNo());
+            dsl.resultQuery("SELECT DISTINCT for_curr_code FROM artrans WHERE company_no=? AND TRIM(for_curr_code)<>'' ORDER BY for_curr_code",
+                s.getCompanyNo())
+               .fetch()
+               .forEach(r -> { String c = trim(r.get("for_curr_code", String.class)); if (!c.isEmpty()) list.add(new CodeName(c, c)); });
         } catch (Exception e) { log.warn("getCurrencyCodes: {}", e.getMessage()); }
         return list;
     }
@@ -122,10 +128,11 @@ public class ArReportDataService {
         List<CodeName> list = new ArrayList<>();
         list.add(new CodeName("", "(All accounts)"));
         try {
-            jdbc.query("SELECT acct_main_no, acct_sub_no, desc1 FROM glchart WHERE company_no=? ORDER BY acct_main_no, acct_sub_no",
-                rs -> { String code = rs.getInt("acct_main_no") + "-" + rs.getInt("acct_sub_no");
-                        list.add(new CodeName(code, code + " — " + trim(rs.getString("desc1")))); },
-                s.getCompanyNo());
+            dsl.resultQuery("SELECT acct_main_no, acct_sub_no, desc1 FROM glchart WHERE company_no=? ORDER BY acct_main_no, acct_sub_no",
+                s.getCompanyNo())
+               .fetch()
+               .forEach(r -> { String code = r.get("acct_main_no", Integer.class) + "-" + r.get("acct_sub_no", Integer.class);
+                               list.add(new CodeName(code, code + " — " + trim(r.get("desc1", String.class)))); });
         } catch (Exception e) { log.warn("getGlAccounts: {}", e.getMessage()); }
         return list;
     }
@@ -136,12 +143,15 @@ public class ArReportDataService {
         try {
             StringBuilder cols = new StringBuilder();
             for (int i = 1; i <= 13; i++) cols.append(i > 1 ? "," : "").append(String.format("period_end_%02d", i));
-            jdbc.query("SELECT " + cols + " FROM gldates WHERE company_no=? AND year_no=?", rs -> {
-                for (int i = 1; i <= 13; i++) {
-                    Date d = rs.getDate(String.format("period_end_%02d", i));
-                    if (d != null && d.toLocalDate().isAfter(LocalDate.of(1900, 1, 1))) set.add(d.toLocalDate());
-                }
-            }, s.getCompanyNo(), s.getYearNo());
+            dsl.resultQuery("SELECT " + cols + " FROM gldates WHERE company_no=? AND year_no=?",
+                s.getCompanyNo(), s.getYearNo())
+               .fetch()
+               .forEach(r -> {
+                   for (int i = 1; i <= 13; i++) {
+                       LocalDate d = r.get(String.format("period_end_%02d", i), LocalDate.class);
+                       if (d != null && d.isAfter(LocalDate.of(1900, 1, 1))) set.add(d);
+                   }
+               });
         } catch (Exception e) { log.warn("getPeriodEndDates: {}", e.getMessage()); }
         return new ArrayList<>(set);
     }
@@ -261,7 +271,7 @@ public class ArReportDataService {
                            : "t.doc_date";
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
             sql.append(" AND ").append(dateCol).append(" BETWEEN ? AND ? ");
-            args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            args.add(p.startDate()); args.add(end);
         }
 
         sql.append(" AND (").append(String.join(" OR ", statusOr)).append(") ");
@@ -277,19 +287,19 @@ public class ArReportDataService {
         String err = null;
 
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String docType = trim(rs.getString("doc_type"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String docType = trim(r.get("doc_type", String.class));
 
-                BigDecimal amt       = z(rs.getBigDecimal("amt"));
-                BigDecimal retent    = z(rs.getBigDecimal("retent_amt"));
-                BigDecimal discTaken = z(rs.getBigDecimal("disc_taken"));
-                BigDecimal amtPaid   = z(rs.getBigDecimal("amt_paid"));
+                BigDecimal amt       = z(r.get("amt", BigDecimal.class));
+                BigDecimal retent    = z(r.get("retent_amt", BigDecimal.class));
+                BigDecimal discTaken = z(r.get("disc_taken", BigDecimal.class));
+                BigDecimal amtPaid   = z(r.get("amt_paid", BigDecimal.class));
 
                 // CALC-TRX-BAL (ARRC05 does not subtract for_curr_fluct_amt)
                 BigDecimal bal = "P".equals(docType)
                     ? amt.add(discTaken).subtract(amtPaid)
                     : amt.subtract(retent).subtract(amtPaid).subtract(discTaken);
-                if (rs.getInt("recon_zeroed") == 1) bal = BigDecimal.ZERO;
+                if (Integer.valueOf(1).equals(r.get("recon_zeroed", Integer.class))) bal = BigDecimal.ZERO;
 
                 if (!includePaid && bal.signum() == 0) return;   // outstanding-only
 
@@ -306,18 +316,19 @@ public class ArReportDataService {
 
                 tot.add(docType, amt);
 
+                LocalDate docDateRaw = r.get("doc_date", LocalDate.class);
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("rowType",       "T");
-                row.put("custNo",        rs.getString("cust_no"));
-                row.put("name",          rs.getString("name_1"));
-                row.put("subLedger",     rs.getString("sub_ledger"));
-                row.put("subLedgerName", rs.getString("sub_ledger_name"));
-                row.put("docDate",       sqlDate(rs.getDate("doc_date")));
-                row.put("postDate",      sqlDate(rs.getDate("posting_date")));
-                row.put("dueDate",       sqlDate(rs.getDate("due_date")));
+                row.put("custNo",        r.get("cust_no", String.class));
+                row.put("name",          r.get("name_1", String.class));
+                row.put("subLedger",     r.get("sub_ledger", String.class));
+                row.put("subLedgerName", r.get("sub_ledger_name", String.class));
+                row.put("docDate",       sqlDate(docDateRaw));
+                row.put("postDate",      sqlDate(r.get("posting_date", LocalDate.class)));
+                row.put("dueDate",       sqlDate(r.get("due_date", LocalDate.class)));
                 row.put("docType",       docTypeLabel(docType));
-                row.put("docNo",         rs.getString("doc_no"));
-                row.put("seqNo",         seqDisplay(rs.getInt("seq_no"), rs.getString("standing_doc_flag")));
+                row.put("docNo",         r.get("doc_no", String.class));
+                row.put("seqNo",         seqDisplay(r.get("seq_no", Integer.class), r.get("standing_doc_flag", String.class)));
                 row.put("amt",           amt);
                 row.put("retentAmt",     retent);
                 row.put("debit",         debit);
@@ -325,15 +336,17 @@ public class ArReportDataService {
                 row.put("amtPaid",       amtPaid);
                 row.put("discTaken",     discTaken);
                 row.put("balance",       bal);
-                row.put("fullyPaid",     rs.getString("fully_paid_flag"));
-                row.put("batchNo",       rs.getInt("batch_no"));
-                row.put("reconNo",       rs.getInt("recon_no"));
-                row.put("archiveFlag",   rs.getString("archive_flag"));
-                row.put("auditUser",     rs.getString("audit_user_id"));
+                row.put("fullyPaid",     r.get("fully_paid_flag", String.class));
+                row.put("batchNo",       r.get("batch_no", Integer.class));
+                row.put("reconNo",       r.get("recon_no", Integer.class));
+                row.put("archiveFlag",   r.get("archive_flag", String.class));
+                row.put("auditUser",     r.get("audit_user_id", String.class));
                 row.put("auditTime",     String.format("%02d:%02d:%02d",
-                                            rs.getInt("audit_time_hr"), rs.getInt("audit_time_min"), rs.getInt("audit_time_sec")));
-                row.put("_docDateRaw",   rs.getDate("doc_date"));
-                row.put("_retentFlag",   rs.getString("retent_flag"));
+                                            r.get("audit_time_hr", Integer.class),
+                                            r.get("audit_time_min", Integer.class),
+                                            r.get("audit_time_sec", Integer.class)));
+                row.put("_docDateRaw",   docDateRaw);
+                row.put("_retentFlag",   r.get("retent_flag", String.class));
                 for (String f : LINE_FIELDS) row.put(f, null);
 
                 if (printLines && excelLayout) {
@@ -342,7 +355,7 @@ public class ArReportDataService {
                     rows.add(row);
                     if (printLines) appendDistLines(s, row, rows);
                 }
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getTransactionListingData failed: {}", e.getMessage(), e);
             err = e.getMessage();
@@ -372,28 +385,29 @@ public class ArReportDataService {
     private List<Map<String, Object>> fetchDistLines(AppSession s, Map<String, Object> txn) {
         List<Map<String, Object>> lines = new ArrayList<>();
         try {
-            jdbc.query(
+            dsl.resultQuery(
                 "SELECT line_no, line_type, gl_acct_main, gl_acct_sub, qty, unit_per, unit_cost, " +
                 "       amt, tax_code, tax_amt, tax_gross_amt, for_curr_amt, desc_1, ref " +
                 "FROM ardistn WHERE company_no=? AND cust_no=? AND doc_date=? AND doc_type=? " +
                 "  AND retent_flag=? AND doc_no=? ORDER BY line_no",
-                rs -> {
-                    Map<String, Object> ln = new LinkedHashMap<>();
-                    ln.put("lineNo",      rs.getInt("line_no"));
-                    ln.put("lineType",    rs.getString("line_type"));
-                    ln.put("glAcctMain",  rs.getInt("gl_acct_main"));
-                    ln.put("glAcctSub",   rs.getInt("gl_acct_sub"));
-                    ln.put("qty",         z(rs.getBigDecimal("qty")));
-                    ln.put("unitCost",    z(rs.getBigDecimal("unit_cost")));
-                    ln.put("amtExTax",    z(rs.getBigDecimal("amt")));
-                    ln.put("taxCode",     rs.getString("tax_code"));
-                    ln.put("lineTaxAmt",  z(rs.getBigDecimal("tax_amt")));
-                    ln.put("description", rs.getString("desc_1"));
-                    ln.put("reference",   rs.getString("ref"));
-                    lines.add(ln);
-                },
                 s.getCompanyNo(), txn.get("custNo"), txn.get("_docDateRaw"),
-                rawDocType(txn.get("docType")), txn.get("_retentFlag"), txn.get("docNo"));
+                rawDocType(txn.get("docType")), txn.get("_retentFlag"), txn.get("docNo"))
+               .fetch()
+               .forEach(r -> {
+                    Map<String, Object> ln = new LinkedHashMap<>();
+                    ln.put("lineNo",      r.get("line_no", Integer.class));
+                    ln.put("lineType",    r.get("line_type", String.class));
+                    ln.put("glAcctMain",  r.get("gl_acct_main", Integer.class));
+                    ln.put("glAcctSub",   r.get("gl_acct_sub", Integer.class));
+                    ln.put("qty",         z(r.get("qty", BigDecimal.class)));
+                    ln.put("unitCost",    z(r.get("unit_cost", BigDecimal.class)));
+                    ln.put("amtExTax",    z(r.get("amt", BigDecimal.class)));
+                    ln.put("taxCode",     r.get("tax_code", String.class));
+                    ln.put("lineTaxAmt",  z(r.get("tax_amt", BigDecimal.class)));
+                    ln.put("description", r.get("desc_1", String.class));
+                    ln.put("reference",   r.get("ref", String.class));
+                    lines.add(ln);
+               });
         } catch (Exception e) {
             log.warn("fetchDistLines {} {}: {}", txn.get("custNo"), txn.get("docNo"), e.getMessage());
         }
@@ -510,11 +524,11 @@ public class ArReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] grand = { BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String docType = trim(rs.getString("doc_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt")), ret = z(rs.getBigDecimal("retent_amt")),
-                           paid = z(rs.getBigDecimal("amt_paid")), disc = z(rs.getBigDecimal("disc_taken")),
-                           fluct = z(rs.getBigDecimal("fluct_amt"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String docType = trim(r.get("doc_type", String.class));
+                BigDecimal amt = z(r.get("amt", BigDecimal.class)), ret = z(r.get("retent_amt", BigDecimal.class)),
+                           paid = z(r.get("amt_paid", BigDecimal.class)), disc = z(r.get("disc_taken", BigDecimal.class)),
+                           fluct = z(r.get("fluct_amt", BigDecimal.class));
                 BigDecimal gross = "P".equals(docType) ? amt.add(disc) : amt.subtract(ret);
                 BigDecimal net;
                 if ("P".equals(docType)) net = amt.add(disc).subtract(paid);
@@ -523,24 +537,24 @@ public class ArReportDataService {
                 grand[0] = grand[0].add(net);
 
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("custNo",      rs.getString("recon_cust_no"));
-                row.put("name",        rs.getString("name_1"));
-                row.put("reconNo",     rs.getInt("recon_no"));
-                row.put("seqNo",       seqDisplay(rs.getInt("seq_no"), rs.getString("standing_doc_flag")));
+                row.put("custNo",      r.get("recon_cust_no", String.class));
+                row.put("name",        r.get("name_1", String.class));
+                row.put("reconNo",     r.get("recon_no", Integer.class));
+                row.put("seqNo",       seqDisplay(r.get("seq_no", Integer.class), r.get("standing_doc_flag", String.class)));
                 row.put("docType",     docTypeLabel(docType));
-                row.put("docNo",       rs.getString("doc_no"));
-                row.put("docDate",     sqlDate(rs.getDate("doc_date")));
-                row.put("forCurrCode", trim(rs.getString("for_curr_code")));
+                row.put("docNo",       r.get("doc_no", String.class));
+                row.put("docDate",     sqlDate(r.get("doc_date", LocalDate.class)));
+                row.put("forCurrCode", trim(r.get("for_curr_code", String.class)));
                 row.put("gross",       gross);
                 row.put("retentAmt",   ret);
                 row.put("amtPaid",     paid);
                 row.put("discTaken",   disc);
                 row.put("net",         net);
-                row.put("reconOutstanding", z(rs.getBigDecimal(fc ? "for_curr_outst_bal" : "outstanding_bal")));
-                row.put("reconGross",       z(rs.getBigDecimal(fc ? "for_curr_gross_bal" : "gross_bal")));
-                row.put("reconClaim",       z(rs.getBigDecimal(fc ? "for_curr_claim_bal" : "claim_bal")));
+                row.put("reconOutstanding", z(r.get(fc ? "for_curr_outst_bal" : "outstanding_bal", BigDecimal.class)));
+                row.put("reconGross",       z(r.get(fc ? "for_curr_gross_bal" : "gross_bal", BigDecimal.class)));
+                row.put("reconClaim",       z(r.get(fc ? "for_curr_claim_bal" : "claim_bal", BigDecimal.class)));
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getAccountReconData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -576,21 +590,21 @@ public class ArReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("custNo",      rs.getString("cust_no"));
-                row.put("name",        rs.getString("name_1"));
-                row.put("reconNo",     rs.getInt("recon_no"));
-                row.put("outstanding", z(rs.getBigDecimal("outstanding_bal")));
-                row.put("gross",       z(rs.getBigDecimal("gross_bal")));
-                row.put("claim",       z(rs.getBigDecimal("claim_bal")));
-                row.put("lastDocDate", sqlDate(rs.getDate("last_doc_date")));
-                row.put("forCurrCode", trim(rs.getString("for_curr_code")));
+                row.put("custNo",      r.get("cust_no", String.class));
+                row.put("name",        r.get("name_1", String.class));
+                row.put("reconNo",     r.get("recon_no", Integer.class));
+                row.put("outstanding", z(r.get("outstanding_bal", BigDecimal.class)));
+                row.put("gross",       z(r.get("gross_bal", BigDecimal.class)));
+                row.put("claim",       z(r.get("claim_bal", BigDecimal.class)));
+                row.put("lastDocDate", sqlDate(r.get("last_doc_date", LocalDate.class)));
+                row.put("forCurrCode", trim(r.get("for_curr_code", String.class)));
                 tot[0] = tot[0].add((BigDecimal) row.get("outstanding"));
                 tot[1] = tot[1].add((BigDecimal) row.get("gross"));
                 tot[2] = tot[2].add((BigDecimal) row.get("claim"));
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getUnbalancedReconData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -642,7 +656,7 @@ public class ArReportDataService {
         if (notBlank(p.subLedger())) { sql.append(" AND c.sub_ledger=? "); args.add(p.subLedger()); }
         if (p.startDate() != null) {
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
-            sql.append(" AND d.doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            sql.append(" AND d.doc_date BETWEEN ? AND ? "); args.add(p.startDate()); args.add(end);
         }
         if (notBlank(p.startDocNo())) {
             String end = notBlank(p.endDocNo()) ? p.endDocNo() : "zzzzzzzzzz";
@@ -653,49 +667,49 @@ public class ArReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };  // amt, tax
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal qty = z(rs.getBigDecimal("qty")), unitCost = z(rs.getBigDecimal("unit_cost")),
-                           discPerc = z(rs.getBigDecimal("disc_perc")), amt = z(rs.getBigDecimal("amt")),
-                           taxAmt = z(rs.getBigDecimal("tax_amt"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                BigDecimal qty = z(r.get("qty", BigDecimal.class)), unitCost = z(r.get("unit_cost", BigDecimal.class)),
+                           discPerc = z(r.get("disc_perc", BigDecimal.class)), amt = z(r.get("amt", BigDecimal.class)),
+                           taxAmt = z(r.get("tax_amt", BigDecimal.class));
                 BigDecimal discAmt = qty.multiply(unitCost).multiply(discPerc)
                         .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
                 BigDecimal lineGross = amt.add(discAmt);
-                String code = trim(rs.getString("stock_code"));
+                String code = trim(r.get("stock_code", String.class));
                 if (code.isEmpty()) {
-                    String lt = trim(rs.getString("line_type"));
-                    if ("S".equals(lt)) code = trim(rs.getString("sales_code"));
-                    else code = trim(rs.getString("ledger_type")) + trim(rs.getString("ledger_code"));
+                    String lt = trim(r.get("line_type", String.class));
+                    if ("S".equals(lt)) code = trim(r.get("sales_code", String.class));
+                    else code = trim(r.get("ledger_type", String.class)) + trim(r.get("ledger_code", String.class));
                 }
                 tot[0] = tot[0].add(amt); tot[1] = tot[1].add(taxAmt);
 
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("custNo",       rs.getString("cust_no"));
-                row.put("name",         rs.getString("name_1"));
-                row.put("status",       acctStatusDesc(rs.getString("acct_status")));
-                row.put("docDate",      sqlDate(rs.getDate("doc_date")));
-                row.put("docType",      docTypeLabel(trim(rs.getString("doc_type"))));
-                row.put("docNo",        rs.getString("doc_no"));
-                row.put("termsDesc",    trim(rs.getString("terms_desc")));
-                row.put("salesmanName", trim(rs.getString("salesman_name")));
-                row.put("lineNo",       rs.getInt("line_no"));
-                row.put("lineType",     rs.getString("line_type"));
+                row.put("custNo",       r.get("cust_no", String.class));
+                row.put("name",         r.get("name_1", String.class));
+                row.put("status",       acctStatusDesc(r.get("acct_status", String.class)));
+                row.put("docDate",      sqlDate(r.get("doc_date", LocalDate.class)));
+                row.put("docType",      docTypeLabel(trim(r.get("doc_type", String.class))));
+                row.put("docNo",        r.get("doc_no", String.class));
+                row.put("termsDesc",    trim(r.get("terms_desc", String.class)));
+                row.put("salesmanName", trim(r.get("salesman_name", String.class)));
+                row.put("lineNo",       r.get("line_no", Integer.class));
+                row.put("lineType",     r.get("line_type", String.class));
                 row.put("code",         code);
-                row.put("analysis",     notBlank(rs.getString("analysis_code")) ? "Analysis" : "");
-                row.put("description",  rs.getString("desc_1"));
-                row.put("reference",    rs.getString("ref"));
+                row.put("analysis",     notBlank(r.get("analysis_code", String.class)) ? "Analysis" : "");
+                row.put("description",  r.get("desc_1", String.class));
+                row.put("reference",    r.get("ref", String.class));
                 row.put("qty",          qty);
-                row.put("unitPer",      rs.getString("unit_per"));
+                row.put("unitPer",      r.get("unit_per", String.class));
                 row.put("unitCost",     unitCost);
                 row.put("amt",          amt);
                 row.put("discPerc",     discPerc);
                 row.put("discAmt",      discAmt);
                 row.put("lineGross",    lineGross);
-                row.put("taxCode",      rs.getString("tax_code"));
+                row.put("taxCode",      r.get("tax_code", String.class));
                 row.put("taxAmt",       taxAmt);
-                row.put("glAcctMain",   rs.getInt("gl_acct_main"));
-                row.put("glAcctSub",    rs.getInt("gl_acct_sub"));
+                row.put("glAcctMain",   r.get("gl_acct_main", Integer.class));
+                row.put("glAcctSub",    r.get("gl_acct_sub", Integer.class));
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getDetailedTransactionData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -749,7 +763,7 @@ public class ArReportDataService {
             String col = "P".equalsIgnoreCase(p.docPostInd()) ? "t.posting_date" : "t.doc_date";
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
             sql.append(" AND ").append(col).append(" BETWEEN ? AND ? ");
-            args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            args.add(p.startDate()); args.add(end);
         }
         sql.append(alpha ? " ORDER BY c.alpha_key, t.cust_no, t.doc_date, t.doc_type, t.doc_no "
                          : " ORDER BY t.cust_no, t.doc_date, t.doc_type, t.doc_no ");
@@ -757,27 +771,30 @@ public class ArReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] grand = { BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String docType = trim(rs.getString("doc_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt")), ret = z(rs.getBigDecimal("retent_amt")),
-                           paid = z(rs.getBigDecimal("amt_paid")), disc = z(rs.getBigDecimal("disc_taken")),
-                           fluct = z(rs.getBigDecimal("for_curr_fluct_amt"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String docType = trim(r.get("doc_type", String.class));
+                BigDecimal amt = z(r.get("amt", BigDecimal.class)), ret = z(r.get("retent_amt", BigDecimal.class)),
+                           paid = z(r.get("amt_paid", BigDecimal.class)), disc = z(r.get("disc_taken", BigDecimal.class)),
+                           fluct = z(r.get("for_curr_fluct_amt", BigDecimal.class));
                 BigDecimal bal = "C".equals(docType) || "V".equals(docType) || "B".equals(docType)
                     ? amt.subtract(ret).subtract(paid).subtract(disc)
                     : amt.subtract(ret).subtract(paid).subtract(disc).subtract(fluct);
                 grand[0] = grand[0].add(bal);
 
+                LocalDate docDateRaw = r.get("doc_date", LocalDate.class);
+                String custNo = r.get("cust_no", String.class);
+                String retentFlag = r.get("retent_flag", String.class);
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("rowType",     "T");
-                row.put("custNo",      rs.getString("cust_no"));
-                row.put("name",        rs.getString("name_1"));
-                row.put("forCurrCode", trim(rs.getString("for_curr_code")));
-                row.put("docNo",       rs.getString("doc_no"));
-                row.put("seqNo",       seqDisplay(rs.getInt("seq_no"), rs.getString("standing_doc_flag")));
+                row.put("custNo",      custNo);
+                row.put("name",        r.get("name_1", String.class));
+                row.put("forCurrCode", trim(r.get("for_curr_code", String.class)));
+                row.put("docNo",       r.get("doc_no", String.class));
+                row.put("seqNo",       seqDisplay(r.get("seq_no", Integer.class), r.get("standing_doc_flag", String.class)));
                 row.put("docType",     docTypeLabel(docType));
-                row.put("docDate",     sqlDate(rs.getDate("doc_date")));
-                row.put("postDate",    sqlDate(rs.getDate("posting_date")));
-                row.put("amtOrig",     z(rs.getBigDecimal("amt_orig")));
+                row.put("docDate",     sqlDate(docDateRaw));
+                row.put("postDate",    sqlDate(r.get("posting_date", LocalDate.class)));
+                row.put("amtOrig",     z(r.get("amt_orig", BigDecimal.class)));
                 row.put("amtPaid",     paid);
                 row.put("discTaken",   disc);
                 row.put("fluctAmt",    fluct);
@@ -788,22 +805,23 @@ public class ArReportDataService {
 
                 // attach arrctrx revaluation lines for this transaction
                 try {
-                    jdbc.query(
+                    String revalDateCol = "P".equalsIgnoreCase(p.docPostInd()) ? "match_posting_date" : "match_doc_date";
+                    dsl.resultQuery(
                         "SELECT match_doc_date, match_posting_date, reval_amt FROM arrctrx " +
                         "WHERE company_no=? AND cust_no=? AND doc_date=? AND doc_type=? AND retent_flag=? AND doc_no=? " +
                         "  AND reval_amt<>0 ORDER BY match_doc_date",
-                        rr -> {
-                            Map<String, Object> rv = new LinkedHashMap<>();
-                            rv.put("rowType",   "R");
-                            rv.put("custNo",    row.get("custNo"));
-                            rv.put("revalDate", sqlDate(rr.getDate("P".equalsIgnoreCase(p.docPostInd()) ? "match_posting_date" : "match_doc_date")));
-                            rv.put("revalAmt",  z(rr.getBigDecimal("reval_amt")));
-                            rows.add(rv);
-                        },
-                        s.getCompanyNo(), rs.getString("cust_no"), rs.getDate("doc_date"),
-                        docType, rs.getString("retent_flag"), rs.getString("doc_no"));
+                        s.getCompanyNo(), custNo, docDateRaw, docType, retentFlag, row.get("docNo"))
+                       .fetch()
+                       .forEach(rr -> {
+                           Map<String, Object> rv = new LinkedHashMap<>();
+                           rv.put("rowType",   "R");
+                           rv.put("custNo",    row.get("custNo"));
+                           rv.put("revalDate", sqlDate(rr.get(revalDateCol, LocalDate.class)));
+                           rv.put("revalAmt",  z(rr.get("reval_amt", BigDecimal.class)));
+                           rows.add(rv);
+                       });
                 } catch (Exception ignore) { /* no reval lines */ }
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getFcRevaluationData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -837,26 +855,26 @@ public class ArReportDataService {
             "             AND g.acct_main_no=a.gl_acct_main_no AND g.acct_sub_no=a.gl_acct_sub_no " +
             "WHERE a.company_no=? AND a.period_end_date=? ");
         List<Object> args = new ArrayList<>();
-        args.add(s.getCompanyNo()); args.add(Date.valueOf(p.periodEndDate()));
+        args.add(s.getCompanyNo()); args.add(p.periodEndDate());
         if (notBlank(p.subLedger())) { sql.append(" AND a.sub_ledger=? "); args.add(p.subLedger()); }
         sql.append(" ORDER BY a.gl_acct_main_no, a.gl_acct_sub_no, a.acct_type ");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };   // control, sales
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String acctType = trim(rs.getString("acct_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String acctType = trim(r.get("acct_type", String.class));
+                BigDecimal amt = z(r.get("amt", BigDecimal.class));
                 if ("C".equals(acctType)) tot[0] = tot[0].add(amt); else tot[1] = tot[1].add(amt);
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("glAcctMain", rs.getInt("gl_acct_main_no"));
-                row.put("glAcctSub",  rs.getInt("gl_acct_sub_no"));
-                row.put("glDesc",     rs.getString("gl_desc"));
+                row.put("glAcctMain", r.get("gl_acct_main_no", Integer.class));
+                row.put("glAcctSub",  r.get("gl_acct_sub_no", Integer.class));
+                row.put("glDesc",     r.get("gl_desc", String.class));
                 row.put("acctType",   "C".equals(acctType) ? "Control" : "D".equals(acctType) ? "Sales" : acctType);
-                row.put("subLedger",  rs.getString("sub_ledger"));
+                row.put("subLedger",  r.get("sub_ledger", String.class));
                 row.put("amt",        amt);
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getGlDistributionsData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -893,7 +911,7 @@ public class ArReportDataService {
             "FROM arsumry a LEFT JOIN arledgr l ON l.company_no=a.company_no AND l.sub_ledger=a.sub_ledger " +
             "WHERE a.company_no=? AND a.period_end_date<=? ");
         List<Object> args = new ArrayList<>();
-        args.add(s.getCompanyNo()); args.add(Date.valueOf(sel));
+        args.add(s.getCompanyNo()); args.add(sel);
         if (notBlank(p.startSubLedger())) {
             String end = notBlank(p.endSubLedger()) ? p.endSubLedger() : "zzzz";
             sql.append(" AND a.sub_ledger BETWEEN ? AND ? "); args.add(p.startSubLedger()); args.add(end);
@@ -905,27 +923,27 @@ public class ArReportDataService {
         Map<String, String> names = new LinkedHashMap<>();
         LocalDate sentinel = LocalDate.of(1900, 1, 1);
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String sl = trim(rs.getString("sub_ledger"));
-                LocalDate pe = rs.getDate("period_end_date").toLocalDate();
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String sl = trim(r.get("sub_ledger", String.class));
+                LocalDate pe = r.get("period_end_date", LocalDate.class);
                 BigDecimal[] a = acc.computeIfAbsent(sl, k -> new BigDecimal[]{
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO });
-                names.putIfAbsent(sl, trim(rs.getString("name1")));
-                BigDecimal inv = z(rs.getBigDecimal("ar_inv_value")), cr = z(rs.getBigDecimal("ar_cr_note_value")),
-                           dr = z(rs.getBigDecimal("ar_dr_note_value")), rec = z(rs.getBigDecimal("ar_recpt_value")),
-                           vd = z(rs.getBigDecimal("ar_void_chqs_value")), ds = z(rs.getBigDecimal("ar_disc_allow_value")),
-                           cf = z(rs.getBigDecimal("ar_curr_fluctuation")).add(z(rs.getBigDecimal("ar_prov_fluctuation")));
+                names.putIfAbsent(sl, trim(r.get("name1", String.class)));
+                BigDecimal inv = z(r.get("ar_inv_value", BigDecimal.class)), cr = z(r.get("ar_cr_note_value", BigDecimal.class)),
+                           dr = z(r.get("ar_dr_note_value", BigDecimal.class)), rec = z(r.get("ar_recpt_value", BigDecimal.class)),
+                           vd = z(r.get("ar_void_chqs_value", BigDecimal.class)), ds = z(r.get("ar_disc_allow_value", BigDecimal.class)),
+                           cf = z(r.get("ar_curr_fluctuation", BigDecimal.class)).add(z(r.get("ar_prov_fluctuation", BigDecimal.class)));
                 BigDecimal mvt = inv.add(cr).add(dr).add(rec).add(vd).add(ds).add(cf);
                 if (!pe.isAfter(sentinel)) {                       // period-0 opening row
-                    a[0] = a[0].add(z(rs.getBigDecimal("open_bal")));
+                    a[0] = a[0].add(z(r.get("open_bal", BigDecimal.class)));
                 } else if (pe.isBefore(sel)) {                     // prior periods → opening movement
                     a[1] = a[1].add(mvt);
                 } else {                                           // selected period → current movement
                     a[2] = a[2].add(inv); a[3] = a[3].add(cr); a[4] = a[4].add(dr);
                     a[5] = a[5].add(rec); a[6] = a[6].add(vd); a[7] = a[7].add(ds); a[8] = a[8].add(cf);
                 }
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getPeriodSummaryData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -995,7 +1013,7 @@ public class ArReportDataService {
         }
         if (p.startDate() != null) {
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
-            sql.append(" AND d.doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            sql.append(" AND d.doc_date BETWEEN ? AND ? "); args.add(p.startDate()); args.add(end);
         }
         if (notBlank(p.startCustomer())) {
             String end = notBlank(p.endCustomer()) ? p.endCustomer() : "zzzzzzzzzz";
@@ -1011,27 +1029,28 @@ public class ArReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] grand = { BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                boolean cancelled = "C".equalsIgnoreCase(trim(rs.getString("doc_status")));
-                BigDecimal amt = cancelled ? BigDecimal.ZERO : z(rs.getBigDecimal("amt"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                boolean cancelled = "C".equalsIgnoreCase(trim(r.get("doc_status", String.class)));
+                BigDecimal amt = cancelled ? BigDecimal.ZERO : z(r.get("amt", BigDecimal.class));
                 grand[0] = grand[0].add(amt);
-                String dt = trim(rs.getString("doc_type"));
-                String orderNo = trim(rs.getString("order_loc_no")).isEmpty() ? ""
-                        : rs.getInt("order_no") + " / " + trim(rs.getString("order_loc_no"));
+                String dt = trim(r.get("doc_type", String.class));
+                String orderLoc = trim(r.get("order_loc_no", String.class));
+                String orderNo = orderLoc.isEmpty() ? ""
+                        : r.get("order_no", Integer.class) + " / " + orderLoc;
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("docNo",    rs.getString("doc_no"));
-                row.put("docDate",  sqlDate(rs.getDate("doc_date")));
+                row.put("docNo",    r.get("doc_no", String.class));
+                row.put("docDate",  sqlDate(r.get("doc_date", LocalDate.class)));
                 row.put("docType",  "I".equals(dt) ? "INV" : "C".equals(dt) ? "C/N" : "D".equals(dt) ? "D/N" : dt);
-                row.put("custNo",   rs.getString("cust_no"));
-                row.put("name",     cancelled ? "CANCELLED" : rs.getString("name_1"));
+                row.put("custNo",   r.get("cust_no", String.class));
+                row.put("name",     cancelled ? "CANCELLED" : r.get("name_1", String.class));
                 row.put("amt",      amt);
                 row.put("status",   cancelled ? "CANCELLED" : "");
-                row.put("poNo",     trim(rs.getString("po_no")));
+                row.put("poNo",     trim(r.get("po_no", String.class)));
                 row.put("orderInfo", orderNo);
-                row.put("source",   trim(rs.getString("system_id")));
-                row.put("batchNo",  rs.getInt("batch_no"));
+                row.put("source",   trim(r.get("system_id", String.class)));
+                row.put("batchNo",  r.get("batch_no", Integer.class));
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getDocumentNumberData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1066,29 +1085,29 @@ public class ArReportDataService {
         if (p.startDate() != null) {
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
             sql.append(" AND ").append(dateCol).append(" BETWEEN ? AND ? ");
-            args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            args.add(p.startDate()); args.add(end);
         }
         sql.append(" ORDER BY t.sub_ledger, ").append(dateCol).append(", t.doc_type, t.doc_no ");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };   // CR, DR
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String dt = trim(rs.getString("doc_type"));
-                BigDecimal amt = z(rs.getBigDecimal("amt"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String dt = trim(r.get("doc_type", String.class));
+                BigDecimal amt = z(r.get("amt", BigDecimal.class));
                 if ("C".equals(dt)) tot[0] = tot[0].add(amt); else tot[1] = tot[1].add(amt);
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("subLedger",   rs.getString("sub_ledger"));
-                row.put("docNo",       rs.getString("doc_no"));
+                row.put("subLedger",   r.get("sub_ledger", String.class));
+                row.put("docNo",       r.get("doc_no", String.class));
                 row.put("docType",     "C".equals(dt) ? "C/N" : "D/N");
-                row.put("custNo",      rs.getString("cust_no"));
-                row.put("name",        rs.getString("name_1"));
-                row.put("docDate",     sqlDate(rs.getDate("doc_date")));
-                row.put("postingDate", sqlDate(rs.getDate("posting_date")));
+                row.put("custNo",      r.get("cust_no", String.class));
+                row.put("name",        r.get("name_1", String.class));
+                row.put("docDate",     sqlDate(r.get("doc_date", LocalDate.class)));
+                row.put("postingDate", sqlDate(r.get("posting_date", LocalDate.class)));
                 row.put("amt",         amt);
-                row.put("reference",   rs.getString("ref"));
+                row.put("reference",   r.get("ref", String.class));
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getAdjustmentNoteData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1113,19 +1132,22 @@ public class ArReportDataService {
         try {
             StringBuilder cols = new StringBuilder();
             for (int i = 1; i <= 13; i++) cols.append(i > 1 ? "," : "").append(String.format("period_end_%02d", i));
-            jdbc.query("SELECT " + cols + " FROM gldates WHERE company_no=? AND year_no=?", rs -> {
-                for (int i = 1; i <= 13; i++) {
-                    Date d = rs.getDate(String.format("period_end_%02d", i));
-                    if (d != null && d.toLocalDate().equals(pe)) r[0] = i;
-                }
-            }, s.getCompanyNo(), s.getYearNo());
+            dsl.resultQuery("SELECT " + cols + " FROM gldates WHERE company_no=? AND year_no=?",
+                s.getCompanyNo(), s.getYearNo())
+               .fetch()
+               .forEach(rec -> {
+                   for (int i = 1; i <= 13; i++) {
+                       LocalDate d = rec.get(String.format("period_end_%02d", i), LocalDate.class);
+                       if (d != null && d.equals(pe)) r[0] = i;
+                   }
+               });
         } catch (Exception e) { log.warn("resolvePeriodNo: {}", e.getMessage()); }
         return r[0];
     }
 
-    private static BigDecimal[] read13(java.sql.ResultSet rs, String prefix) throws java.sql.SQLException {
+    private static BigDecimal[] read13(org.jooq.Record r, String prefix) {
         BigDecimal[] a = new BigDecimal[14];
-        for (int i = 1; i <= 13; i++) a[i] = z(rs.getBigDecimal(String.format(prefix + "_%02d", i)));
+        for (int i = 1; i <= 13; i++) a[i] = z(r.get(String.format(prefix + "_%02d", i), BigDecimal.class));
         return a;
     }
 
@@ -1170,15 +1192,15 @@ public class ArReportDataService {
         Map<String, BigDecimal[]> acc = new LinkedHashMap<>();
         Map<String, String[]> keys = new LinkedHashMap<>();
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String sl = trim(rs.getString("sub_ledger")), sc = trim(rs.getString("sales_code"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String sl = trim(r.get("sub_ledger", String.class)), sc = trim(r.get("sales_code", String.class));
                 String key = sl + "" + sc;
-                BigDecimal[] sales = read13(rs, "sales");
+                BigDecimal[] sales = read13(r, "sales");
                 BigDecimal[] a = acc.computeIfAbsent(key, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
                 keys.putIfAbsent(key, new String[]{sl, sc});
-                if (rs.getInt("year_no") == thisYr) { a[0] = sales[period]; a[1] = ytd(sales, period); }
+                if (Integer.valueOf(thisYr).equals(r.get("year_no", Integer.class))) { a[0] = sales[period]; a[1] = ytd(sales, period); }
                 else                                { a[2] = sales[period]; a[3] = ytd(sales, period); }
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getSalesDistributionData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1231,15 +1253,15 @@ public class ArReportDataService {
         Map<String, BigDecimal[]> acc = new LinkedHashMap<>();
         Map<String, Object[]> keys = new LinkedHashMap<>();
         try {
-            jdbc.query(sql, rs -> {
-                int main = rs.getInt("gl_acct_main"), sub = rs.getInt("gl_acct_sub");
+            dsl.resultQuery(sql, s.getCompanyNo(), thisYr, lastYr).fetch().forEach(r -> {
+                int main = r.get("gl_acct_main", Integer.class), sub = r.get("gl_acct_sub", Integer.class);
                 String key = main + "-" + sub;
-                BigDecimal[] sales = read13(rs, "sales");
+                BigDecimal[] sales = read13(r, "sales");
                 BigDecimal[] a = acc.computeIfAbsent(key, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
-                keys.putIfAbsent(key, new Object[]{main, sub, trim(rs.getString("gl_desc"))});
-                if (rs.getInt("year_no") == thisYr) { a[0] = sales[period]; a[1] = ytd(sales, period); }
+                keys.putIfAbsent(key, new Object[]{main, sub, trim(r.get("gl_desc", String.class))});
+                if (Integer.valueOf(thisYr).equals(r.get("year_no", Integer.class))) { a[0] = sales[period]; a[1] = ytd(sales, period); }
                 else                                { a[2] = sales[period]; a[3] = ytd(sales, period); }
-            }, s.getCompanyNo(), thisYr, lastYr);
+            });
         } catch (Exception e) {
             log.error("getSalesByGlData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1304,25 +1326,25 @@ public class ArReportDataService {
 
         List<Map<String, Object>> rows = new ArrayList<>();
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal acctBal = z(rs.getBigDecimal("acct_bal"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                BigDecimal acctBal = z(r.get("acct_bal", BigDecimal.class));
                 BigDecimal sales = BigDecimal.ZERO;
-                String csv = rs.getString("sales_csv");
+                String csv = r.get("sales_csv", String.class);
                 if (csv != null && !csv.isEmpty() && period >= 1) {
                     String[] parts = csv.split("\\|", -1);
                     if (ytd) { for (int i = 0; i < period && i < parts.length; i++) sales = sales.add(new BigDecimal(parts[i])); }
                     else if (period - 1 < parts.length) sales = new BigDecimal(parts[period - 1]);
                 }
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("subLedger",   rs.getString("sub_ledger"));
-                row.put("custNo",      rs.getString("cust_no"));
-                row.put("name",        rs.getString("name_1"));
+                row.put("subLedger",   r.get("sub_ledger", String.class));
+                row.put("custNo",      r.get("cust_no", String.class));
+                row.put("name",        r.get("name_1", String.class));
                 row.put("acctBal",     acctBal);
                 row.put("sales",       sales);
-                row.put("creditLimit", rs.getLong("credit_limit"));
-                row.put("status",      acctStatusDesc(rs.getString("acct_status")));
+                row.put("creditLimit", r.get("credit_limit", Long.class));
+                row.put("status",      acctStatusDesc(r.get("acct_status", String.class)));
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getDebtorsControlData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1388,18 +1410,18 @@ public class ArReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("custNo",     rs.getString("cust_no"));
-                row.put("name",       rs.getString("name_1"));
-                row.put("subLedger",  rs.getString("sub_ledger"));
-                row.put("status",     statusFull(rs.getString("acct_status")));
-                row.put("acctBal",    z(rs.getBigDecimal("acct_bal")));
-                row.put("addDate",    sqlDate(rs.getDate("acct_add_date")));
-                row.put("closeDate",  sqlDate(rs.getDate("acct_close_date")));
+                row.put("custNo",     r.get("cust_no", String.class));
+                row.put("name",       r.get("name_1", String.class));
+                row.put("subLedger",  r.get("sub_ledger", String.class));
+                row.put("status",     statusFull(r.get("acct_status", String.class)));
+                row.put("acctBal",    z(r.get("acct_bal", BigDecimal.class)));
+                row.put("addDate",    sqlDate(r.get("acct_add_date", LocalDate.class)));
+                row.put("closeDate",  sqlDate(r.get("acct_close_date", LocalDate.class)));
                 tot[0] = tot[0].add((BigDecimal) row.get("acctBal"));
                 rows.add(row);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getCustomerAccountStatusData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1452,19 +1474,19 @@ public class ArReportDataService {
         Map<String, BigDecimal[]> acc = new LinkedHashMap<>();
         Map<String, String[]> meta = new LinkedHashMap<>();
         try {
-            jdbc.query(sql.toString(), rs -> {
-                String cust = trim(rs.getString("cust_no"));
-                String grp = p.byType() ? trim(rs.getString("type")) : trim(rs.getString("sub_ledger"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                String cust = trim(r.get("cust_no", String.class));
+                String grp = p.byType() ? trim(r.get("type", String.class)) : trim(r.get("sub_ledger", String.class));
                 String key = grp + "" + cust;
                 BigDecimal[] a = acc.computeIfAbsent(key, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
-                meta.putIfAbsent(key, new String[]{grp, cust, trim(rs.getString("name_1")), trim(rs.getString("sub_ledger"))});
-                if (rs.getInt("year_no") == thisYr) {
-                    a[0] = ytd(read13(rs, "sales"), period);
-                    a[1] = ytd(read13(rs, "cost"), period);
+                meta.putIfAbsent(key, new String[]{grp, cust, trim(r.get("name_1", String.class)), trim(r.get("sub_ledger", String.class))});
+                if (Integer.valueOf(thisYr).equals(r.get("year_no", Integer.class))) {
+                    a[0] = ytd(read13(r, "sales"), period);
+                    a[1] = ytd(read13(r, "cost"), period);
                 } else {
-                    a[2] = ytd(read13(rs, "sales"), period);
+                    a[2] = ytd(read13(r, "sales"), period);
                 }
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getCustomerSalesData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1528,23 +1550,23 @@ public class ArReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] g = { BigDecimal.ZERO, BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal[] sales = read13(rs, "sales");
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                BigDecimal[] sales = read13(r, "sales");
                 BigDecimal mtd = sales[period], y = ytd(sales, period);
                 if (mtd.signum() == 0 && y.signum() == 0) return;
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("salesman",     trim(rs.getString("salesman")));
-                row.put("salesmanName", trim(rs.getString("salesman_name")));
-                row.put("custNo",       rs.getString("cust_no"));
-                row.put("alphaKey",     rs.getString("alpha_key"));
-                row.put("name",         rs.getString("name_1"));
-                row.put("location",     trim(rs.getString("city")) + " " + trim(rs.getString("state")));
-                row.put("phone",        rs.getString("contact_phone"));
+                row.put("salesman",     trim(r.get("salesman", String.class)));
+                row.put("salesmanName", trim(r.get("salesman_name", String.class)));
+                row.put("custNo",       r.get("cust_no", String.class));
+                row.put("alphaKey",     r.get("alpha_key", String.class));
+                row.put("name",         r.get("name_1", String.class));
+                row.put("location",     trim(r.get("city", String.class)) + " " + trim(r.get("state", String.class)));
+                row.put("phone",        r.get("contact_phone", String.class));
                 row.put("mtdSales",     mtd);
                 row.put("ytdSales",     y);
                 rows.add(row);
                 g[0] = g[0].add(mtd); g[1] = g[1].add(y);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getSalesBySalespersonData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1586,31 +1608,31 @@ public class ArReportDataService {
         }
         if (p.startDate() != null) {
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
-            sql.append(" AND t.doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            sql.append(" AND t.doc_date BETWEEN ? AND ? "); args.add(p.startDate()); args.add(end);
         }
         sql.append(" ORDER BY t.salesman, t.doc_date, t.doc_no ");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] g = { BigDecimal.ZERO, BigDecimal.ZERO };
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal sale = z(rs.getBigDecimal("sale_amt")), cost = z(rs.getBigDecimal("cost_of_sale_amt"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                BigDecimal sale = z(r.get("sale_amt", BigDecimal.class)), cost = z(r.get("cost_of_sale_amt", BigDecimal.class));
                 BigDecimal profit = sale.subtract(cost);
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("salesman",     trim(rs.getString("salesman")));
-                row.put("salesmanName", trim(rs.getString("salesman_name")));
-                row.put("custNo",       rs.getString("cust_no"));
-                row.put("name",         rs.getString("name_1"));
-                row.put("docType",      docTypeLabel(trim(rs.getString("doc_type"))));
-                row.put("docNo",        rs.getString("doc_no"));
-                row.put("docDate",      sqlDate(rs.getDate("doc_date")));
+                row.put("salesman",     trim(r.get("salesman", String.class)));
+                row.put("salesmanName", trim(r.get("salesman_name", String.class)));
+                row.put("custNo",       r.get("cust_no", String.class));
+                row.put("name",         r.get("name_1", String.class));
+                row.put("docType",      docTypeLabel(trim(r.get("doc_type", String.class))));
+                row.put("docNo",        r.get("doc_no", String.class));
+                row.put("docDate",      sqlDate(r.get("doc_date", LocalDate.class)));
                 row.put("saleAmt",      sale);
                 row.put("costAmt",      cost);
                 row.put("grossProfit",  profit);
                 row.put("profitPct",    varPct(profit, sale));
                 rows.add(row);
                 g[0] = g[0].add(sale); g[1] = g[1].add(cost);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getSalespersonProfitData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1650,7 +1672,7 @@ public class ArReportDataService {
         if (p.startDate() != null) {
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
             sql.append(" AND ").append(dateCol).append(" BETWEEN ? AND ? ");
-            args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            args.add(p.startDate()); args.add(end);
         }
         sql.append("N".equalsIgnoreCase(p.seq())
             ? " ORDER BY t.sub_ledger, t.doc_no " : " ORDER BY t.sub_ledger, " + dateCol + ", t.doc_no ");
@@ -1658,23 +1680,23 @@ public class ArReportDataService {
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] g = { BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO };  // sale, tax, amt
         try {
-            jdbc.query(sql.toString(), rs -> {
-                BigDecimal sale = z(rs.getBigDecimal("sale_amt")), tax = z(rs.getBigDecimal("sales_tax_amt")), amt = z(rs.getBigDecimal("amt"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                BigDecimal sale = z(r.get("sale_amt", BigDecimal.class)), tax = z(r.get("sales_tax_amt", BigDecimal.class)), amt = z(r.get("amt", BigDecimal.class));
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("subLedger",   rs.getString("sub_ledger"));
-                row.put("docDate",     sqlDate(rs.getDate("doc_date")));
-                row.put("postingDate", sqlDate(rs.getDate("posting_date")));
-                row.put("docType",     docTypeLabel(trim(rs.getString("doc_type"))));
-                row.put("docNo",       rs.getString("doc_no"));
-                row.put("custNo",      rs.getString("cust_no"));
-                row.put("name",        rs.getString("name_1"));
+                row.put("subLedger",   r.get("sub_ledger", String.class));
+                row.put("docDate",     sqlDate(r.get("doc_date", LocalDate.class)));
+                row.put("postingDate", sqlDate(r.get("posting_date", LocalDate.class)));
+                row.put("docType",     docTypeLabel(trim(r.get("doc_type", String.class))));
+                row.put("docNo",       r.get("doc_no", String.class));
+                row.put("custNo",      r.get("cust_no", String.class));
+                row.put("name",        r.get("name_1", String.class));
                 row.put("saleAmt",     sale);
                 row.put("taxAmt",      tax);
                 row.put("amt",         amt);
-                row.put("salesman",    trim(rs.getString("salesman")));
+                row.put("salesman",    trim(r.get("salesman", String.class)));
                 rows.add(row);
                 g[0]=g[0].add(sale); g[1]=g[1].add(tax); g[2]=g[2].add(amt);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getSalesJournalData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1716,31 +1738,31 @@ public class ArReportDataService {
         }
         if (p.startDate() != null) {
             LocalDate end = p.endDate() != null ? p.endDate() : LocalDate.of(9999, 12, 31);
-            sql.append(" AND t.doc_date BETWEEN ? AND ? "); args.add(Date.valueOf(p.startDate())); args.add(Date.valueOf(end));
+            sql.append(" AND t.doc_date BETWEEN ? AND ? "); args.add(p.startDate()); args.add(end);
         }
         sql.append(" ORDER BY t.salesman, t.doc_date, t.doc_no ");
 
         List<Map<String, Object>> rows = new ArrayList<>();
         BigDecimal[] g = { BigDecimal.ZERO, BigDecimal.ZERO };   // sale, commission
         try {
-            jdbc.query(sql.toString(), rs -> {
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("salesman",     trim(rs.getString("salesman")));
-                row.put("salesmanName", trim(rs.getString("salesman_name")));
-                row.put("docDate",      sqlDate(rs.getDate("doc_date")));
-                row.put("docType",      docTypeLabel(trim(rs.getString("doc_type"))));
-                row.put("retentFlag",   rs.getString("retent_flag"));
-                row.put("docNo",        rs.getString("doc_no"));
-                row.put("custNo",       rs.getString("cust_no"));
-                row.put("name",         rs.getString("name_1"));
-                row.put("docAmt",       z(rs.getBigDecimal("amt")));
-                row.put("saleAmt",      z(rs.getBigDecimal("sale_amt")));
-                row.put("commPct",      z(rs.getBigDecimal("comm_rate")));
-                row.put("commission",   z(rs.getBigDecimal("comm_amt")));
+                row.put("salesman",     trim(r.get("salesman", String.class)));
+                row.put("salesmanName", trim(r.get("salesman_name", String.class)));
+                row.put("docDate",      sqlDate(r.get("doc_date", LocalDate.class)));
+                row.put("docType",      docTypeLabel(trim(r.get("doc_type", String.class))));
+                row.put("retentFlag",   r.get("retent_flag", String.class));
+                row.put("docNo",        r.get("doc_no", String.class));
+                row.put("custNo",       r.get("cust_no", String.class));
+                row.put("name",         r.get("name_1", String.class));
+                row.put("docAmt",       z(r.get("amt", BigDecimal.class)));
+                row.put("saleAmt",      z(r.get("sale_amt", BigDecimal.class)));
+                row.put("commPct",      z(r.get("comm_rate", BigDecimal.class)));
+                row.put("commission",   z(r.get("comm_amt", BigDecimal.class)));
                 rows.add(row);
                 g[0] = g[0].add((BigDecimal) row.get("saleAmt"));
                 g[1] = g[1].add((BigDecimal) row.get("commission"));
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getCommissionData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1793,7 +1815,7 @@ public class ArReportDataService {
             "LEFT JOIN arcusts c ON c.company_no=t.company_no AND c.cust_no=t.cust_supplier_no " +
             "WHERE t.company_no=? AND t.move_date BETWEEN ? AND ? ");
         List<Object> args = new ArrayList<>();
-        args.add(s.getCompanyNo()); args.add(Date.valueOf(broadStart)); args.add(Date.valueOf(broadEnd));
+        args.add(s.getCompanyNo()); args.add(broadStart); args.add(broadEnd);
         if (notBlank(p.startCustomer())) {
             String end = notBlank(p.endCustomer()) ? p.endCustomer() : "zzzzzzzzzz";
             sql.append(" AND t.cust_supplier_no BETWEEN ? AND ? "); args.add(p.startCustomer()); args.add(end);
@@ -1819,20 +1841,20 @@ public class ArReportDataService {
         Map<String, BigDecimal[]> acc = new LinkedHashMap<>();   // [total, yr1, yr2, yr3, yr4, yr5]
         Map<String, String> names = new LinkedHashMap<>();
         try {
-            jdbc.query(sql.toString(), rs -> {
-                LocalDate md = ld(rs.getDate("move_date"));
+            dsl.resultQuery(sql.toString(), args.toArray()).fetch().forEach(r -> {
+                LocalDate md = ld(r.get("move_date", LocalDate.class));
                 if (md == null) return;
                 int win = 0;
                 for (int n = 1; n <= 5; n++) if (!md.isBefore(winStart[n]) && !md.isAfter(winEnd[n])) { win = n; break; }
                 if (win == 0) return;
-                BigDecimal val = z(rs.getBigDecimal("sales_or_recpt_value")).negate();
-                String cust = trim(rs.getString("cust_supplier_no"));
+                BigDecimal val = z(r.get("sales_or_recpt_value", BigDecimal.class)).negate();
+                String cust = trim(r.get("cust_supplier_no", String.class));
                 BigDecimal[] a = acc.computeIfAbsent(cust, k -> new BigDecimal[]{
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO });
-                names.putIfAbsent(cust, trim(rs.getString("name_1")));
+                names.putIfAbsent(cust, trim(r.get("name_1", String.class)));
                 a[win] = a[win].add(val);
                 a[0] = a[0].add(val);
-            }, args.toArray());
+            });
         } catch (Exception e) {
             log.error("getCustomerSalesByYearData: {}", e.getMessage(), e);
             return warn("Query failed: " + e.getMessage());
@@ -1896,15 +1918,14 @@ public class ArReportDataService {
         return seqNo == 0 ? "UNC" : String.valueOf(seqNo);
     }
 
-    static java.sql.Date sqlDate(java.sql.Date d) {
+    static LocalDate sqlDate(LocalDate d) {
         if (d == null) return null;
-        return d.toLocalDate().isAfter(LocalDate.of(1900, 1, 1)) ? d : null;
+        return d.isAfter(LocalDate.of(1900, 1, 1)) ? d : null;
     }
 
-    static LocalDate ld(Date d) {
+    static LocalDate ld(LocalDate d) {
         if (d == null) return null;
-        LocalDate v = d.toLocalDate();
-        return v.isAfter(LocalDate.of(1900, 1, 1)) ? v : null;
+        return d.isAfter(LocalDate.of(1900, 1, 1)) ? d : null;
     }
 
     static String qMarks(int n) {
