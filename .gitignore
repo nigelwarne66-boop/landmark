@@ -13,6 +13,8 @@ jOOQ-*/
 
 # ATO source files (live in ops directory, not source) and load outputs
 *.xlsx
+# COBOL reference outputs (kept locally for engine parity verification, not source)
+*.xls
 TAXSCALES.csv
 
 # MVR / OZEDI test outputs
