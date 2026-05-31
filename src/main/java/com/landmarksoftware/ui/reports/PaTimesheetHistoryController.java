@@ -57,7 +57,7 @@ public class PaTimesheetHistoryController implements Initializable {
         endEmployee.getSelectionModel().selectFirst();
 
         LocalDate now = LocalDate.now();
-        startDate.setValue(now.withDayOfYear(1));
+        startDate.setValue(session.getYrStartDate() != null ? session.getYrStartDate() : now.withDayOfMonth(1).withMonth(7));
         endDate.setValue(now);
     }
 

@@ -57,7 +57,7 @@ public class PaEmployeeHistoryDetailController implements Initializable {
         endPaygroup.getSelectionModel().selectFirst();
 
         LocalDate now = LocalDate.now();
-        startDate.setValue(now.withDayOfYear(1));
+        startDate.setValue(session.getYrStartDate() != null ? session.getYrStartDate() : now.withDayOfMonth(1).withMonth(7));
         endDate.setValue(now);
     }
 
