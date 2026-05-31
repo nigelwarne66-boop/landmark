@@ -81,13 +81,13 @@
 
   <summary>
     <band height="30">
-      <line><reportElement x="414" y="2" width="368" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="4" y="8" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " order(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="300" y="8" width="116" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="416" y="8" width="84" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_ORDERED}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="500" y="8" width="84" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_INVOICED}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="584" y="8" width="84" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DELIVERED}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="668" y="8" width="114" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_OUTSTANDING}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " order(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="300" y="8" width="116" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="416" y="8" width="84" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_ORDERED}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="500" y="8" width="84" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_INVOICED}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="584" y="8" width="84" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DELIVERED}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="668" y="8" width="114" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_OUTSTANDING}]]></textFieldExpression></textField>
     </band>
   </summary>
 

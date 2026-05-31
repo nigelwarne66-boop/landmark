@@ -9,10 +9,6 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
-
   <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
   <parameter name="COMPANY_NO"       class="java.lang.Integer"/>
@@ -78,12 +74,12 @@
 
   <summary>
     <band height="50">
-      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="2" y="8" width="200" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " row(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="380" y="8" width="100" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total Control:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="8" width="300" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{TOTAL_CONTROL}]]></textFieldExpression></textField>
-      <staticText><reportElement x="380" y="24" width="100" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total Sales:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="24" width="300" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{TOTAL_SALES}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="50" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="2" y="8" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " row(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="380" y="8" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total Control:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{TOTAL_CONTROL}]]></textFieldExpression></textField>
+      <staticText><reportElement x="380" y="24" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total Sales:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="24" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{TOTAL_SALES}]]></textFieldExpression></textField>
     </band>
   </summary>
 

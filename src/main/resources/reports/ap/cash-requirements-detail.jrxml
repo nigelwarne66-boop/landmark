@@ -9,10 +9,6 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
-
   <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
   <parameter name="COMPANY_NAME"      class="java.lang.String"/>
@@ -54,9 +50,9 @@
     </groupHeader>
     <groupFooter>
       <band height="14">
-        <line><reportElement x="600" y="1" width="182" height="1" forecolor="#888888"/></line>
-        <textField><reportElement x="4" y="2" width="300" height="11"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA["Supplier " + $F{supplierNo} + " total to pay"]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="700" y="2" width="82" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{G_TOTAL}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="300" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA["Supplier " + $F{supplierNo} + " total to pay"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="700" y="2" width="82" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{G_TOTAL}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -111,15 +107,15 @@
 
   <summary>
     <band height="26">
-      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <staticText><reportElement x="4" y="6" width="200" height="12"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[REPORT TOTALS]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="252" y="6" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_MUST_PAY}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="328" y="6" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PROMPT_PAY}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="404" y="6" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_OVERDUE}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="480" y="6" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_NOW_DUE}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="556" y="6" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_DISC_DUE}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="6" width="64" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_DISC_AVAIL}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="700" y="6" width="82" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_TOTAL}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="26" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4" y="6" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[REPORT TOTALS]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="252" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_MUST_PAY}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="328" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PROMPT_PAY}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="404" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_OVERDUE}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="480" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_NOW_DUE}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="556" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_DISC_DUE}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="6" width="64" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_DISC_AVAIL}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="700" y="6" width="82" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_TOTAL}]]></textFieldExpression></textField>
     </band>
   </summary>
 

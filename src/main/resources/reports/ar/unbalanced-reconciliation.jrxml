@@ -72,12 +72,12 @@
 
   <summary>
     <band height="34">
-      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="4" y="6" width="270" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " reconciliation(s) listed"]]></textFieldExpression></textField>
-      <staticText><reportElement x="148" y="20" width="130" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="280" y="20" width="100" height="11"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_OUTSTANDING}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="382" y="20" width="90"  height="11"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_GROSS}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="474" y="20" width="90"  height="11"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CLAIM}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="34" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="6" width="270" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " reconciliation(s) listed"]]></textFieldExpression></textField>
+      <staticText><reportElement x="148" y="20" width="130" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="280" y="20" width="100" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_OUTSTANDING}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="382" y="20" width="90"  height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_GROSS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="474" y="20" width="90"  height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CLAIM}]]></textFieldExpression></textField>
     </band>
   </summary>
 

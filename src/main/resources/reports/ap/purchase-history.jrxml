@@ -51,14 +51,14 @@
     </groupHeader>
     <groupFooter>
       <band height="15">
-        <line><reportElement x="226" y="1" width="556" height="1" forecolor="#888888"/></line>
-        <textField><reportElement x="4" y="2" width="200" height="11"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA["Sub ledger " + $F{subLedger} + " total"]]></textFieldExpression></textField>
-        <textField pattern="#,##0;(#,##0)"><reportElement x="230" y="2" width="70" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_THIS}]]></textFieldExpression></textField>
-        <textField pattern="#,##0;(#,##0)"><reportElement x="300" y="2" width="70" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_LAST}]]></textFieldExpression></textField>
-        <textField pattern="#,##0;(#,##0)"><reportElement x="370" y="2" width="70" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_VAR}]]></textFieldExpression></textField>
-        <textField pattern="#,##0;(#,##0)"><reportElement x="488" y="2" width="74" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_THIS}]]></textFieldExpression></textField>
-        <textField pattern="#,##0;(#,##0)"><reportElement x="564" y="2" width="74" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_LAST}]]></textFieldExpression></textField>
-        <textField pattern="#,##0;(#,##0)"><reportElement x="640" y="2" width="74" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_VAR}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="15" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="200" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA["Sub ledger " + $F{subLedger} + " total"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="230" y="2" width="70" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_THIS}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="300" y="2" width="70" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_LAST}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="370" y="2" width="70" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_VAR}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="488" y="2" width="74" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_THIS}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="564" y="2" width="74" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_LAST}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="640" y="2" width="74" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_VAR}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -113,14 +113,14 @@
 
   <summary>
     <band height="24">
-      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <staticText><reportElement x="4" y="6" width="220" height="12"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[ALL SUB LEDGERS]]></text></staticText>
-      <textField pattern="#,##0;(#,##0)"><reportElement x="230" y="6" width="70" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_THIS}]]></textFieldExpression></textField>
-      <textField pattern="#,##0;(#,##0)"><reportElement x="300" y="6" width="70" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_LAST}]]></textFieldExpression></textField>
-      <textField pattern="#,##0;(#,##0)"><reportElement x="370" y="6" width="70" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_VAR}]]></textFieldExpression></textField>
-      <textField pattern="#,##0;(#,##0)"><reportElement x="488" y="6" width="74" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_THIS}]]></textFieldExpression></textField>
-      <textField pattern="#,##0;(#,##0)"><reportElement x="564" y="6" width="74" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_LAST}]]></textFieldExpression></textField>
-      <textField pattern="#,##0;(#,##0)"><reportElement x="640" y="6" width="74" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_VAR}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="24" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4" y="6" width="220" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[ALL SUB LEDGERS]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="230" y="6" width="70" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_THIS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="300" y="6" width="70" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_LAST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="370" y="6" width="70" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_VAR}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="488" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_THIS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="564" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_LAST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="640" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_VAR}]]></textFieldExpression></textField>
     </band>
   </summary>
 

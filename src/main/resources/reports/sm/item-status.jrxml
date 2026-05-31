@@ -86,10 +86,10 @@
 
   <summary>
     <band height="30">
-      <line><reportElement x="610" y="2" width="172" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="4" y="8" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " item(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="500" y="8" width="110" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total value on hand:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="610" y="8" width="68" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_VALUE}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " item(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="500" y="8" width="110" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total value on hand:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="610" y="8" width="68" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_VALUE}]]></textFieldExpression></textField>
     </band>
   </summary>
 

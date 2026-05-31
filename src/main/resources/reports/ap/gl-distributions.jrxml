@@ -36,9 +36,9 @@
     </groupHeader>
     <groupFooter>
       <band height="16">
-        <line><reportElement x="0" y="1" width="535" height="1" forecolor="#888888"/></line>
-        <textField><reportElement x="0" y="2" width="200" height="12"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_COUNT} + " account(s) total"]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="420" y="2" width="115" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_TOTAL}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="535" height="16" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="0" y="2" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_COUNT} + " account(s) total"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="420" y="2" width="115" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_TOTAL}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -79,11 +79,11 @@
 
   <summary>
     <band height="44">
-      <line><reportElement x="0" y="4" width="535" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <staticText><reportElement x="0" y="8"  width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Control Accounts:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="420" y="8" width="115" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_CONTROL}]]></textFieldExpression></textField>
-      <staticText><reportElement x="0" y="24" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Distribution Accounts:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="420" y="24" width="115" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_EXPENSE}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="535" height="44" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="0" y="8"  width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Control Accounts:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="420" y="8" width="115" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_CONTROL}]]></textFieldExpression></textField>
+      <staticText><reportElement x="0" y="24" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Total Distribution Accounts:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="420" y="24" width="115" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_EXPENSE}]]></textFieldExpression></textField>
     </band>
   </summary>
 

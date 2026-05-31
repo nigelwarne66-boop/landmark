@@ -66,10 +66,10 @@
 
   <summary>
     <band height="50">
-      <line><reportElement x="434" y="2" width="220" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="4" y="6" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " transaction(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="360" y="6" width="168" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Net total:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="534" y="6" width="120" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_NET}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="50" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="6" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " transaction(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="360" y="6" width="168" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Net total:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="534" y="6" width="120" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_NET}]]></textFieldExpression></textField>
     </band>
   </summary>
 

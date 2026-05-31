@@ -78,11 +78,11 @@
 
   <summary>
     <band height="30">
-      <line><reportElement x="548" y="2" width="234" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="4" y="8" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " item(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="430" y="8" width="134" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total cost / sale:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="564" y="8" width="106" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_COST}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="670" y="8" width="112" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_SALE}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " item(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="430" y="8" width="134" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total cost / sale:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="564" y="8" width="106" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_COST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="670" y="8" width="112" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_SALE}]]></textFieldExpression></textField>
     </band>
   </summary>
 

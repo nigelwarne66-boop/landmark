@@ -9,10 +9,6 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
-
   <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
   <parameter name="COMPANY_NO"      class="java.lang.Integer"/>
@@ -89,13 +85,13 @@
 
   <summary>
     <band height="34">
-      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="2" y="8" width="200" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " row(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="64" y="8" width="68" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="134" y="8" width="81"  height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MTD_THIS}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="217" y="8" width="81"  height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MTD_LAST}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="441" y="8" width="81"  height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_YTD_THIS}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="524" y="8" width="81"  height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_YTD_LAST}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="34" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="2" y="8" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " row(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="64" y="8" width="68" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="134" y="8" width="81"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MTD_THIS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="217" y="8" width="81"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MTD_LAST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="441" y="8" width="81"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_YTD_THIS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="524" y="8" width="81"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_YTD_LAST}]]></textFieldExpression></textField>
     </band>
   </summary>
 

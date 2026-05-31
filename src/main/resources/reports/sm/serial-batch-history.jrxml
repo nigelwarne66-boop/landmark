@@ -64,7 +64,8 @@
 
   <summary>
     <band height="20">
-      <textField><reportElement x="4" y="3" width="300" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s)"]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="3" width="300" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s)"]]></textFieldExpression></textField>
     </band>
   </summary>
 

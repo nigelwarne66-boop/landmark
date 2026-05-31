@@ -9,10 +9,6 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
-
   <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
   <parameter name="COMPANY_NO"       class="java.lang.Integer"/>
@@ -82,14 +78,14 @@
 
   <summary>
     <band height="44">
-      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="2" y="8" width="200" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " note(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="300" y="8"  width="206" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total credit notes:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="508" y="8"  width="106" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CR}]]></textFieldExpression></textField>
-      <staticText><reportElement x="300" y="24" width="206" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total debit notes:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="508" y="24" width="106" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DR}]]></textFieldExpression></textField>
-      <staticText><reportElement x="616" y="8"  width="164" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Net total:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="616" y="24" width="164" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_NET}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="44" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="2" y="8" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " note(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="300" y="8"  width="206" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total credit notes:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="508" y="8"  width="106" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CR}]]></textFieldExpression></textField>
+      <staticText><reportElement x="300" y="24" width="206" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total debit notes:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="508" y="24" width="106" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DR}]]></textFieldExpression></textField>
+      <staticText><reportElement x="616" y="8"  width="164" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Net total:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="616" y="24" width="164" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_NET}]]></textFieldExpression></textField>
     </band>
   </summary>
 

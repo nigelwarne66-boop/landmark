@@ -44,11 +44,10 @@
     </groupHeader>
     <groupFooter>
       <band height="20">
-        <line><reportElement x="482" y="1" width="150" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-        <line><reportElement x="638" y="1" width="140" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-        <staticText><reportElement x="340" y="4" width="136" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[GL total:]]></text></staticText>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="4" width="150" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GL_GROSS}]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="638" y="4" width="140" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GL_TAX}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <staticText><reportElement x="340" y="4" width="136" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[GL total:]]></text></staticText>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="4" width="150" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GL_GROSS}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="638" y="4" width="140" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GL_TAX}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -93,12 +92,11 @@
 
   <summary>
     <band height="50">
-      <line><reportElement x="582" y="2" width="96" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <line><reportElement x="680" y="2" width="98" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="4" y="8" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s)"]]></textFieldExpression></textField>
-      <staticText><reportElement x="380" y="8" width="196" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand total:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="582" y="8" width="96" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_GROSS}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="8" width="98" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_TAX}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="50" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="380" y="8" width="196" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand total:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="582" y="8" width="96" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_GROSS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="8" width="98" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_TAX}]]></textFieldExpression></textField>
     </band>
   </summary>
 

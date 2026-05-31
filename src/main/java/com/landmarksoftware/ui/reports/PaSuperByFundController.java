@@ -56,7 +56,10 @@ public class PaSuperByFundController implements Initializable {
 
         List<CodeName> years = paReports.getYtdYears(session);
         yearNo.setItems(FXCollections.observableArrayList(years));
-        if (!years.isEmpty()) yearNo.getSelectionModel().selectFirst();
+        String sessionYearStr = String.valueOf(session.getYearNo());
+        CodeName match = years.stream().filter(c -> sessionYearStr.equals(c.code())).findFirst().orElse(null);
+        if (match != null) yearNo.getSelectionModel().select(match);
+        else if (!years.isEmpty()) yearNo.getSelectionModel().selectFirst();
     }
 
     @FXML private void onPdf(ActionEvent e)    { run(e, "pdf"); }

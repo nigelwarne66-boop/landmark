@@ -26,19 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
-/**
- * Payroll Summary — pay-run date range.
- *
- * <p>Note: the current payroll-summary.jrxml only declares the 4 standard
- * params (COMPANY_NO, YEAR_NO, COMPANY_NAME, YEAR_DESC). FROM_DATE/TO_DATE
- * are passed to Jasper but the SQL inside the .jrxml doesn't reference them
- * yet, so the report ignores the range filter. Update the .jrxml when ready.
- */
+/** Payroll Summary — pay-run date range picker (posted payruns only). */
 @Component
 @Scope("prototype")
 public class PyPayrollSummaryController implements Initializable {
 
-    private static final String REPORT_PATH = "py/payroll-summary";
+    private static final String PDF_PATH   = "py/payroll-summary";
+    private static final String EXCEL_PATH = "py/payroll-summary-excel";
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd MMM yyyy");
 
     @Autowired private ReportsHubController hub;
@@ -71,7 +65,7 @@ public class PyPayrollSummaryController implements Initializable {
         try {
             jdbc.query(
                 "SELECT DISTINCT payrun_date FROM parunhd " +
-                "WHERE company_no = ? AND yr_no = ? ORDER BY payrun_date",
+                "WHERE company_no = ? AND yr_no = ? AND payrun_status IN ('P','F') ORDER BY payrun_date",
                 rs -> {
                     Date d = rs.getDate("payrun_date");
                     if (d != null) out.add(d.toLocalDate());
@@ -91,8 +85,9 @@ public class PyPayrollSummaryController implements Initializable {
         Map<String, Object> params = new HashMap<>();
         params.put("FROM_DATE", from == null ? null : Date.valueOf(from));
         params.put("TO_DATE",   to   == null ? null : Date.valueOf(to));
+        String path = "excel".equals(format) ? EXCEL_PATH : PDF_PATH;
         Window owner = ((Node) e.getSource()).getScene().getWindow();
-        hub.runJasperReport(REPORT_PATH, params, format, owner);
+        hub.runJasperReport(path, params, format, owner);
         close(e);
     }
 

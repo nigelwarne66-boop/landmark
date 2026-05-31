@@ -9,10 +9,6 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
-
   <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
   <parameter name="COMPANY_NO"    class="java.lang.Integer"/>
@@ -90,11 +86,11 @@
     </groupHeader>
     <groupFooter>
       <band height="18">
-        <line><reportElement x="320" y="1" width="462" height="1" forecolor="#888888"/></line>
-        <textField><reportElement x="4" y="3" width="316" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{section_label} + " total (" + $V{SEC_COUNT} + ")"]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00"><reportElement x="484" y="3" width="74" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_COST}]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00"><reportElement x="562" y="3" width="66" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_PROCEEDS}]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="3" width="66" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_PL}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="18" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="3" width="316" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{section_label} + " total (" + $V{SEC_COUNT} + ")"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="484" y="3" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_COST}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="562" y="3" width="66" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_PROCEEDS}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="3" width="66" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_PL}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -140,11 +136,11 @@
 
   <summary>
     <band height="30">
-      <line><reportElement x="320" y="2" width="462" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1.5"/></graphicElement></line>
-      <staticText><reportElement x="4" y="8" width="316" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[GRAND TOTAL (cost / proceeds / P&L)]]></text></staticText>
-      <textField pattern="#,##0.00"><reportElement x="484" y="8" width="74" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_COST}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00"><reportElement x="562" y="8" width="66" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_PROCEEDS}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="8" width="66" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_PL}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4" y="8" width="316" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[GRAND TOTAL (cost / proceeds / P&L)]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="484" y="8" width="74" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_COST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="562" y="8" width="66" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_PROCEEDS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="8" width="66" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_PL}]]></textFieldExpression></textField>
     </band>
   </summary>
 

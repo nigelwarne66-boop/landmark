@@ -75,7 +75,8 @@
 
   <summary>
     <band height="22">
-      <textField><reportElement x="4" y="5" width="400" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s) requiring follow-up"]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="22" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="5" width="400" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s) requiring follow-up"]]></textFieldExpression></textField>
     </band>
   </summary>
 

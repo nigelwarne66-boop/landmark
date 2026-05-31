@@ -76,7 +76,8 @@
 
   <summary>
     <band height="30">
-      <textField><reportElement x="4" y="8" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)  —  BAS: " + ($P{BAS_DESC}==null?"":$P{BAS_DESC})]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="535" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)  —  BAS: " + ($P{BAS_DESC}==null?"":$P{BAS_DESC})]]></textFieldExpression></textField>
     </band>
   </summary>
 

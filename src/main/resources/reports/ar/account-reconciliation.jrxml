@@ -53,8 +53,9 @@
     </groupHeader>
     <groupFooter>
       <band height="14">
-        <textField><reportElement x="4" y="2" width="300" height="10"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["Customer " + $F{custNo} + " total outstanding"]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="676" y="2" width="80" height="10"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{CUST_NET}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="300" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["Customer " + $F{custNo} + " total outstanding"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="676" y="2" width="80" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{CUST_NET}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -71,9 +72,9 @@
     </groupHeader>
     <groupFooter>
       <band height="13">
-        <line><reportElement x="420" y="1" width="336" height="1" forecolor="#888888"/></line>
-        <staticText><reportElement x="334" y="2" width="84" height="10"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Recon outstanding:]]></text></staticText>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="676" y="2" width="80" height="10"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{RECON_NET}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="13" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <staticText><reportElement x="334" y="2" width="84" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Recon outstanding:]]></text></staticText>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="676" y="2" width="80" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{RECON_NET}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -127,10 +128,10 @@
 
   <summary>
     <band height="30">
-      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="4" y="6" width="400" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) listed"]]></textFieldExpression></textField>
-      <staticText><reportElement x="500" y="6" width="176" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand total outstanding:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="6" width="76" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="6" width="400" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) listed"]]></textFieldExpression></textField>
+      <staticText><reportElement x="500" y="6" width="176" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand total outstanding:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="6" width="76" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
     </band>
   </summary>
 

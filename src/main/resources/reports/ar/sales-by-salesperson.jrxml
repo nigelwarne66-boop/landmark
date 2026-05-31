@@ -47,10 +47,10 @@
     </groupHeader>
     <groupFooter>
       <band height="18">
-        <line><reportElement x="490" y="1" width="292" height="1" forecolor="#888888"/></line>
-        <textField><reportElement x="4" y="3" width="300" height="12"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA["Salesman " + $F{salesman} + " total"]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="490" y="3" width="140" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_MTD}]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="3" width="150" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_YTD}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="18" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="3" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA["Salesman " + $F{salesman} + " total"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="490" y="3" width="140" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_MTD}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="3" width="150" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_YTD}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -96,11 +96,11 @@
 
   <summary>
     <band height="40">
-      <line><reportElement x="0" y="4" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <staticText><reportElement x="0" y="8" width="300" height="14"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Grand Total]]></text></staticText>
-      <textField><reportElement x="0" y="24" width="300" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " customer(s)"]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="490" y="8" width="140" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MTD}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="8" width="150" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_YTD}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="40" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="0" y="8" width="300" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Grand Total]]></text></staticText>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="24" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " customer(s)"]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="490" y="8" width="140" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MTD}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="8" width="150" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_YTD}]]></textFieldExpression></textField>
     </band>
   </summary>
 

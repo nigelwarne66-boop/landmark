@@ -81,12 +81,12 @@
 
   <summary>
     <band height="40">
-      <line><reportElement x="0" y="4" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <staticText><reportElement x="0" y="8" width="300" height="14"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Grand Total]]></text></staticText>
-      <textField><reportElement x="0" y="24" width="300" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " transaction(s)"]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="496" y="8" width="86"  height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_SALE}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="584" y="8" width="80"  height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_TAX}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="666" y="8" width="80"  height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_AMT}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="40" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="0" y="8" width="300" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Grand Total]]></text></staticText>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="24" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " transaction(s)"]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="496" y="8" width="86"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_SALE}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="584" y="8" width="80"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_TAX}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="666" y="8" width="80"  height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_AMT}]]></textFieldExpression></textField>
     </band>
   </summary>
 

@@ -13,6 +13,7 @@
   <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
   <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="title"/>
   <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
 
   <style name="base" isDefault="true" isBlankWhenNull="true"/>
 

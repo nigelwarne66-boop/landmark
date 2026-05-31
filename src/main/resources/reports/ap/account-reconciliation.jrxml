@@ -51,8 +51,9 @@
     </groupHeader>
     <groupFooter>
       <band height="15">
-        <textField><reportElement x="4" y="2" width="300" height="11"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["Supplier " + $F{supplierNo} + " total outstanding"]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="656" y="2" width="80" height="11"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SUPP_NET}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="15" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="300" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["Supplier " + $F{supplierNo} + " total outstanding"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="656" y="2" width="80" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SUPP_NET}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -66,13 +67,13 @@
     </groupHeader>
     <groupFooter>
       <band height="24">
-        <line><reportElement x="286" y="1" width="450" height="1" forecolor="#888888"/></line>
-        <textField><reportElement x="60" y="2" width="220" height="11"/><textElement><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[($F{reconNo}!=null && $F{reconNo}>0) ? ("Recon balances — Gross / Outst / Claim") : ""]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="286" y="2" width="66" height="11"><printWhenExpression><![CDATA[$F{reconNo}!=null && $F{reconNo}>0]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{grossBal}]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="354" y="2" width="62" height="11"><printWhenExpression><![CDATA[$F{reconNo}!=null && $F{reconNo}>0]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{outstandingBal}]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="418" y="2" width="62" height="11"><printWhenExpression><![CDATA[$F{reconNo}!=null && $F{reconNo}>0]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{claimBal}]]></textFieldExpression></textField>
-        <staticText><reportElement x="500" y="13" width="156" height="10"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Recon outstanding:]]></text></staticText>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="656" y="13" width="80" height="10"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{RECON_NET}]]></textFieldExpression></textField>
+        <rectangle><reportElement x="0" y="0" width="782" height="24" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="60" y="2" width="220" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[($F{reconNo}!=null && $F{reconNo}>0) ? ("Recon balances — Gross / Outst / Claim") : ""]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="286" y="2" width="66" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"><printWhenExpression><![CDATA[$F{reconNo}!=null && $F{reconNo}>0]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{grossBal}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="354" y="2" width="62" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"><printWhenExpression><![CDATA[$F{reconNo}!=null && $F{reconNo}>0]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{outstandingBal}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="418" y="2" width="62" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"><printWhenExpression><![CDATA[$F{reconNo}!=null && $F{reconNo}>0]]></printWhenExpression></reportElement><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{claimBal}]]></textFieldExpression></textField>
+        <staticText><reportElement x="500" y="13" width="156" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Recon outstanding:]]></text></staticText>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="656" y="13" width="80" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{RECON_NET}]]></textFieldExpression></textField>
       </band>
     </groupFooter>
   </group>
@@ -128,10 +129,10 @@
 
   <summary>
     <band height="30">
-      <line><reportElement x="0" y="2" width="782" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1"/></graphicElement></line>
-      <textField><reportElement x="4" y="6" width="400" height="12"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUPPLIER_COUNT} + " supplier(s) listed"]]></textFieldExpression></textField>
-      <staticText><reportElement x="500" y="6" width="156" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total outstanding:]]></text></staticText>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="656" y="6" width="80" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_NET}]]></textFieldExpression></textField>
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="6" width="400" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUPPLIER_COUNT} + " supplier(s) listed"]]></textFieldExpression></textField>
+      <staticText><reportElement x="500" y="6" width="156" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total outstanding:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="656" y="6" width="80" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_NET}]]></textFieldExpression></textField>
     </band>
   </summary>
 
