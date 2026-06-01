@@ -282,7 +282,7 @@ mvn generate-sources -Pjooq-codegen
 
 ## Reporting build (-Preporting)
 
-Standalone JavaFX entry that shares the full app's Spring context, login, and DB but renders a Reports Hub instead of MENU01. Run with `mvn javafx:run -Preporting`. 9 modules. **General Ledger (5), AP (11), AR (21), Cash Management (9), BAS (4), Purchasing (9) and Inventory Management (14) are fully wired end-to-end** (each: query in `Gl/Ap/Ar/Cm/Bas/Po/SmReportDataService` → controller → selection FXML → PDF jrxml + wide Excel jrxml). Fixed Assets / Payroll cards are present but still `comingSoon` stubs.
+Standalone JavaFX entry that shares the full app's Spring context, login, and DB but renders a Reports Hub instead of MENU01. Run with `mvn javafx:run -Preporting`. 9 modules. **General Ledger (5), AP (11), AR (21), Cash Management (9), BAS (4), Purchasing (9), Inventory Management (14), and Payroll (13) are fully wired end-to-end** (each: query in `Gl/Ap/Ar/Cm/Bas/Po/Sm/PyReportDataService` → controller → selection FXML → PDF jrxml + wide Excel jrxml). Fixed Assets cards are present but still `comingSoon` stubs. **All 13 payroll reports are also accessible from the main app** (MENU01 Payroll tab → Reports & Compliance card, and PayrollMenuController Reports card) via `openPyReport()` on each controller — no need to switch to the `-Preporting` build for payroll.
 
 ### Architecture
 - `AppMode.current` (set to REPORTING in `ReportingApplication.main()`) directs `FixedAssetsApplication.start()` to load `/fxml/reports-hub.fxml` instead of `MainMenuController.buildScene()`.
@@ -294,7 +294,7 @@ Standalone JavaFX entry that shares the full app's Spring context, login, and DB
 | Module | Reports | Notes |
 |---|---|---|
 | Fixed Assets | Asset Register, Depreciation, Acquired & Retired, Transaction List | No selection fields |
-| Payroll | Payroll Summary, Employee List | Gated on `MEUSERS.print_pa_from_pass = 'Y'` — module absent for users without it |
+| Payroll | **13 reports** — Payroll Summary (PATL10), Employee List (PATL12), Employee YTD Payments, Employee History Detail (PATL14), Employee History Summary (PATL17), Deductions & Super (PATL05/09), Department Expenses (PATL16), Period Summary (PATL07), Payrun GL Detail (PATL60), Timesheet History (PATL28), Super/Deductions Status (PATL40), Super by Fund (PASP10), Extended Superannuation (PATL26) | Gated on `MEUSERS.print_pa_from_pass = 'Y'` — module absent for users without it. Data in `PayReportDataService`. Reports also accessible from main app MENU01 and PayrollMenuController via `openPyReport()`. |
 | General Ledger | **6 reports** — Trial Balance (GLTL01), Profit & Loss (GLTL12 `pl_bs_ind='P'`), Balance Sheet (GLTL12 `pl_bs_ind='B'`), General Journal (GLTL06), Account Transactions (GLTL14/15), **Report Writer Output (GLRP40)** | Data in `GlReportDataService` (gl2 cobol). **Balance model:** `glbal.bal_01..13` are period movements, debit-positive; TB/BS closing balance as-at period N = `open_bal + Σbal_1..N`; P&L = `Σbal_from..to` (no opening). **GL transaction file is `gltrx` (NOT `gltrans`)**. GLRP40 engine model and bulk-run screen are documented in the "Current state → Wave 3" section above. Deferred: definition-edit screens, distribution packages, budget columns. |
 | Accounts Receivable | **21 reports** — Debtors Ageing (ARTL32), Transaction Listing (ARRC05), Account Reconciliation (ARRC03), Unbalanced Reconciliation (ARRC04), Detailed Transaction Listing (ARRC09), FC Revaluation (ARRC11), GL Distribution (ARTL02), Period Summary (ARTL03), Document Number (ARTL20), Adjustment Note Analysis (ARTL22), Sales Distribution (ARTL10), Sales by GL (ARTL18), Debtors Control (ARTL11), Customer Account Status (ARTL21), Customer Sales by Type (ARTL06), Customer Sales by Sub Ledger (ARTL27), Customer Sales by Salesperson (ARTL15), Salesperson Profitability (ARTL16), Sales Journal (ARTL05), Commission (ARTL04), Customer Sales by Year (SMTL38) | Data in `ArReportDataService` (reports) + `ArDataService` (ageing/KPIs). ARTL06/ARTL27 share `customer-sales.jrxml`. SMTL38 reads `smtrans` (Sales module); customer names render blank until `smsthed`/`arcusts` masters are loaded. |
 | Accounts Payable | Creditors Ageing — summary + detail | |
@@ -306,7 +306,7 @@ Standalone JavaFX entry that shares the full app's Spring context, login, and DB
 ### Selection screen pattern
 Card click → `/fxml/reports/<module>/<report-name>.fxml` + `com.landmarksoftware.ui.reports.<Module><Name>Controller` (`@Component @Scope("prototype")`). Controllers call:
 - `hub.runJasperReport(reportPath, extraParams, format, ownerWindow)` — for reports with static .jrxml SQL
-- `hub.runJasperReportWithDataSource(reportPath, extraParams, JRDataSource, format, owner)` — for AR/AP ageing where SQL is too dynamic for a static block; rows pre-fetched via `Ar/ApDataService.get*ListingData(...)` and wrapped in a `JRBeanCollectionDataSource`
+- `hub.runJasperReportWithDataSource(reportPath, extraParams, JRDataSource, format, owner)` — for reports where SQL is too dynamic for a static jrxml block; rows pre-fetched via service and passed as a `mapDataSource()` (never `JRBeanCollectionDataSource` — see gotchas)
 
 GL share `GlPeriodSelector.fxml` via `<fx:include>`; included controller's fields are bound by the `fx:id + "Controller"` naming convention.
 
@@ -317,11 +317,11 @@ GL share `GlPeriodSelector.fxml` via `<fx:include>`; included controller's field
 - **Group variables with `resetType="Group"`** also need `resetGroup="<groupName>"` — missing this gives "Unknown reset group 'null'" at compile.
 - **Variable/group ordering**: `<variable>` elements MUST appear BEFORE `<group>` elements in the jrxml (XSD order: field → variable → group). Declaring a variable after its group causes "invalid content" SAXParseException at the variable element line.
 - **`isStretchWithOverflow` band rendering bug (Jasper 6.21)**: In any detail/group band containing at least one `<textField isStretchWithOverflow="true">`, ALL other `<textField>` elements in that SAME band that do NOT have `isStretchWithOverflow="true"` are silently skipped during the stretch rendering pass — their values appear blank. **Rule**: add `isStretchWithOverflow="true"` to every `<textField>` in any band that has at least one stretch element.
-- **`JRBeanCollectionDataSource` silently returns null for `BigDecimal` fields** when rows come from `List<Map<String,Object>>`: Apache BeanUtils field-access fails in this class-loader context. Use the direct `mapDataSource()` helper instead — it calls `map.get(field.getName())` with no BeanUtils involvement. This helper is in every PA report controller; copy it to any future report that passes Map rows.
+- **`JRBeanCollectionDataSource` must never be used with `List<Map<String,Object>>` rows** — Apache BeanUtils field-access fails silently (returns null for every field), causing "report failed" on the first typed field (e.g. `java.sql.Date`). Use `mapDataSource()` instead — it calls `map.get(field.getName())` directly. This helper is in **every** report controller across all modules (AP, AR, CM, GL, BAS, PO, SM, PY). `calculation="Sum"` variables also won't accumulate without it — pre-compute group totals in the service.
+- **Excel phantom blank column from title band width mismatch** — Jasper builds the Excel column grid from x-breakpoints across ALL bands (including `title`, even if excluded from display). If the title band's element width is less than `columnWidth`, it inserts a spurious x-breakpoint inside a data column, creating a blank phantom column in the output. **Rule**: the title band element `width=` must equal the report's `columnWidth` exactly. This was found and fixed in all 85 Excel jrxml files across every module (2026-06-01).
 - **`JasperReportService.compile()` cache** — now uses `resource.lastModified()` vs `.jasper` mtime to auto-recompile stale files. Previously used any existing `.jasper` unconditionally; edits to jrxml had no effect while the app was running.
 - **`style` attribute on `<reportElement>`**, not on `<textField>` — `<textField style="myStyle">` is invalid per Jasper XSD; use `<reportElement style="myStyle" .../>` inside the textField.
 - **Conditional styles don't reset PDF graphic state** — if a conditional sets `forecolor="#ffffff"` (white) for one row kind, and the next row kind has no explicit forecolor in any conditional, the PDF renderer keeps white as the current colour. Always add an explicit conditional for every row kind you intend to render (including the "default" data rows).
-- **`Sum` variables with `JRBeanCollectionDataSource` + Map rows** — `calculation="Sum"` variables may not accumulate. Pre-compute group totals in the service, stamp them as a field on every row of the group (so the group footer can read `$F{empTotal}` from the last row), or use the rowKind injection pattern.
 - **Feather, not Tabler** for Ikonli icons — Tabler isn't bundled with Ikonli. Prefix is `fth-` (e.g. `fth-package`, `fth-users`, `fth-bar-chart-2`).
 - **GLDATES periods are 13 separate `period_end_01..period_end_13` columns** (COBOL OCCURS-style), not normalised rows. Unpivot in Java — see `GlPeriodService.loadPeriods()`. Use **`year_no` (4-digit calendar)** not `yr_no` (sequence PK) for matching.
 - **CPCNTRL is a single global row** even though the PK is `company_no` — query with `LIMIT 1`, ignore the PK.
@@ -329,9 +329,16 @@ GL share `GlPeriodSelector.fxml` via `<fx:include>`; included controller's field
 ### Per-report .jrxml lookup
 `ReportsHubController.openSelectionScreen(report, moduleId)` tries to load `/fxml/reports/<moduleId>/<report.getName()>.fxml`. If the FXML doesn't exist (e.g. a future report card you haven't built yet), it falls back to the "Coming soon" alert — so adding a new report just means adding the FXML + controller, no hub registry edits beyond a `ReportDef.withParams(...)`.
 
+**`setRunner()` is dead code** — every report card's click handler calls `openSelectionScreen` directly. The runner lambda set via `setRunner(fmt -> comingSoon(...))` is never invoked in the current code path; it was an earlier design that was superseded by FXML auto-discovery. Don't waste time setting runners — just create the FXML.
+
+### Main menu (MENU01) — hub-style sidebar (2026-06-02)
+`MainMenuController.buildSidebar()` now renders the same module-row style as the reporting hub: colored icon badges (`module-icon-badge` + `icon-XX` CSS), FontIcon glyphs, `module-item` / `module-item-active` CSS. Clicking a row calls `selectSidebarModule(id)` which highlights the row and switches the content area. The top navigation bar tabs have been removed. Logo is pin-mark only (no wordmark). Module rows: Fixed Assets, Payroll, GL, AR, AP, CM, PO, Inventory, BAS, System.
+
+### jOOQ inline SQL — table alias must match what jOOQ renders
+When using `DSL.field(expr, type)` with raw SQL fragments referencing a joined table (e.g. `COALESCE(b.open_bal,0)`), the alias in the string must be the table's actual SQL name as jOOQ renders it. `leftJoin(GLBAL)` renders as `glbal` (no alias). Writing `"b."` in the expression → MySQL "Unknown column 'b.open_bal'". Fix: use `"glbal."` in the fragment. Affected `GlReportDataService` methods: `getTrialBalance`, `getProfitLoss`, `getBalanceSheet` (all fixed 2026-06-01).
+
 ### Deferred
 - `GlReportWriterService` migration (custom report-builder feature — cc-migration.md note #2)
-- Excel report-time filter wires on the .jrxml are now complete for all 12 reports (filter UI matches what the SQL actually uses).
 
 ## Wave 2 detail — Batch operations
 

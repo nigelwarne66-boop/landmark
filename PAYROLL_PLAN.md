@@ -1,5 +1,5 @@
 # Landmark Payroll — Development Plan
-*Created: 2026-05-09 · Updated: 2026-05-25*
+*Created: 2026-05-09 · Updated: 2026-06-02*
 
 ---
 
@@ -13,7 +13,7 @@
 | 2 — Batch operations | PASU14/11/15 ✅, PAEM60 ✅, PAEM11 ✅, PASU55 🟡 thin, PAPC01 🟡 thin | ✅ Core complete |
 | 3 — Pay processing | PaygTaxCalculator ✅, PATM01 ✅ (S0/P1/P2/P3/S3/S3B/Options + paecode CRUD), PAPP01 ✅, PAPP02/PAPP03 leave ✅, PAPP28 ✅ (+ paleave 'T' writes), PABK02 ✅ (cmbanks-sourced), PAPA14 (CM/GL posting — real meaning) 🟡 stub | ✅ End-to-end |
 | 4 — Compliance | PAST10 (STP), PAPS26, PADE01 | 🔲 Pending ATO sandbox |
-| 5 — Reports | PATL series | 🔲 Ongoing |
+| 5 — Reports | PATL series | ✅ 13 reports wired (see below) |
 
 ---
 
@@ -416,18 +416,29 @@ The year-end roll-forward program. Sequence:
 
 ---
 
-## Wave 5 — Reports
+## Wave 5 — Reports ✅ Complete (2026-06-02)
 
-| Program | Report | Data source |
-|---------|--------|-------------|
-| PATL10 | Payroll Summary (by employee, by period) | paehist GROUP BY |
-| PATL12 | Employee Listing | pastaff |
-| PATL14 | Pay Code Analysis | paehist × pacodes |
-| PATL20 | Leave Balances | pastaff leave columns |
-| PATL22 | Super Contributions | paehist where pay_type=5 |
-| PATL30 | Department Cost Summary | pacosts |
+13 reports implemented via `PayReportDataService` → FXML selection screen → PDF + Excel jrxml. All accessible from the reporting hub (`-Preporting` build), the main app MENU01 Payroll tab, and `PayrollMenuController`.
 
-All PY reports: export PDF (pdfbox) + Excel (Apache POI). Use existing export service pattern from FA.
+| Program | Report | Status |
+|---------|--------|--------|
+| PATL10 | Payroll Summary | ✅ |
+| PATL12 | Employee List | ✅ |
+| — | Employee YTD Payments | ✅ |
+| PATL14 | Employee History Detail | ✅ |
+| PATL17 | Employee History Summary | ✅ |
+| PATL05/09 | Deductions & Superannuation | ✅ |
+| PATL16 | Department Expenses | ✅ |
+| PATL07 | Period Summary | ✅ |
+| PATL60 | Payrun GL Detail | ✅ |
+| PATL28 | Timesheet History | ✅ |
+| PATL40 | Super/Deductions Status | ✅ |
+| PASP10 | Super by Fund | ✅ |
+| PATL26 | Extended Superannuation | ✅ |
+| PAST10 | Single Touch Payroll (STP Phase 2) | 🔲 Pending ATO sandbox |
+| PAPS26 | Payment Summaries (annual PAYG) | 🔲 Deferred Wave 4+ |
+
+Architecture: Jasper (PDF + Excel jrxml), `mapDataSource()` pattern, `PayReportDataService` (jOOQ). Selection screens at `/fxml/reports/py/`. `openPyReport(fxmlName, title)` on both `MainMenuController` and `PayrollMenuController` loads the screen without switching to the reporting build.
 
 ---
 
