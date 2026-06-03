@@ -573,20 +573,13 @@ public class MainMenuController {
         tabPanes = new java.util.HashMap<>();
         tabPanes.put("fa",  buildFaContent());
         tabPanes.put("py",  buildPayrollTabContent());
-        tabPanes.put("gl",  buildStubModuleContent("General Ledger",      "#1A6EF5",
-            "Journals, account balances and period reporting", 6));
-        tabPanes.put("ar",  buildStubModuleContent("Accounts Receivable", "#D97706",
-            "Customer invoicing, debtor management and receipts", 21));
-        tabPanes.put("ap",  buildStubModuleContent("Accounts Payable",    "#7C3AED",
-            "Supplier invoicing, creditor management and payments", 10));
-        tabPanes.put("cm",  buildStubModuleContent("Cash Management",     "#059669",
-            "Bank accounts, cashbook transactions and reconciliation", 9));
-        tabPanes.put("po",  buildStubModuleContent("Purchasing",          "#0EA5E9",
-            "Purchase orders, delivery and supplier invoicing", 9));
-        tabPanes.put("sm",  buildStubModuleContent("Inventory",           "#059669",
-            "Stock control, movements and warehousing", 14));
-        tabPanes.put("bas", buildStubModuleContent("BAS / Tax",           "#DC2626",
-            "Business Activity Statement and GST reporting", 4));
+        tabPanes.put("gl",  buildGlContent());
+        tabPanes.put("ar",  buildArContent());
+        tabPanes.put("ap",  buildApContent());
+        tabPanes.put("cm",  buildCmContent());
+        tabPanes.put("po",  buildPoContent());
+        tabPanes.put("sm",  buildSmContent());
+        tabPanes.put("bas", buildBasContent());
         tabPanes.put("sys", buildSysContent());
 
         // Show Fixed Assets tab by default and highlight sidebar row
@@ -606,15 +599,48 @@ public class MainMenuController {
         if (content != null) tabContentArea.getChildren().add(content);
     }
 
-    private VBox buildFaContent() {
+    // ── Shared helpers ─────────────────────────────────────────────
+
+    private VBox moduleTabBase(String title, String subtitle) {
         VBox tab = new VBox(16);
         tab.setPadding(new Insets(4, 0, 0, 0));
+        Label lTitle = new Label(title);
+        lTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:-lm-text-primary;");
+        Label lSub = new Label(subtitle);
+        lSub.setStyle("-fx-font-size:13px;-fx-text-fill:-lm-text-secondary;");
+        tab.getChildren().add(new VBox(4, lTitle, lSub));
+        return tab;
+    }
 
-        Label lTitle = new Label("Fixed Assets");
-        lTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
-        Label lDesc = new Label("Asset register, depreciation and acquisition management");
-        lDesc.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;");
-        tab.getChildren().add(new VBox(4, lTitle, lDesc));
+    private GridPane twoColGrid() {
+        GridPane g = new GridPane(); g.setHgap(16); g.setVgap(16);
+        ColumnConstraints c = new ColumnConstraints(); c.setPercentWidth(50);
+        g.getColumnConstraints().addAll(c, c);
+        return g;
+    }
+
+    // ── Fixed Assets ───────────────────────────────────────────────
+
+    private VBox buildFaContent() {
+        VBox tab = moduleTabBase("Fixed Assets",
+            "Asset register, depreciation and acquisition management");
+
+        GridPane grid = twoColGrid();
+
+        ModuleCard maint = new ModuleCard("#BA7517", "fth-home",
+            "Maintenance", "Asset records and acquisitions");
+        maint.addRows(List.of(
+            entry("FA-MAINT","FAAS01"), entry("FA-MAINT","FAAQ01"),
+            entry("FA","FAAS04")));
+        grid.add(maint, 0, 0);
+
+        ModuleCard reports = new ModuleCard("#BA7517", "fth-bar-chart-2",
+            "Reports", "Depreciation, listings and analysis");
+        reports.addRows(List.of(
+            entry("FA","FATL12"), entry("FA","FATL10"),
+            entry("FA","FATL02"), entry("FA","FATL03"),
+            entry("FA","FATL14")));
+        grid.add(reports, 1, 0);
 
         recentlyUsedBox = buildRecentlyUsedBody();
         VBox recentCard = wrapCard(buildRecentlyUsedHeader(), recentlyUsedBox);
@@ -622,97 +648,241 @@ public class MainMenuController {
         HBox.setHgrow(recentCard, Priority.ALWAYS);
         statsCard.setMinWidth(220); statsCard.setMaxWidth(260);
 
-        GridPane grid = new GridPane();
-        grid.setHgap(12); grid.setVgap(12);
-        ColumnConstraints col1 = new ColumnConstraints(); col1.setPercentWidth(50);
-        ColumnConstraints col2 = new ColumnConstraints(); col2.setPercentWidth(50);
-        grid.getColumnConstraints().addAll(col1, col2);
-
-        grid.add(buildModuleCard("#7C3AED", "Maintenance",
-            "Asset records and acquisitions",
-            List.of(entry("FA-MAINT","FAAS01"), entry("FA-MAINT","FAAQ01"),
-                    entry("FA","FAAS04"))), 0, 0);
-
-        grid.add(buildModuleCard("#1A6EF5", "Reports",
-            "Depreciation, listings and analysis",
-            List.of(entry("FA","FATL12"), entry("FA","FATL10"),
-                    entry("FA","FATL02"), entry("FA","FATL03"),
-                    entry("FA","FATL14"))), 1, 0);
-
         tab.getChildren().addAll(grid, new HBox(12, recentCard, statsCard));
         return tab;
     }
 
+    // ── General Ledger ─────────────────────────────────────────────
+
+    private VBox buildGlContent() {
+        VBox tab = moduleTabBase("General Ledger",
+            "Journals, account balances and period reporting");
+        GridPane grid = twoColGrid();
+
+        ModuleCard maint = new ModuleCard("#185FA5", "fth-bar-chart-2",
+            "Maintenance", "Chart of accounts and journal entry");
+        maint.addRow("Chart of Accounts", null, false);
+        maint.addRow("Journal Entry", null, false);
+        maint.addRow("Account Enquiry", null, false);
+        grid.add(maint, 0, 0);
+
+        ModuleCard reports = new ModuleCard("#185FA5", "fth-file-text",
+            "Reports", "Trial balance, P&L, balance sheet and journals");
+        reports.addRow("Trial Balance", null, false);
+        reports.addRow("Profit & Loss", null, false);
+        reports.addRow("Balance Sheet", null, false);
+        reports.addRow("General Journal", null, false);
+        reports.addRow("Account Transactions", null, false);
+        reports.addRow("Report Writer Output", null, false);
+        reports.setOpenAction(() -> stubInfo("General Ledger Reports",
+            "6 reports are available in the Reporting Hub.\n" +
+            "Run the application in Reporting mode to access them."));
+        grid.add(reports, 1, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    // ── Accounts Receivable ────────────────────────────────────────
+
+    private VBox buildArContent() {
+        VBox tab = moduleTabBase("Accounts Receivable",
+            "Customer invoicing, debtor management and receipts");
+        GridPane grid = twoColGrid();
+
+        ModuleCard maint = new ModuleCard("#1D9E75", "fth-users",
+            "Maintenance", "Customer master file, invoicing and receipts");
+        maint.addRow("Customer Maintenance", null, false);
+        maint.addRow("Invoice Entry", null, false);
+        maint.addRow("Receipts & Payments", null, false);
+        maint.addRow("Credit Notes", null, false);
+        grid.add(maint, 0, 0);
+
+        ModuleCard reports = new ModuleCard("#1D9E75", "fth-file-text",
+            "Reports", "Ageing, transactions, reconciliation and sales");
+        reports.addRow("Debtors Ageing", null, false);
+        reports.addRow("Transaction Listing", null, false);
+        reports.addRow("Account Reconciliation", null, false);
+        reports.addRow("Sales Distribution", null, false);
+        reports.addRow("Customer Account Status", null, false);
+        reports.addRow("Salesperson Profitability", null, false);
+        reports.addRow("Sales Journal", null, false);
+        reports.setOpenAction(() -> stubInfo("Accounts Receivable Reports",
+            "21 reports are available in the Reporting Hub.\n" +
+            "Run the application in Reporting mode to access them."));
+        grid.add(reports, 1, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    // ── Accounts Payable ───────────────────────────────────────────
+
+    private VBox buildApContent() {
+        VBox tab = moduleTabBase("Accounts Payable",
+            "Supplier invoicing, creditor management and payments");
+        GridPane grid = twoColGrid();
+
+        ModuleCard maint = new ModuleCard("#D85A30", "fth-file-text",
+            "Maintenance", "Supplier master file, invoicing and payments");
+        maint.addRow("Supplier Maintenance", null, false);
+        maint.addRow("Invoice Processing", null, false);
+        maint.addRow("Payment Processing", null, false);
+        maint.addRow("Remittance Advice", null, false);
+        grid.add(maint, 0, 0);
+
+        ModuleCard reports = new ModuleCard("#D85A30", "fth-file-text",
+            "Reports", "Ageing, transactions and distributions");
+        reports.addRow("Creditors Ageing — Summary", null, false);
+        reports.addRow("Creditors Ageing — Detail", null, false);
+        reports.addRow("Transaction Listing", null, false);
+        reports.addRow("GL Distribution", null, false);
+        reports.addRow("Document Listing", null, false);
+        reports.setOpenAction(() -> stubInfo("Accounts Payable Reports",
+            "Reports are available in the Reporting Hub.\n" +
+            "Run the application in Reporting mode to access them."));
+        grid.add(reports, 1, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    // ── Cash Management ────────────────────────────────────────────
+
+    private VBox buildCmContent() {
+        VBox tab = moduleTabBase("Cash Management",
+            "Bank accounts, cashbook transactions and reconciliation");
+        GridPane grid = twoColGrid();
+
+        ModuleCard maint = new ModuleCard("#639922", "fth-dollar-sign",
+            "Maintenance", "Cashbook entry, bank accounts and reconciliation");
+        maint.addRow("Cashbook Entry", null, false);
+        maint.addRow("Bank Reconciliation", null, false);
+        maint.addRow("Bank Account Maintenance", null, false);
+        grid.add(maint, 0, 0);
+
+        ModuleCard reports = new ModuleCard("#639922", "fth-file-text",
+            "Reports", "Cashbook listings, transactions and reconciliation");
+        reports.addRow("Cashbook Transactions", null, false);
+        reports.addRow("Cashbook Listing", null, false);
+        reports.addRow("Cashbook by Type", null, false);
+        reports.addRow("Bank Reconciliation Statement", null, false);
+        reports.addRow("Receipt Listing", null, false);
+        reports.addRow("Document Listing", null, false);
+        reports.setOpenAction(() -> stubInfo("Cash Management Reports",
+            "9 reports are available in the Reporting Hub.\n" +
+            "Run the application in Reporting mode to access them."));
+        grid.add(reports, 1, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    // ── Purchasing ─────────────────────────────────────────────────
+
+    private VBox buildPoContent() {
+        VBox tab = moduleTabBase("Purchasing",
+            "Purchase orders, delivery and supplier invoicing");
+        GridPane grid = twoColGrid();
+
+        ModuleCard maint = new ModuleCard("#D4537E", "fth-shopping-cart",
+            "Maintenance", "Purchase orders, receipting and supplier setup");
+        maint.addRow("Purchase Order Entry", null, false);
+        maint.addRow("PO Receipting", null, false);
+        maint.addRow("Supplier Setup", null, false);
+        grid.add(maint, 0, 0);
+
+        ModuleCard reports = new ModuleCard("#D4537E", "fth-file-text",
+            "Reports", "Order listings, variances and reconciliation");
+        reports.addRow("Purchase Orders in Sequence", null, false);
+        reports.addRow("PO Summary", null, false);
+        reports.addRow("PO Detail", null, false);
+        reports.addRow("Purchase Index", null, false);
+        reports.addRow("Delivery / Invoice Variance", null, false);
+        reports.addRow("Uninvoiced Goods Reconcile", null, false);
+        reports.setOpenAction(() -> stubInfo("Purchasing Reports",
+            "9 reports are available in the Reporting Hub.\n" +
+            "Run the application in Reporting mode to access them."));
+        grid.add(reports, 1, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    // ── Inventory ──────────────────────────────────────────────────
+
+    private VBox buildSmContent() {
+        VBox tab = moduleTabBase("Inventory",
+            "Stock control, movements and warehousing");
+        GridPane grid = twoColGrid();
+
+        ModuleCard maint = new ModuleCard("#534AB7", "fth-package",
+            "Maintenance", "Stock records, movements and pricing");
+        maint.addRow("Stock Maintenance", null, false);
+        maint.addRow("Inventory Movements", null, false);
+        maint.addRow("Price List Maintenance", null, false);
+        maint.addRow("Location Maintenance", null, false);
+        grid.add(maint, 0, 0);
+
+        ModuleCard reports = new ModuleCard("#534AB7", "fth-file-text",
+            "Reports", "Movements, valuation, availability and sales");
+        reports.addRow("Inventory Movements Detail", null, false);
+        reports.addRow("Movements Summary", null, false);
+        reports.addRow("Inventory Valuation", null, false);
+        reports.addRow("Item Availability", null, false);
+        reports.addRow("Sales History", null, false);
+        reports.addRow("Reorder & PO Requisitions", null, false);
+        reports.addRow("Item Status", null, false);
+        reports.setOpenAction(() -> stubInfo("Inventory Reports",
+            "14 reports are available in the Reporting Hub.\n" +
+            "Run the application in Reporting mode to access them."));
+        grid.add(reports, 1, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    // ── BAS / Tax ──────────────────────────────────────────────────
+
+    private VBox buildBasContent() {
+        VBox tab = moduleTabBase("BAS / Tax",
+            "Business Activity Statement and GST reporting");
+        GridPane grid = twoColGrid();
+
+        ModuleCard maint = new ModuleCard("#5F5E5A", "fth-percent",
+            "Maintenance", "BAS processing and GST setup");
+        maint.addRow("BAS Processing", null, false);
+        maint.addRow("GST Code Maintenance", null, false);
+        grid.add(maint, 0, 0);
+
+        ModuleCard reports = new ModuleCard("#5F5E5A", "fth-file-text",
+            "Reports", "Business Activity Statement and GST reports");
+        reports.addRow("Business Activity Statement", null, false);
+        reports.addRow("Detailed BAS", null, false);
+        reports.addRow("BAS Transactions", null, false);
+        reports.addRow("BAS by GL", null, false);
+        reports.setOpenAction(() -> stubInfo("BAS / Tax Reports",
+            "4 reports are available in the Reporting Hub.\n" +
+            "Run the application in Reporting mode to access them."));
+        grid.add(reports, 1, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    // ── System ─────────────────────────────────────────────────────
+
     private VBox buildSysContent() {
-        VBox tab = new VBox(16);
-        tab.setPadding(new Insets(4, 0, 0, 0));
+        VBox tab = moduleTabBase("System", "Company setup and system configuration");
+        GridPane grid = twoColGrid();
 
-        Label lTitle = new Label("System");
-        lTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
-        Label lDesc = new Label("Company setup and system configuration");
-        lDesc.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;");
-        tab.getChildren().add(new VBox(4, lTitle, lDesc));
-
-        GridPane grid = new GridPane();
-        grid.setHgap(12); grid.setVgap(12);
-        ColumnConstraints cc = new ColumnConstraints(); cc.setPercentWidth(50);
-        grid.getColumnConstraints().addAll(cc, cc);
-
-        grid.add(buildModuleCard("#374151", "Administration",
-            "Company and user maintenance",
-            List.of(entry("SYS","MENU22"))), 0, 0);
+        ModuleCard admin = new ModuleCard("#5F5E5A", "fth-settings",
+            "Administration", "Company and user maintenance");
+        admin.addRows(List.of(entry("SYS","MENU22")));
+        grid.add(admin, 0, 0);
 
         tab.getChildren().add(grid);
         return tab;
-    }
-
-    private VBox buildStubModuleContent(String moduleTitle, String accentColor,
-                                         String description, int reportsInHub) {
-        VBox tab = new VBox(16);
-        tab.setPadding(new Insets(4, 0, 0, 0));
-
-        Label lTitle = new Label(moduleTitle);
-        lTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
-        Label lDesc = new Label(description);
-        lDesc.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;");
-        tab.getChildren().add(new VBox(4, lTitle, lDesc));
-
-        GridPane grid = new GridPane();
-        grid.setHgap(12); grid.setVgap(12);
-        ColumnConstraints cc = new ColumnConstraints(); cc.setPercentWidth(50);
-        grid.getColumnConstraints().addAll(cc, cc);
-
-        grid.add(buildInfoCard("Maintenance", accentColor,
-            "Transaction entry and master file maintenance are planned for a future release."),
-            0, 0);
-
-        String rptMsg = reportsInHub > 0
-            ? reportsInHub + " reports are available. Run the application in Reporting mode to access the full suite."
-            : "Reports are planned for a future release.";
-        grid.add(buildInfoCard("Reports", accentColor, rptMsg), 1, 0);
-
-        tab.getChildren().add(grid);
-        return tab;
-    }
-
-    private VBox buildInfoCard(String cardTitle, String accentColor, String message) {
-        Label lTitle = new Label(cardTitle);
-        lTitle.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
-        VBox cardHdr = new VBox(lTitle);
-        cardHdr.setPadding(new Insets(12, 16, 12, 16));
-        cardHdr.setStyle(
-            "-fx-border-color: transparent transparent rgba(0,0,0,.07) " + accentColor + ";" +
-            "-fx-border-width: 0 0 0.5 3;");
-
-        Label lMsg = new Label(message);
-        lMsg.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;-fx-wrap-text:true;");
-        lMsg.setMaxWidth(400);
-        lMsg.setPadding(new Insets(12, 16, 14, 16));
-
-        VBox card = new VBox(0, cardHdr, lMsg);
-        card.setStyle("-fx-background-color:white;-fx-background-radius:10;" +
-                      "-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2);");
-        return card;
     }
 
     /** Build the Payroll tab content — launches PayrollMenuController. */
@@ -807,103 +977,6 @@ public class MainMenuController {
         s.show();
     }
 
-
-    /** Build a simple tab content panel for non-FA modules */
-    private HBox buildPageTitle() {
-        javafx.scene.Node logoImg = LandmarkLogo.iconMark(56);
-
-        Label title = new Label("Landmark Software");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1A1A1A;");
-        VBox titleBox = new VBox(2, title);
-        titleBox.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(titleBox, Priority.ALWAYS);
-
-        HBox bar = new HBox(12, logoImg, titleBox);
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(0, 0, 18, 0));
-        return bar;
-    }
-
-    // ── Module card ────────────────────────────────────────────────
-
-    private VBox buildModuleCard(String accentColor, String title,
-                                  String subtitle, List<MenuEntry> entries) {
-        // Header
-        Label icon = new Label();
-        icon.setStyle(
-            "-fx-background-color: " + accentColor + "; -fx-background-radius: 7;" +
-            "-fx-min-width: 28px; -fx-min-height: 28px;");
-
-        Label titleLbl = new Label(title);
-        titleLbl.getStyleClass().add("mod-card-title");
-        Label subLbl = new Label(subtitle);
-        subLbl.getStyleClass().add("mod-card-subtitle");
-        VBox titleBox = new VBox(1, titleLbl, subLbl);
-        HBox.setHgrow(titleBox, Priority.ALWAYS);
-
-        HBox header = new HBox(10, icon, titleBox);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.getStyleClass().add("mod-card-header");
-
-        VBox card = new VBox(0);
-        card.getStyleClass().add("card");
-        card.getChildren().add(header);
-
-        for (int i = 0; i < entries.size(); i++) {
-            MenuEntry e = entries.get(i);
-            HBox row = buildModuleEntryRow(e, i == entries.size() - 1);
-            card.getChildren().add(row);
-        }
-
-        return card;
-    }
-
-    private HBox buildModuleEntryRow(MenuEntry entry, boolean isLast) {
-        Label nameLbl = new Label(entry.getTitle());
-        nameLbl.getStyleClass().add(
-            entry.isAvailable() ? "mod-entry-title" : "mod-entry-title-dim");
-        HBox.setHgrow(nameLbl, Priority.ALWAYS);
-
-        HBox row;
-        if (!entry.isAvailable()) {
-            Label soon = new Label("soon");
-            soon.getStyleClass().add("badge-soon");
-            row = new HBox(8, nameLbl, soon);
-        } else {
-            row = new HBox(8, nameLbl);
-        }
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.getStyleClass().add("mod-entry");
-
-        // Remove bottom border on last row
-        if (isLast) {
-            row.setStyle("-fx-background-color: transparent; -fx-padding: 6 16 6 16;" +
-                "-fx-border-color: transparent; -fx-cursor: " +
-                (entry.isAvailable() ? "hand" : "default") + ";");
-        }
-
-        if (entry.isAvailable()) {
-            row.setOnMouseEntered(evt ->
-                row.setStyle("-fx-background-color: #F8F8F6; -fx-cursor: hand;" +
-                    "-fx-padding: 6 16 6 16;" +
-                    (isLast ? "-fx-border-color: transparent;" :
-                     "-fx-border-color: transparent transparent rgba(0,0,0,0.07) transparent;" +
-                     "-fx-border-width: 0 0 0.5 0;")));
-            row.setOnMouseExited(evt ->
-                row.setStyle("-fx-background-color: transparent; -fx-cursor: hand;" +
-                    "-fx-padding: 6 16 6 16;" +
-                    (isLast ? "-fx-border-color: transparent;" :
-                     "-fx-border-color: transparent transparent rgba(0,0,0,0.07) transparent;" +
-                     "-fx-border-width: 0 0 0.5 0;")));
-            row.setOnMouseClicked(evt -> {
-                if (entry.getAction() != null) {
-                    trackRecent(entry);
-                    entry.getAction().run();
-                }
-            });
-        }
-        return row;
-    }
 
     // ── Recently used card ─────────────────────────────────────────
 
