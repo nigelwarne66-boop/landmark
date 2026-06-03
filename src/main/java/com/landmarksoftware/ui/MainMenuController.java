@@ -110,10 +110,14 @@ public class MainMenuController {
     private int    sessionYearNo      = 0;       // 4-digit e.g. 2025
     private String sessionYearDesc    = "";      // e.g. "FY 2024–25"
 
-    // ── Live footer labels (updated when session changes) ─────────
-    private Label  lblFooterCompany;
-    private Label  lblFooterYear;
-    private Label  lblFooterUser;
+    // ── Live header labels (updated when session changes) ─────────
+    private Label lblHeaderCompany;
+    private Label lblHeaderYear;
+    private Label lblHeaderUser;
+    // Legacy aliases — kept so refreshFooterUser() compiles during transition
+    private Label lblFooterCompany;
+    private Label lblFooterYear;
+    private Label lblFooterUser;
 
     private final List<MenuEntry> allEntries = new ArrayList<>();
 
@@ -194,26 +198,24 @@ public class MainMenuController {
 
     public Scene buildScene() {
         buildEntries();
-
-        // Load initial company/year from DB
         loadDefaultSession();
 
-        // Sidebar
         VBox sidebar = buildSidebar();
 
-        // Populate user line now that AppSession is set by LoginController
-        refreshFooterUser();
-
-        // Main scroll area
         ScrollPane scroll = new ScrollPane(buildMainContent());
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("scroll-pane");
         HBox.setHgrow(scroll, Priority.ALWAYS);
 
-        HBox root = new HBox(sidebar, scroll);
-        root.setStyle("-fx-background-color: #F2F1EC;");
+        HBox body = new HBox(sidebar, scroll);
+        body.setStyle("-fx-background-color: #F6F7F9;");
+        VBox.setVgrow(body, Priority.ALWAYS);
 
-        Scene scene = new Scene(root, 960, 680);
+        VBox root = new VBox(buildHeaderBar(), body);
+
+        Scene scene = new Scene(root, 1024, 720);
+        scene.getStylesheets().add(
+            getClass().getResource("/css/landmark.css").toExternalForm());
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
         return scene;
@@ -263,15 +265,14 @@ public class MainMenuController {
         pushToAppSession();
     }
 
-    /** Refresh the user/session line in the sidebar footer. Called after login. */
+    /** Refresh the user display in the header bar after login populates AppSession. */
     private void refreshFooterUser() {
-        if (lblFooterUser == null) return;
         String name = appSession.getUserName();
-        int    sess = appSession.getTerminalNo();
-        // Show full name, and session number if allocated
-        // Show user name only (no session number — can get cut off in narrow sidebar)
-        String line = name.isEmpty() ? appSession.getUserId() : name;
-        lblFooterUser.setText(line);
+        if (name == null || name.isBlank()) name = appSession.getUserId();
+        if (lblHeaderUser != null) {
+            lblHeaderUser.setText(deriveInitials(name) + "  " + name);
+        }
+        if (lblFooterUser != null) lblFooterUser.setText(name);
     }
 
     /** Push current sidebar session state into the shared AppSession bean. */
@@ -322,36 +323,120 @@ public class MainMenuController {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // Header bar (D3)
+    // ═══════════════════════════════════════════════════════════════
+
+    private HBox buildHeaderBar() {
+        // Left: company name · separator · FY
+        lblHeaderCompany = new Label(sessionCompanyName.isEmpty() ? "Landmark" : sessionCompanyName);
+        lblHeaderCompany.getStyleClass().add("lm-header-company");
+
+        Label sep = new Label("·");
+        sep.getStyleClass().add("lm-header-sep");
+
+        lblHeaderYear = new Label(sessionYearDesc.isEmpty() ? "" : sessionYearDesc);
+        lblHeaderYear.getStyleClass().add("lm-header-year");
+
+        HBox left = new HBox(8, lblHeaderCompany, sep, lblHeaderYear);
+        left.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(left, Priority.ALWAYS);
+
+        // Centre: search field
+        javafx.scene.control.TextField search = new javafx.scene.control.TextField();
+        search.setPromptText("Search…");
+        search.getStyleClass().add("lm-search");
+
+        // Right: Switch Company button · user label · Sign Out button (all separate)
+        String userName = appSession.getUserName();
+        if (userName == null || userName.isBlank()) userName = appSession.getUserId();
+        String initials = deriveInitials(userName);
+
+        Label switchBtn = new Label("↺  Switch Company");
+        switchBtn.setStyle(
+            "-fx-font-size:12px;-fx-text-fill:-lm-text-secondary;" +
+            "-fx-cursor:hand;-fx-padding:4 10 4 10;" +
+            "-fx-background-color:transparent;" +
+            "-fx-border-color:-lm-border;-fx-border-radius:6;-fx-background-radius:6;");
+        switchBtn.setOnMouseEntered(e -> switchBtn.setStyle(switchBtn.getStyle()
+            .replace("-lm-text-secondary","-lm-accent")
+            .replace("transparent","-lm-accent-bg")));
+        switchBtn.setOnMouseExited(e -> switchBtn.setStyle(
+            "-fx-font-size:12px;-fx-text-fill:-lm-text-secondary;" +
+            "-fx-cursor:hand;-fx-padding:4 10 4 10;" +
+            "-fx-background-color:transparent;" +
+            "-fx-border-color:-lm-border;-fx-border-radius:6;-fx-background-radius:6;"));
+        switchBtn.setOnMouseClicked(e -> showCompanyYearDialog(
+            switchBtn.getScene() != null ? switchBtn.getScene().getWindow() : null));
+
+        lblHeaderUser = new Label(initials + "  " + userName);
+        lblHeaderUser.getStyleClass().add("lm-user-btn");
+
+        Label signOutBtn = new Label("Sign Out");
+        signOutBtn.setStyle(
+            "-fx-font-size:12px;-fx-text-fill:#DC2626;" +
+            "-fx-cursor:hand;-fx-padding:4 10 4 10;" +
+            "-fx-background-color:transparent;" +
+            "-fx-border-color:#FCA5A5;-fx-border-radius:6;-fx-background-radius:6;");
+        signOutBtn.setOnMouseEntered(e -> signOutBtn.setStyle(signOutBtn.getStyle()
+            .replace("transparent","#FEF2F2")));
+        signOutBtn.setOnMouseExited(e -> signOutBtn.setStyle(
+            "-fx-font-size:12px;-fx-text-fill:#DC2626;" +
+            "-fx-cursor:hand;-fx-padding:4 10 4 10;" +
+            "-fx-background-color:transparent;" +
+            "-fx-border-color:#FCA5A5;-fx-border-radius:6;-fx-background-radius:6;"));
+        signOutBtn.setOnMouseClicked(e -> javafx.application.Platform.exit());
+
+        HBox right = new HBox(10, switchBtn, lblHeaderUser, signOutBtn);
+        right.setAlignment(Pos.CENTER_RIGHT);
+
+        HBox header = new HBox(16, left, search, right);
+        header.getStyleClass().add("lm-header");
+        header.setAlignment(Pos.CENTER);
+        header.setPadding(new Insets(0, 20, 0, 20));
+        return header;
+    }
+
+    private String deriveInitials(String name) {
+        if (name == null || name.isBlank()) return "?";
+        String[] parts = name.trim().split("\\s+");
+        if (parts.length == 1) return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+        return (parts[0].charAt(0) + "" + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // Sidebar
     // ═══════════════════════════════════════════════════════════════
 
     private VBox buildSidebar() {
         VBox sb = new VBox(0);
-        sb.getStyleClass().add("sidebar");
+        sb.getStyleClass().add("lm-sidebar");
         sb.getChildren().add(buildSidebarLogo());
 
-        // Module rows — same style as the reporting hub
+        // "MODULES" section label
+        Label sectionLbl = new Label("MODULES");
+        sectionLbl.getStyleClass().add("lm-nav-section-label");
+        sb.getChildren().add(sectionLbl);
+
+        // Canonical module order per DESIGN_SYSTEM.md.
+        // Using Feather (fth-*) as desktop equivalents; swap to tai-* when
+        // ikonli-tabler-pack reaches Maven Central.
+        // Format: id, fth-icon, label, accent-hex
         String[][] mods = {
-            {"fa",  "fth-package",       "Fixed Assets"},
-            {"py",  "fth-users",         "Payroll"},
-            {"gl",  "fth-bar-chart-2",   "General Ledger"},
-            {"ar",  "fth-file-text",     "Accounts Receivable"},
-            {"ap",  "fth-file",          "Accounts Payable"},
-            {"cm",  "fth-dollar-sign",   "Cash Management"},
-            {"po",  "fth-shopping-cart", "Purchasing"},
-            {"sm",  "fth-box",           "Inventory"},
-            {"bas", "fth-percent",       "BAS / Tax"},
-            {"sys", "fth-settings",      "System"},
+            {"gl",  "fth-bar-chart-2",   "General Ledger",      "#185FA5"},
+            {"ar",  "fth-users",         "Accounts Receivable", "#1D9E75"},
+            {"ap",  "fth-file-text",     "Accounts Payable",    "#D85A30"},
+            {"cm",  "fth-dollar-sign",   "Cash Management",     "#639922"},
+            {"po",  "fth-shopping-cart", "Purchasing",          "#D4537E"},
+            {"sm",  "fth-package",       "Inventory",           "#534AB7"},
+            {"fa",  "fth-home",          "Fixed Assets",        "#BA7517"},
+            {"py",  "fth-user",          "Payroll",             "#0F6E56"},
+            {"bas", "fth-percent",       "BAS / Tax",           "#5F5E5A"},
+            {"sys", "fth-settings",      "System",              "#5F5E5A"},
         };
-        java.util.Map<String,String> styleMap = java.util.Map.of(
-            "fa","icon-fa","gl","icon-gl","ar","icon-ar","ap","icon-ap",
-            "cm","icon-cm","py","icon-py","bas","icon-ap","po","icon-ap",
-            "sm","icon-cm","sys","icon-gl"
-        );
+
         sidebarModuleRows.clear();
         for (String[] m : mods) {
-            HBox row = buildSidebarModuleRow(m[0], m[1], m[2],
-                                             styleMap.getOrDefault(m[0],"icon-fa"));
+            HBox row = buildSidebarModuleRow(m[0], m[1], m[2], m[3]);
             sidebarModuleRows.add(row);
             sb.getChildren().add(row);
         }
@@ -359,62 +444,65 @@ public class MainMenuController {
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
         sb.getChildren().add(spacer);
-        sb.getChildren().add(buildSidebarFooter());
         return sb;
     }
 
+    /** accentHex is stored as userData[1] so selectSidebarModule can apply the left bar. */
     private HBox buildSidebarModuleRow(String id, String iconLiteral,
-                                        String label, String styleClass) {
-        HBox row = new HBox(8);
-        row.getStyleClass().add("module-item");
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setUserData(id);
-
-        StackPane iconBadge = new StackPane();
-        iconBadge.getStyleClass().addAll("module-icon-badge", styleClass);
+                                        String label, String accentHex) {
         org.kordamp.ikonli.javafx.FontIcon icon =
             new org.kordamp.ikonli.javafx.FontIcon(iconLiteral);
-        icon.getStyleClass().add("module-badge-icon");
-        iconBadge.getChildren().add(icon);
+        icon.setIconSize(15);
+        icon.setStyle("-fx-icon-color: " + accentHex + ";");
 
         Label lbl = new Label(label);
-        lbl.getStyleClass().add("module-item-label");
+        lbl.getStyleClass().add("lm-nav-label");
         HBox.setHgrow(lbl, Priority.ALWAYS);
 
-        row.getChildren().addAll(iconBadge, lbl);
+        HBox row = new HBox(10, icon, lbl);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(8, 16, 8, 16));
+        row.setUserData(new String[]{id, accentHex});
+        row.getStyleClass().add("lm-nav-item");
         row.setOnMouseClicked(e -> selectSidebarModule(id));
         return row;
     }
 
     private void selectSidebarModule(String moduleId) {
-        sidebarModuleRows.forEach(r -> r.getStyleClass().remove("module-item-active"));
-        sidebarModuleRows.stream()
-            .filter(r -> moduleId.equals(r.getUserData()))
-            .findFirst()
-            .ifPresent(r -> r.getStyleClass().add("module-item-active"));
-        String tab = switch (moduleId) {
-            case "fa", "gl" -> "Accounting";
-            case "ar"        -> "Sales";
-            case "ap", "po"  -> "Purchasing";
-            case "sm"        -> "Inventory";
-            case "py"        -> "Payroll";
-            case "bas", "cm" -> "BAS";
-            case "sys"       -> "System";
-            default          -> "Accounting";
-        };
-        showTab(tab);
+        for (HBox row : sidebarModuleRows) {
+            String[] data = (String[]) row.getUserData();
+            boolean active = data != null && moduleId.equals(data[0]);
+            row.getStyleClass().removeAll("lm-nav-item-active");
+            // Reset to plain style
+            row.setStyle(null);
+            // Update label weight
+            row.getChildren().stream()
+               .filter(n -> n instanceof Label)
+               .map(n -> (Label) n)
+               .forEach(lbl -> {
+                   lbl.getStyleClass().removeAll("lm-nav-label-active");
+                   lbl.getStyleClass().add(active ? "lm-nav-label-active" : "lm-nav-label");
+               });
+            if (active && data != null) {
+                String accent = data[1];
+                row.setStyle("-fx-background-color: -lm-bg-selected;" +
+                             "-fx-border-color: " + accent + " transparent transparent transparent;" +
+                             "-fx-border-width: 0 0 0 3;");
+            }
+        }
+        showTab(moduleId);
     }
 
 
     private HBox buildSidebarLogo() {
-        HBox logo = new HBox();
+        HBox logo = new HBox(10);
         logo.setPadding(new Insets(14, 16, 14, 16));
         logo.setAlignment(Pos.CENTER_LEFT);
         logo.setStyle(
-            "-fx-background-color:#FFFFFF;" +
-            "-fx-border-color:transparent transparent rgba(0,0,0,.10) transparent;" +
-            "-fx-border-width:0 0 0.5 0;");
-        logo.getChildren().add(LandmarkLogo.iconMark(34));
+            "-fx-background-color: -lm-bg-page;" +
+            "-fx-border-color: transparent transparent -lm-border transparent;" +
+            "-fx-border-width: 0 0 1 0;");
+        logo.getChildren().add(LandmarkLogo.iconMark(28));
         return logo;
     }
 
@@ -466,44 +554,6 @@ public class MainMenuController {
         return row;
     }
 
-    private HBox buildSidebarFooter() {
-        Label icon = new Label("⚙");
-        icon.setStyle(
-            "-fx-font-size: 13px; -fx-text-fill: #888780;" +
-            "-fx-min-width: 26px; -fx-min-height: 26px; -fx-alignment: center;");
-
-        // User line — populated by refreshFooterUser() after login sets AppSession
-        lblFooterUser = new Label("");
-        lblFooterUser.setStyle(
-            "-fx-font-size: 10px; -fx-text-fill: #1A6EF5;" +
-            "-fx-font-weight: bold; -fx-max-width: 150px;");
-
-        lblFooterCompany = new Label(sessionCompanyName.isEmpty() ? "No company" : sessionCompanyName);
-        lblFooterCompany.setStyle(
-            "-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #1A1A1A;" +
-            "-fx-wrap-text: true; -fx-max-width: 150px;");
-
-        lblFooterYear = new Label(sessionYearDesc.isEmpty() ? "No year set" : sessionYearDesc);
-        lblFooterYear.setStyle("-fx-font-size: 10px; -fx-text-fill: #888780;");
-
-        VBox textBox = new VBox(2, lblFooterCompany, lblFooterYear, lblFooterUser);
-
-        HBox footer = new HBox(8, icon, textBox);
-        footer.setAlignment(Pos.CENTER_LEFT);
-        footer.getStyleClass().add("sidebar-footer");
-        footer.setCursor(javafx.scene.Cursor.HAND);
-
-        Tooltip.install(footer, new Tooltip("Click to change company or financial year"));
-
-        footer.setOnMouseEntered(e ->
-            footer.setStyle("-fx-background-color: rgba(26,110,245,0.07);"));
-        footer.setOnMouseExited(e ->
-            footer.setStyle("-fx-background-color: transparent;"));
-        footer.setOnMouseClicked(e ->
-            showCompanyYearDialog(footer.getScene().getWindow()));
-
-        return footer;
-    }
 
 
     // ═══════════════════════════════════════════════════════════════
@@ -512,38 +562,32 @@ public class MainMenuController {
 
     private VBox buildMainContent() {
         VBox main = new VBox(0);
-        main.setStyle("-fx-background-color: #F2F1EC;");
+        main.setStyle("-fx-background-color: -lm-bg-page;");
 
         // ── Tab content area ───────────────────────────────────────────────
         tabContentArea = new StackPane();
         tabContentArea.setPadding(new Insets(20, 24, 24, 24));
-        tabContentArea.setStyle("-fx-background-color: #F2F1EC;");
+        tabContentArea.setStyle("-fx-background-color: -lm-bg-page;");
         VBox.setVgrow(tabContentArea, Priority.ALWAYS);
 
-        // Build content for each tab
         tabPanes = new java.util.HashMap<>();
-        tabPanes.put("Sales",       buildTabContent("Accounts Receivable",
-            "#D97706", "Debtors, receipts & sales",
-            List.of(entry("AR","ARTL01"), entry("AR","ARTL02"), entry("AR","ARMA01"))));
-        tabPanes.put("Purchasing",  buildTabContent("Accounts Payable",
-            "#7C3AED", "Creditors, payments & purchasing",
-            List.of(entry("AP","APTL01"), entry("AP","APMA01"))));
-        tabPanes.put("Inventory",   buildTabContent("Inventory",
-            "#059669", "Stock management & warehousing",
-            List.of(entry("SM","SMTL01"))));
-        tabPanes.put("Accounting",  buildAccountingTab());
-        tabPanes.put("Reporting",   buildTabContent("Reporting",
-            "#1A6EF5", "Reports, analysis & enquiries",
-            List.of(entry("FA","FATL12"), entry("FA","FATL10"),
-                    entry("FA","FATL02"), entry("FA","FATL03"),
-                    entry("FA","FATL14"))));
-        tabPanes.put("Payroll",     buildPayrollTabContent());
-        tabPanes.put("BAS",         buildTabContent("BAS / Tax",
-            "#DC2626", "Business Activity Statement & tax",
-            List.of()));
-        tabPanes.put("System",      buildTabContent("System",
-            "#374151", "Company & user maintenance",
-            List.of(entry("SYS","MENU22"))));
+        tabPanes.put("fa",  buildFaContent());
+        tabPanes.put("py",  buildPayrollTabContent());
+        tabPanes.put("gl",  buildStubModuleContent("General Ledger",      "#1A6EF5",
+            "Journals, account balances and period reporting", 6));
+        tabPanes.put("ar",  buildStubModuleContent("Accounts Receivable", "#D97706",
+            "Customer invoicing, debtor management and receipts", 21));
+        tabPanes.put("ap",  buildStubModuleContent("Accounts Payable",    "#7C3AED",
+            "Supplier invoicing, creditor management and payments", 10));
+        tabPanes.put("cm",  buildStubModuleContent("Cash Management",     "#059669",
+            "Bank accounts, cashbook transactions and reconciliation", 9));
+        tabPanes.put("po",  buildStubModuleContent("Purchasing",          "#0EA5E9",
+            "Purchase orders, delivery and supplier invoicing", 9));
+        tabPanes.put("sm",  buildStubModuleContent("Inventory",           "#059669",
+            "Stock control, movements and warehousing", 14));
+        tabPanes.put("bas", buildStubModuleContent("BAS / Tax",           "#DC2626",
+            "Business Activity Statement and GST reporting", 4));
+        tabPanes.put("sys", buildSysContent());
 
         // Show Fixed Assets tab by default and highlight sidebar row
         selectSidebarModule("fa");
@@ -560,67 +604,18 @@ public class MainMenuController {
         tabContentArea.getChildren().clear();
         javafx.scene.Node content = tabPanes.get(name);
         if (content != null) tabContentArea.getChildren().add(content);
-        // Update tab button styles
-        if (topNavButtons != null) {
-            topNavButtons.forEach((n, btn) -> {
-                boolean active = n.equals(name);
-                btn.setStyle(
-                    "-fx-background-color: " + (active ? "#FFFFFF" : "transparent") + ";" +
-                    "-fx-text-fill: " + (active ? "#1A1A1A" : "#6B7280") + ";" +
-                    "-fx-font-size: 13px;" +
-                    "-fx-font-weight: " + (active ? "bold" : "normal") + ";" +
-                    "-fx-padding: 10 16;" +
-                    "-fx-border-color: " + (active ? "rgba(0,0,0,0.08)" : "transparent") + ";" +
-                    "-fx-border-width: 0 0 2 0;" +
-                    "-fx-border-radius: 0;" +
-                    "-fx-background-radius: 0;" +
-                    "-fx-cursor: hand;" +
-                    (active ? "-fx-border-color: #1A6EF5; -fx-border-width: 0 0 2 0;" : ""));
-            });
-        }
     }
 
-    private java.util.LinkedHashMap<String, Button> topNavButtons;
-
-    private HBox buildTopNavBar() {
-        topNavButtons = new java.util.LinkedHashMap<>();
-        String[] tabs = {"Sales", "Purchasing", "Inventory", "Accounting", "Payroll", "BAS", "Reporting", "System"};
-
-        HBox nav = new HBox(0);
-        nav.setAlignment(Pos.CENTER_LEFT);
-        nav.setStyle(
-            "-fx-background-color: #FFFFFF;" +
-            "-fx-border-color: transparent transparent rgba(0,0,0,0.08) transparent;" +
-            "-fx-border-width: 0 0 1 0;");
-        nav.setPadding(new Insets(0, 16, 0, 16));
-
-        for (String tab : tabs) {
-            Button btn = new Button(tab);
-            btn.setOnAction(e -> showTab(tab));
-            topNavButtons.put(tab, btn);
-            nav.getChildren().add(btn);
-        }
-
-        // Apply initial default style
-        topNavButtons.forEach((n, btn) ->
-            btn.setStyle(
-                "-fx-background-color: transparent;" +
-                "-fx-text-fill: #6B7280;" +
-                "-fx-font-size: 13px;" +
-                "-fx-padding: 10 16;" +
-                "-fx-border-radius: 0;" +
-                "-fx-background-radius: 0;" +
-                "-fx-cursor: hand;"));
-
-        return nav;
-    }
-
-    /** Build the Accounting tab — two column grid with FA + GL cards */
-    private VBox buildAccountingTab() {
+    private VBox buildFaContent() {
         VBox tab = new VBox(16);
         tab.setPadding(new Insets(4, 0, 0, 0));
 
-        // Bottom row: recently used + stats
+        Label lTitle = new Label("Fixed Assets");
+        lTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        Label lDesc = new Label("Asset register, depreciation and acquisition management");
+        lDesc.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;");
+        tab.getChildren().add(new VBox(4, lTitle, lDesc));
+
         recentlyUsedBox = buildRecentlyUsedBody();
         VBox recentCard = wrapCard(buildRecentlyUsedHeader(), recentlyUsedBox);
         VBox statsCard  = buildStatsCard();
@@ -633,28 +628,91 @@ public class MainMenuController {
         ColumnConstraints col2 = new ColumnConstraints(); col2.setPercentWidth(50);
         grid.getColumnConstraints().addAll(col1, col2);
 
-        grid.add(buildModuleCard("#7C3AED", "Fixed Assets — Maintenance",
-            "Asset records & acquisitions",
+        grid.add(buildModuleCard("#7C3AED", "Maintenance",
+            "Asset records and acquisitions",
             List.of(entry("FA-MAINT","FAAS01"), entry("FA-MAINT","FAAQ01"),
                     entry("FA","FAAS04"))), 0, 0);
 
-        grid.add(buildModuleCard("#1A6EF5", "Fixed Assets — Reporting",
-            "Depreciation, listings & analysis",
+        grid.add(buildModuleCard("#1A6EF5", "Reports",
+            "Depreciation, listings and analysis",
             List.of(entry("FA","FATL12"), entry("FA","FATL10"),
                     entry("FA","FATL02"), entry("FA","FATL03"),
                     entry("FA","FATL14"))), 1, 0);
 
-        grid.add(buildModuleCard("#059669", "General Ledger",
-            "Accounts, journals & balances",
-            List.of(entry("GL","GLTL01"), entry("GL","GLTL02"),
-                    entry("GL","GLTL03"), entry("GL","GLMA01"))), 0, 1);
-
-        grid.add(buildModuleCard("#374151", "System",
-            "Company & user maintenance",
-            List.of(entry("SYS","MENU22"))), 1, 1);
-
         tab.getChildren().addAll(grid, new HBox(12, recentCard, statsCard));
         return tab;
+    }
+
+    private VBox buildSysContent() {
+        VBox tab = new VBox(16);
+        tab.setPadding(new Insets(4, 0, 0, 0));
+
+        Label lTitle = new Label("System");
+        lTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        Label lDesc = new Label("Company setup and system configuration");
+        lDesc.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;");
+        tab.getChildren().add(new VBox(4, lTitle, lDesc));
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12); grid.setVgap(12);
+        ColumnConstraints cc = new ColumnConstraints(); cc.setPercentWidth(50);
+        grid.getColumnConstraints().addAll(cc, cc);
+
+        grid.add(buildModuleCard("#374151", "Administration",
+            "Company and user maintenance",
+            List.of(entry("SYS","MENU22"))), 0, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    private VBox buildStubModuleContent(String moduleTitle, String accentColor,
+                                         String description, int reportsInHub) {
+        VBox tab = new VBox(16);
+        tab.setPadding(new Insets(4, 0, 0, 0));
+
+        Label lTitle = new Label(moduleTitle);
+        lTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        Label lDesc = new Label(description);
+        lDesc.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;");
+        tab.getChildren().add(new VBox(4, lTitle, lDesc));
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12); grid.setVgap(12);
+        ColumnConstraints cc = new ColumnConstraints(); cc.setPercentWidth(50);
+        grid.getColumnConstraints().addAll(cc, cc);
+
+        grid.add(buildInfoCard("Maintenance", accentColor,
+            "Transaction entry and master file maintenance are planned for a future release."),
+            0, 0);
+
+        String rptMsg = reportsInHub > 0
+            ? reportsInHub + " reports are available. Run the application in Reporting mode to access the full suite."
+            : "Reports are planned for a future release.";
+        grid.add(buildInfoCard("Reports", accentColor, rptMsg), 1, 0);
+
+        tab.getChildren().add(grid);
+        return tab;
+    }
+
+    private VBox buildInfoCard(String cardTitle, String accentColor, String message) {
+        Label lTitle = new Label(cardTitle);
+        lTitle.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        VBox cardHdr = new VBox(lTitle);
+        cardHdr.setPadding(new Insets(12, 16, 12, 16));
+        cardHdr.setStyle(
+            "-fx-border-color: transparent transparent rgba(0,0,0,.07) " + accentColor + ";" +
+            "-fx-border-width: 0 0 0.5 3;");
+
+        Label lMsg = new Label(message);
+        lMsg.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;-fx-wrap-text:true;");
+        lMsg.setMaxWidth(400);
+        lMsg.setPadding(new Insets(12, 16, 14, 16));
+
+        VBox card = new VBox(0, cardHdr, lMsg);
+        card.setStyle("-fx-background-color:white;-fx-background-radius:10;" +
+                      "-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2);");
+        return card;
     }
 
     /** Build the Payroll tab content — launches PayrollMenuController. */
@@ -664,96 +722,79 @@ public class MainMenuController {
 
         // Header
         Label title = new Label("Payroll");
-        title.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
+        title.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:-lm-text-primary;");
         Label sub = new Label("Pay codes, employees, timesheets and pay processing");
-        sub.setStyle("-fx-font-size:12px;-fx-text-fill:#888780;");
-        VBox hdr = new VBox(4, title, sub);
-        tab.getChildren().add(hdr);
+        sub.setStyle("-fx-font-size:13px;-fx-text-fill:-lm-text-secondary;");
+        tab.getChildren().add(new VBox(4, title, sub));
 
-        // Quick-launch grid: two rows × two columns
+        // Three primary cards in a row (D5 mockup layout)
         GridPane grid = new GridPane();
         grid.setHgap(16); grid.setVgap(16);
-        ColumnConstraints cc = new ColumnConstraints(); cc.setPercentWidth(50);
-        grid.getColumnConstraints().addAll(cc, cc);
+        ColumnConstraints c3 = new ColumnConstraints(); c3.setPercentWidth(33.33);
+        grid.getColumnConstraints().addAll(c3, c3, c3);
 
-        // Setup card
-        grid.add(buildPayrollModuleCard("Setup & Maintenance",
-            "#1A6EF5",
-            "Pay codes, employees, groups and awards",
-            List.of(entry("PY","PACD01"), entry("PY","PAEM01"),
-                    entry("PY","PAPG01"), entry("PY","PASU04"),
-                    entry("PY","PAAW01"))), 0, 0);
+        // Setup & Maintenance
+        ModuleCard setupCard = new ModuleCard("#0F6E56", "fth-user",
+            "Setup & Maintenance", "Pay codes, employees, groups");
+        setupCard.addRows(List.of(
+            entry("PY","PACD01"), entry("PY","PAEM01"), entry("PY","PAPG01"),
+            entry("PY","PASU04"), entry("PY","PAAW01")));
+        grid.add(setupCard, 0, 0);
 
-        // Pay Processing card
-        grid.add(buildPayrollModuleCard("Pay Processing",
-            "#059669",
-            "Timesheets, pay runs and bank payments",
-            List.of(entry("PY","PATM01"), entry("PY","PAPP01"),
-                    entry("PY","PABK02"), entry("PY","PAPA14"))), 1, 0);
+        // Pay Processing
+        ModuleCard processCard = new ModuleCard("#0F6E56", "fth-play-circle",
+            "Pay Processing", "Timesheets, pay runs, payments");
+        processCard.addRows(List.of(
+            entry("PY","PATM01"), entry("PY","PAPP01"),
+            entry("PY","PABK02"), entry("PY","PAPA14")));
+        grid.add(processCard, 1, 0);
 
-        // Reports card — all 13 implemented + 2 stubs, spanning both columns
-        VBox reportsCard = buildPayrollModuleCard("Reports & Compliance",
-            "#7C3AED",
-            "Payroll reports, STP and payment summaries",
-            List.of(
-                entry("PY","PATL10"), entry("PY","PATL12"), entry("PY","PATL??"),
-                entry("PY","PATL14"), entry("PY","PATL17"), entry("PY","PATL05"),
-                entry("PY","PATL16"), entry("PY","PATL07"), entry("PY","PATL60"),
-                entry("PY","PATL28"), entry("PY","PATL40"), entry("PY","PASP10"),
-                entry("PY","PATL26"),
-                MenuEntry.placeholder("PY","PAST10","Single Touch Payroll","STP Phase 2 — requires ATO sandbox"),
-                MenuEntry.placeholder("PY","PAPS26","Payment Summaries","Annual PAYG — deferred Wave 4")));
-        GridPane.setColumnSpan(reportsCard, 2);
-        grid.add(reportsCard, 0, 1);
-
-        // Year End card
-        grid.add(buildPayrollModuleCard("Year End",
-            "#D97706",
-            "Year close and carry-forward processing",
-            List.of(entry("PY","PATX01"), entry("PY","PADE01"))), 0, 2);
-
-        // Mass Update card (Wave 2 batch utilities)
-        grid.add(buildPayrollModuleCard("Mass Update",
-            "#7C3AED",
-            "Batch changes across employees and pay codes",
-            List.of(entry("PY","PASU14"), entry("PY","PASU11"),
-                    entry("PY","PASU15"), entry("PY","PAEM60"))), 0, 3);
-
-        // Batch Operations card (pay-run + timesheet utilities)
-        grid.add(buildPayrollModuleCard("Batch Operations",
-            "#0EA5E9",
-            "Pay run and timesheet utilities",
-            List.of(entry("PY","PAEM11"), entry("PY","PASU55"),
-                    entry("PY","PAPC01"))), 1, 3);
+        // Reports & Compliance — with Open hook (TODO Phase S1)
+        ModuleCard reportsCard = new ModuleCard("#0F6E56", "fth-bar-chart-2",
+            "Reports & Compliance", "STP and payment summaries");
+        reportsCard.addRows(List.of(
+            entry("PY","PATL10"), entry("PY","PATL12"), entry("PY","PATL??"),
+            entry("PY","PATL14"), entry("PY","PATL17"), entry("PY","PATL05"),
+            entry("PY","PATL16"), entry("PY","PATL07"), entry("PY","PATL60"),
+            entry("PY","PATL28"), entry("PY","PATL40"), entry("PY","PASP10"),
+            entry("PY","PATL26"),
+            MenuEntry.placeholder("PY","PAST10","Single Touch Payroll",""),
+            MenuEntry.placeholder("PY","PAPS26","Payment Summaries","")));
+        // TODO Phase S1: wire this to open the reporting suite
+        reportsCard.setOpenAction(() -> {});
+        grid.add(reportsCard, 2, 0);
 
         tab.getChildren().add(grid);
+
+        // Secondary row: Year End, Mass Update, Batch Operations
+        GridPane grid2 = new GridPane();
+        grid2.setHgap(16);
+        ColumnConstraints c2a = new ColumnConstraints(); c2a.setPercentWidth(33.33);
+        ColumnConstraints c2b = new ColumnConstraints(); c2b.setPercentWidth(33.33);
+        ColumnConstraints c2c = new ColumnConstraints(); c2c.setPercentWidth(33.33);
+        grid2.getColumnConstraints().addAll(c2a, c2b, c2c);
+
+        ModuleCard yearEndCard = new ModuleCard("#D97706", "fth-calendar",
+            "Year End", "Year close and carry-forward");
+        yearEndCard.addRows(List.of(entry("PY","PATX01"), entry("PY","PADE01")));
+        grid2.add(yearEndCard, 0, 0);
+
+        ModuleCard massCard = new ModuleCard("#7C3AED", "fth-sliders",
+            "Mass Update", "Batch changes across employees");
+        massCard.addRows(List.of(
+            entry("PY","PASU14"), entry("PY","PASU11"),
+            entry("PY","PASU15"), entry("PY","PAEM60")));
+        grid2.add(massCard, 1, 0);
+
+        ModuleCard batchCard = new ModuleCard("#0EA5E9", "fth-layers",
+            "Batch Operations", "Pay run and timesheet utilities");
+        batchCard.addRows(List.of(
+            entry("PY","PAEM11"), entry("PY","PASU55"), entry("PY","PAPC01")));
+        grid2.add(batchCard, 2, 0);
+
+        tab.getChildren().add(grid2);
         VBox.setVgrow(grid, Priority.ALWAYS);
         return tab;
-    }
-
-    /** Build a named module card for the payroll tab grid. */
-    private VBox buildPayrollModuleCard(String title, String accentColor,
-                                         String subtitle, List<MenuEntry> entries) {
-        Label lTitle = new Label(title);
-        lTitle.setStyle("-fx-font-size:13px;-fx-font-weight:bold;-fx-text-fill:#1A1A2E;");
-        Label lSub = new Label(subtitle);
-        lSub.setStyle("-fx-font-size:11px;-fx-text-fill:#888780;");
-        VBox cardHdr = new VBox(2, lTitle, lSub);
-        cardHdr.setPadding(new Insets(12, 16, 12, 16));
-        cardHdr.setStyle("-fx-border-color:transparent transparent rgba(0,0,0,.07) transparent;" +
-                         "-fx-border-width:0 0 0.5 0;" +
-                         "-fx-border-left-color:" + accentColor + ";" +
-                         "-fx-border-left-width:3;");
-
-        VBox entryList = new VBox(0);
-        for (int i = 0; i < entries.size(); i++)
-            entryList.getChildren().add(
-                buildModuleEntryRow(entries.get(i), i == entries.size() - 1));
-
-        VBox card = new VBox(0, cardHdr, entryList);
-        card.setStyle("-fx-background-color:white;-fx-background-radius:10;" +
-                      "-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.07),8,0,0,2);");
-        return card;
     }
 
     /** Launcher: open the full Payroll module hub screen. */
@@ -768,14 +809,6 @@ public class MainMenuController {
 
 
     /** Build a simple tab content panel for non-FA modules */
-    private VBox buildTabContent(String title, String accentColor,
-                                  String subtitle, List<MenuEntry> entries) {
-        VBox tab = new VBox(16);
-        tab.setPadding(new Insets(4, 0, 0, 0));
-        tab.getChildren().add(buildModuleCard(accentColor, title, subtitle, entries));
-        return tab;
-    }
-
     private HBox buildPageTitle() {
         javafx.scene.Node logoImg = LandmarkLogo.iconMark(56);
 
@@ -826,33 +859,19 @@ public class MainMenuController {
     }
 
     private HBox buildModuleEntryRow(MenuEntry entry, boolean isLast) {
-        // Entry name
         Label nameLbl = new Label(entry.getTitle());
         nameLbl.getStyleClass().add(
             entry.isAvailable() ? "mod-entry-title" : "mod-entry-title-dim");
         HBox.setHgrow(nameLbl, Priority.ALWAYS);
 
-        // Badges
-        HBox badges = new HBox(4);
-        badges.setAlignment(Pos.CENTER_RIGHT);
-
-        // "new" badge for recently-added programs
-        if ("FATL10".equals(entry.getProgramCode()) || "FAAS01".equals(entry.getProgramCode())) {
-            Label newBadge = new Label("new");
-            newBadge.getStyleClass().add("badge-new");
-            badges.getChildren().add(newBadge);
-        }
+        HBox row;
         if (!entry.isAvailable()) {
             Label soon = new Label("soon");
             soon.getStyleClass().add("badge-soon");
-            badges.getChildren().add(soon);
+            row = new HBox(8, nameLbl, soon);
+        } else {
+            row = new HBox(8, nameLbl);
         }
-
-        Label code = new Label(entry.getProgramCode());
-        code.getStyleClass().add("code-badge");
-        badges.getChildren().add(code);
-
-        HBox row = new HBox(8, nameLbl, badges);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("mod-entry");
 
@@ -935,7 +954,7 @@ public class MainMenuController {
 
         Label name = new Label(e.getTitle());
         name.setStyle("-fx-font-size: 12px; -fx-text-fill: #1A1A1A;");
-        Label module = new Label(e.getProgramCode() + " · " + moduleLabel(e.getModuleCode()));
+        Label module = new Label(moduleLabel(e.getModuleCode()));
         module.setStyle("-fx-font-size: 10px; -fx-text-fill: #888780;");
         VBox nameBox = new VBox(1, name, module);
         HBox.setHgrow(nameBox, Priority.ALWAYS);
@@ -970,7 +989,7 @@ public class MainMenuController {
     private VBox buildStatsCard() {
         Label t = new Label("System Overview");
         t.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1A1A1A;");
-        Label lnk = new Label("FATL10 ›");
+        Label lnk = new Label("Asset Register ›");
         lnk.setStyle("-fx-font-size: 11px; -fx-text-fill: #1A6EF5; -fx-cursor: hand;");
         lnk.setOnMouseClicked(e -> openAssetRegister());
         HBox.setHgrow(t, Priority.ALWAYS);
@@ -1133,43 +1152,43 @@ public class MainMenuController {
         // Payroll Reports (13 implemented)
         allEntries.add(new MenuEntry("PY", "PATL10", "Payroll Summary",
             "Gross, tax, super and net by pay run",
-            true, () -> openPyReport("payroll-summary", "Payroll Summary — PATL10")));
+            true, () -> openPyReport("payroll-summary", "Payroll Summary")));
         allEntries.add(new MenuEntry("PY", "PATL12", "Employee List",
             "All staff with rate and current status",
-            true, () -> openPyReport("employee-list", "Employee List — PATL12")));
+            true, () -> openPyReport("employee-list", "Employee List")));
         allEntries.add(new MenuEntry("PY", "PATL??", "Employee YTD Payments",
             "Year-to-date payment amounts by pay code per employee",
             true, () -> openPyReport("employee-ytd-payments", "Employee YTD Payments")));
         allEntries.add(new MenuEntry("PY", "PATL14", "Employee History Detail",
             "Full posted payroll history per employee",
-            true, () -> openPyReport("employee-history-detail", "Employee History Detail — PATL14")));
+            true, () -> openPyReport("employee-history-detail", "Employee History Detail")));
         allEntries.add(new MenuEntry("PY", "PATL17", "Employee History Summary",
             "Summarised payroll history with sort option",
-            true, () -> openPyReport("employee-history-summary", "Employee History Summary — PATL17")));
+            true, () -> openPyReport("employee-history-summary", "Employee History Summary")));
         allEntries.add(new MenuEntry("PY", "PATL05", "Deductions & Superannuation",
             "YTD deductions and super by pay code or fund",
-            true, () -> openPyReport("deductions-super", "Deductions & Superannuation — PATL05/09")));
+            true, () -> openPyReport("deductions-super", "Deductions & Superannuation")));
         allEntries.add(new MenuEntry("PY", "PATL16", "Department Expenses",
             "Payroll cost distribution by department for a period",
-            true, () -> openPyReport("dept-expenses", "Department Expenses — PATL16")));
+            true, () -> openPyReport("dept-expenses", "Department Expenses")));
         allEntries.add(new MenuEntry("PY", "PATL07", "Period Summary",
             "Payroll totals by type for each pay run",
-            true, () -> openPyReport("period-summary", "Period Summary — PATL07")));
+            true, () -> openPyReport("period-summary", "Period Summary")));
         allEntries.add(new MenuEntry("PY", "PATL60", "Payrun GL Detail",
             "Full GL line detail for a single posted payrun",
-            true, () -> openPyReport("payrun-gl-detail", "Payrun GL Detail — PATL60")));
+            true, () -> openPyReport("payrun-gl-detail", "Payrun GL Detail")));
         allEntries.add(new MenuEntry("PY", "PATL28", "Timesheet History",
             "Payroll history by paygroup and employee",
-            true, () -> openPyReport("timesheet-history", "Timesheet History — PATL28")));
+            true, () -> openPyReport("timesheet-history", "Timesheet History")));
         allEntries.add(new MenuEntry("PY", "PATL40", "Super/Deductions Status",
             "Deduction and super payment status by pay code",
-            true, () -> openPyReport("super-deductions-status", "Super/Deductions Status — PATL40")));
+            true, () -> openPyReport("super-deductions-status", "Super/Deductions Status")));
         allEntries.add(new MenuEntry("PY", "PASP10", "Super by Fund",
             "YTD super contributions grouped by fund",
-            true, () -> openPyReport("super-by-fund", "Super by Fund — PASP10")));
+            true, () -> openPyReport("super-by-fund", "Super by Fund")));
         allEntries.add(new MenuEntry("PY", "PATL26", "Extended Superannuation",
             "Detailed super history with fund details and masked TFN",
-            true, () -> openPyReport("extended-super", "Extended Superannuation — PATL26")));
+            true, () -> openPyReport("extended-super", "Extended Superannuation")));
 
         // System maintenance programs
         allEntries.add(new MenuEntry("SYS", "MENU22", "Company Maintenance",
@@ -1210,12 +1229,17 @@ public class MainMenuController {
 
     private String moduleLabel(String code) {
         return switch (code) {
-            case "FA", "FA-MAINT" -> "Landmark Software";
+            case "FA", "FA-MAINT" -> "Fixed Assets";
+            case "PY"  -> "Payroll";
+            case "GL"  -> "General Ledger";
+            case "AR"  -> "Accounts Receivable";
+            case "AP"  -> "Accounts Payable";
+            case "CM"  -> "Cash Management";
+            case "PO"  -> "Purchasing";
+            case "SM"  -> "Inventory";
+            case "BAS" -> "BAS / Tax";
             case "SYS" -> "System";
-            case "GL" -> "General Ledger";
-            case "AR" -> "Accounts Receivable";
-            case "AP" -> "Accounts Payable";
-            default   -> code;
+            default    -> code;
         };
     }
 
@@ -1228,22 +1252,22 @@ public class MainMenuController {
         s.setMinWidth(780); s.setMinHeight(600); s.show();
     }
     private void openAssetMaintenance() {
-        Stage s = new Stage(); s.setTitle("Asset Maintenance — FAAS01");
+        Stage s = new Stage(); s.setTitle("Asset Maintenance");
         s.setScene(assetMaintenance.buildScene(s));
         s.setMinWidth(900); s.setMinHeight(550); s.show();
     }
     private void openAcquiredRetiredScreen() {
-        Stage s = new Stage(); s.setTitle("Assets Acquired and Retired — FATL03");
+        Stage s = new Stage(); s.setTitle("Assets Acquired and Retired");
         s.setScene(acquiredRetiredScreen.buildScene(s));
         s.setMinWidth(680); s.setMinHeight(680); s.show();
     }
     private void openTransactionListScreen() {
-        Stage s = new Stage(); s.setTitle("Transaction List — FATL02");
+        Stage s = new Stage(); s.setTitle("Transaction List");
         s.setScene(transactionListScreen.buildScene(s));
         s.setMinWidth(700); s.setMinHeight(680); s.show();
     }
     private void openProjectionScreen() {
-        Stage s = new Stage(); s.setTitle("Projected Depreciation — FATL12");
+        Stage s = new Stage(); s.setTitle("Projected Depreciation");
         s.setScene(projectionScreen.buildScene(s));
         s.setMinWidth(700); s.setMinHeight(620); s.show();
     }
@@ -1255,7 +1279,7 @@ public class MainMenuController {
     }
 
     private void openAcquisitionEntry() {
-        Stage s = new Stage(); s.setTitle("Asset Acquisition Entry — FAAQ01");
+        Stage s = new Stage(); s.setTitle("Asset Acquisition Entry");
         Scene scene = acquisitionEntry.buildScene(s, appSession.getCompanyNo());
         if (scene != null) {
             s.setScene(scene);
@@ -1264,97 +1288,97 @@ public class MainMenuController {
     }
 
     private void openPayCodeMaintenance() {
-        Stage s = new Stage(); s.setTitle("Pay Code Maintenance — PACD01");
+        Stage s = new Stage(); s.setTitle("Pay Code Maintenance");
         s.setScene(payCodeScreen.buildScene(s));
         s.setMinWidth(820); s.setMinHeight(480); s.show();
     }
 
     private void openEmployeeMaintenance() {
-        Stage s = new Stage(); s.setTitle("Employee Maintenance — PAEM01");
+        Stage s = new Stage(); s.setTitle("Employee Maintenance");
         s.setScene(employeeScreen.buildScene(s));
         s.setMinWidth(960); s.setMinHeight(560); s.show();
     }
 
     private void openPayGroupMaintenance() {
-        Stage s = new Stage(); s.setTitle("Pay Group Maintenance — PAPG01");
+        Stage s = new Stage(); s.setTitle("Pay Group Maintenance");
         s.setScene(payGroupScreen.buildScene(s));
         s.setMinWidth(900); s.setMinHeight(520); s.show();
     }
 
     private void openAwardMaintenance() {
-        Stage s = new Stage(); s.setTitle("Award Maintenance — PAAW01");
+        Stage s = new Stage(); s.setTitle("Award Maintenance");
         s.setScene(awardScreen.buildScene(s));
         s.setMinWidth(900); s.setMinHeight(520); s.show();
     }
 
     private void openTaxScaleMaintenance() {
-        Stage s = new Stage(); s.setTitle("Tax Scale Maintenance — PASU04");
+        Stage s = new Stage(); s.setTitle("Tax Scale Maintenance");
         s.setScene(taxScaleScreen.buildScene(s));
         s.setMinWidth(880); s.setMinHeight(520); s.show();
     }
 
     private void openTaxScaleLoad() {
-        Stage s = new Stage(); s.setTitle("Load ATO Tax Scales — PATX01");
+        Stage s = new Stage(); s.setTitle("Load ATO Tax Scales");
         s.setScene(taxScaleLoadScreen.buildScene(s));
         s.setMinWidth(600); s.setMinHeight(320); s.show();
     }
 
     private void openSetSuperPercentage() {
-        Stage s = new Stage(); s.setTitle("Set Super Percentage — PASU14");
+        Stage s = new Stage(); s.setTitle("Set Super Percentage");
         s.setScene(setSuperPercentageScreen.buildScene(s));
         s.setMinWidth(600); s.setMinHeight(400); s.show();
     }
 
     private void openUpdateAwardRateChanges() {
-        Stage s = new Stage(); s.setTitle("Update Award Rate Changes — PASU11");
+        Stage s = new Stage(); s.setTitle("Update Award Rate Changes");
         s.setScene(updateAwardRatesScreen.buildScene(s));
         s.setMinWidth(640); s.setMinHeight(380); s.show();
     }
 
     private void openGlobalEmployeeAwardUpdate() {
-        Stage s = new Stage(); s.setTitle("Global Employee Award Update — PASU15");
+        Stage s = new Stage(); s.setTitle("Global Employee Award Update");
         s.setScene(globalAwardUpdateScreen.buildScene(s));
         s.setMinWidth(720); s.setMinHeight(580); s.show();
     }
 
     private void openChangeEmployeePayRates() {
-        Stage s = new Stage(); s.setTitle("Change Employee Pay Rates — PAEM60");
+        Stage s = new Stage(); s.setTitle("Change Employee Pay Rates");
         s.setScene(changeEmpPayRatesScreen.buildScene(s));
         s.setMinWidth(760); s.setMinHeight(660); s.show();
     }
 
     private void openDuplicateTimesheets() {
-        Stage s = new Stage(); s.setTitle("Duplicate Default Timesheets — PAEM11");
+        Stage s = new Stage(); s.setTitle("Duplicate Default Timesheets");
         s.setScene(dupTimesheetsScreen.buildScene(s));
         s.setMinWidth(680); s.setMinHeight(440); s.show();
     }
 
     private void openLeaveAccrualReversal() {
-        Stage s = new Stage(); s.setTitle("Leave Accrual Reversal — PASU55");
+        Stage s = new Stage(); s.setTitle("Leave Accrual Reversal");
         s.setScene(leaveAccrualScreen.buildScene(s));
         s.setMinWidth(840); s.setMinHeight(560); s.show();
     }
 
     private void openTimesheetSplits() {
-        Stage s = new Stage(); s.setTitle("Timesheet Splits — PAPC01");
+        Stage s = new Stage(); s.setTitle("Timesheet Splits");
         s.setScene(timesheetSplitsScreen.buildScene(s));
         s.setMinWidth(920); s.setMinHeight(560); s.show();
     }
 
     private void openTimesheetEntry() {
-        Stage s = new Stage(); s.setTitle("Timesheet Entry — PATM01");
+        Stage s = new Stage(); s.setTitle("Timesheet Entry");
         s.setScene(timesheetEntryScreen.buildScene(s));
         s.setMinWidth(1000); s.setMinHeight(620); s.show();
     }
 
     private void openPayRunProcessing() {
-        Stage s = new Stage(); s.setTitle("Pay Run Processing — PAPP01");
+        Stage s = new Stage(); s.setTitle("Pay Run Processing");
         s.setScene(payRunProcessingScreen.buildScene(s));
         s.setMinWidth(1000); s.setMinHeight(580); s.show();
     }
 
     private void openAbaPayment() {
-        Stage s = new Stage(); s.setTitle("ABA Payment File — PABK02");
+        Stage s = new Stage(); s.setTitle("ABA Payment File");
         s.setScene(abaPaymentScreen.buildScene(s));
         s.setMinWidth(1000); s.setMinHeight(560); s.show();
     }
@@ -1390,13 +1414,10 @@ public class MainMenuController {
      * PAPA15+ chain port. Leave accrual moved to PAPP01 → Process Leave.
      */
     private void stubPaPa14() {
-        stubInfo("PAPA14 — Payment Posting (CM/GL)",
-            "COBOL papa14.pl posts payment batches for the payrun, updating\n"
-            + "paid history, Cash Management (if installed) and General Ledger\n"
-            + "for cashbook payments. Entry to the PAPA15+ chain.\n\n"
-            + "Leave accrual (incorrectly named PAPA14 in my earlier port) has\n"
-            + "moved to its correct home: Pay Run Processing (PAPP01) → 'Process\n"
-            + "Leave (PAPP03)' button.");
+        stubInfo("Payment Posting (CM/GL)",
+            "Posts payment batches for the payrun, updating paid history,\n"
+            + "Cash Management and General Ledger for cashbook payments.\n\n"
+            + "Leave accrual is in Pay Run Processing → 'Process Leave' button.");
     }
 
     private void stubInfo(String title, String body) {
@@ -1420,7 +1441,7 @@ public class MainMenuController {
         Stage dlg = new Stage();
         dlg.initOwner(owner);
         dlg.initModality(Modality.WINDOW_MODAL);
-        dlg.setTitle("Change Company & Financial Year — MENU23");
+        dlg.setTitle("Change Company & Financial Year");
         dlg.setResizable(false);
 
         // Header
@@ -1576,10 +1597,11 @@ public class MainMenuController {
                 lastSessionStore.save(sessionCompanyNo, sessionYearNo);
             }
 
-            // Update sidebar live — null-guarded for the reporting build,
-            // which never instantiates the main-menu sidebar.
+            // Update header + legacy footer labels — null-guarded for reporting build.
+            if (lblHeaderCompany != null) lblHeaderCompany.setText(sessionCompanyName);
+            if (lblHeaderYear    != null) lblHeaderYear.setText(sessionYearDesc);
             if (lblFooterCompany != null) lblFooterCompany.setText(sessionCompanyName);
-            if (lblFooterYear != null)    lblFooterYear.setText(sessionYearDesc);
+            if (lblFooterYear    != null) lblFooterYear.setText(sessionYearDesc);
 
             // Push to shared AppSession — all screens/services will now use this
             pushToAppSession();

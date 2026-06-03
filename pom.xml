@@ -55,8 +55,11 @@
       <version>${javafx.version}</version>
     </dependency>
 
-    <!-- Ikonli — icon font support for JavaFX. Used by ReportsHubController
-         (module + report icon badges) via FontIcon + Tabler icon names. -->
+    <!-- Ikonli — icon font support for JavaFX.
+         Desktop uses ikonli-feather-pack (Feather icons, fth-* prefix).
+         Tabler icon names in DESIGN_SYSTEM.md are the canonical set for the web
+         app; Feather equivalents are used here until ikonli-tabler-pack is
+         available in Maven Central. -->
     <dependency>
       <groupId>org.kordamp.ikonli</groupId>
       <artifactId>ikonli-javafx</artifactId>

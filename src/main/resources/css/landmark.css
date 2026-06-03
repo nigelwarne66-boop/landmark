@@ -1,0 +1,128 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Landmark Design System — JavaFX token stylesheet
+   Load this FIRST (before fixedassets.css / reporting.css) so looked-up
+   colours resolve everywhere.  Never hard-code values defined here.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.root {
+    /* ── Surfaces ─────────────────────────────────────────────────── */
+    -lm-bg-page:       #F6F7F9;
+    -lm-bg-surface:    #FFFFFF;
+    -lm-bg-selected:   #EEF3FB;
+
+    /* ── Text ─────────────────────────────────────────────────────── */
+    -lm-text-primary:   #1F2328;
+    -lm-text-secondary: #5B6168;
+    -lm-text-tertiary:  #8A9099;
+
+    /* ── Borders ──────────────────────────────────────────────────── */
+    -lm-border:        #E3E5E8;
+    -lm-border-strong: #CFD2D6;
+
+    /* ── Accent ───────────────────────────────────────────────────── */
+    -lm-accent:      #185FA5;
+    -lm-accent-bg:   #E6F1FB;
+    -lm-accent-text: #0C447C;
+
+    /* ── Module accents (canonical order) ────────────────────────── */
+    -lm-mod-gl:  #185FA5;   /* General Ledger      */
+    -lm-mod-ar:  #1D9E75;   /* Accounts Receivable */
+    -lm-mod-ap:  #D85A30;   /* Accounts Payable    */
+    -lm-mod-cm:  #639922;   /* Cash Management     */
+    -lm-mod-po:  #D4537E;   /* Purchasing          */
+    -lm-mod-sm:  #534AB7;   /* Inventory           */
+    -lm-mod-fa:  #BA7517;   /* Fixed Assets        */
+    -lm-mod-py:  #0F6E56;   /* Payroll             */
+    -lm-mod-bas: #5F5E5A;   /* BAS / Tax           */
+    -lm-mod-sys: #5F5E5A;   /* System              */
+
+    /* ── Shape ────────────────────────────────────────────────────── */
+    -lm-radius-md: 8px;
+    -lm-radius-lg: 12px;
+}
+
+/* ── Header strip ─────────────────────────────────────────────────── */
+.lm-header {
+    -fx-background-color: -lm-bg-surface;
+    -fx-border-color: transparent transparent -lm-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-pref-height: 48px;
+    -fx-min-height:  48px;
+}
+.lm-header-company {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -lm-text-primary;
+}
+.lm-header-year {
+    -fx-font-size: 12px;
+    -fx-text-fill: -lm-text-secondary;
+}
+.lm-header-sep {
+    -fx-font-size: 13px;
+    -fx-text-fill: -lm-border-strong;
+}
+.lm-user-btn {
+    -fx-background-color: -lm-bg-selected;
+    -fx-text-fill: -lm-accent;
+    -fx-font-size: 13px;
+    -fx-background-radius: 6px;
+    -fx-padding: 5 12 5 12;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+.lm-user-btn:hover {
+    -fx-background-color: -lm-accent-bg;
+}
+
+/* ── Search field in header ───────────────────────────────────────── */
+.lm-search {
+    -fx-background-color: -lm-bg-page;
+    -fx-border-color: -lm-border;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 5 10 5 10;
+    -fx-font-size: 13px;
+    -fx-text-fill: -lm-text-primary;
+    -fx-prompt-text-fill: -lm-text-tertiary;
+    -fx-pref-width: 220px;
+}
+.lm-search:focused {
+    -fx-border-color: -lm-accent;
+}
+
+/* ── Nav rail ─────────────────────────────────────────────────────── */
+.lm-sidebar {
+    -fx-background-color: -lm-bg-page;
+    -fx-border-color: transparent -lm-border transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-pref-width: 192px;
+    -fx-min-width:  192px;
+    -fx-max-width:  192px;
+}
+.lm-nav-section-label {
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -lm-text-tertiary;
+    -fx-padding: 12 16 4 16;
+}
+.lm-nav-item {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+.lm-nav-item:hover {
+    -fx-background-color: -lm-border;
+}
+.lm-nav-item-active {
+    -fx-background-color: -lm-bg-selected;
+}
+.lm-nav-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: -lm-text-secondary;
+}
+.lm-nav-label-active {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -lm-accent;
+}

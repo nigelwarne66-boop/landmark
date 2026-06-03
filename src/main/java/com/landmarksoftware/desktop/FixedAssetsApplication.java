@@ -28,6 +28,8 @@ import javafx.stage.Stage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.util.List;
+
 /**
  * Landmark — JavaFX entry point wired to Spring Boot.
  *
@@ -52,14 +54,14 @@ public class FixedAssetsApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // Landmark pin-mark (mirrors landmark-logo-icon.svg) as the window/taskbar icon.
-        Image appIcon = landmarkWindowIcon();
-        primaryStage.getIcons().add(appIcon);
+        // Landmark pin-mark — multi-size for title bar, taskbar and Alt+Tab.
+        List<Image> icons = landmarkWindowIcons();
+        primaryStage.getIcons().addAll(icons);
 
         // Show login screen first (MENU00)
         LoginController login = springContext.getBean(LoginController.class);
         Stage loginStage = new Stage();
-        loginStage.getIcons().add(appIcon);
+        loginStage.getIcons().addAll(icons);
         loginStage.setOnCloseRequest(e -> Platform.exit());
 
         boolean authenticated = login.showAndWait(loginStage);
@@ -79,17 +81,22 @@ public class FixedAssetsApplication extends Application {
     }
 
     /**
-     * Renders the full vector logo (pin + wordmark) to a transparent raster
-     * Image for the Stage icon — JavaFX window/taskbar icons require a raster
-     * Image, not a node.
+     * Returns multi-size pin-mark icons for the Stage.  Providing sizes at
+     * 16 / 32 / 48 / 64 px lets Windows pick the sharpest rendering for each
+     * context (title bar, taskbar, Alt+Tab).  Smallest size first per JavaFX
+     * convention (the first entry in the list is the fallback).
      */
-    private static Image landmarkWindowIcon() {
-        Node mark = LandmarkLogo.fullLogo(128);
-        Scene holder = new Scene(new Group(mark));
-        holder.setFill(Color.TRANSPARENT);
+    static List<Image> landmarkWindowIcons() {
         SnapshotParameters sp = new SnapshotParameters();
         sp.setFill(Color.TRANSPARENT);
-        return mark.snapshot(sp, null);
+        int[] sizes = {16, 32, 48, 64};
+        List<Image> icons = new java.util.ArrayList<>();
+        for (int size : sizes) {
+            Node mark = LandmarkLogo.iconMark(size);
+            new Scene(new Group(mark)).setFill(Color.TRANSPARENT);
+            icons.add(mark.snapshot(sp, null));
+        }
+        return icons;
     }
 
     private void showMainMenu(Stage primaryStage) {
@@ -121,6 +128,8 @@ public class FixedAssetsApplication extends Application {
             Parent root = loader.load();
 
             Scene scene = new Scene(root, 1000, 680);
+            scene.getStylesheets().add(
+                getClass().getResource("/css/landmark.css").toExternalForm());
             scene.getStylesheets().add(
                 getClass().getResource("/css/fixedassets.css").toExternalForm());
             scene.getStylesheets().add(
