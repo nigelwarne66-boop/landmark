@@ -298,6 +298,59 @@
       <id>dist</id>
       <build>
         <plugins>
+
+          <!-- Dist pre-work: clean stale jlink dirs; stage obf JAR after ProGuard -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>clean-runtime-dir</id>
+                <phase>prepare-package</phase>
+                <goals><goal>run</goal></goals>
+                <configuration>
+                  <target>
+                    <delete dir="${project.build.directory}/runtime"   failonerror="false"/>
+                    <delete dir="${project.build.directory}/installer" failonerror="false"/>
+                  </target>
+                </configuration>
+              </execution>
+              <!-- Copy obf JAR over thin JAR in dist-input so jpackage uses the obfuscated build -->
+              <execution>
+                <id>stage-obf-jar</id>
+                <phase>package</phase>
+                <goals><goal>run</goal></goals>
+                <configuration>
+                  <target>
+                    <copy file="${project.build.directory}/${project.build.finalName}-obf.jar"
+                          tofile="${project.build.directory}/dist-input/${project.build.finalName}.jar"
+                          overwrite="true"/>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Copy all runtime dependency JARs into dist-input for jpackage classpath -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-runtime-deps</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-dependencies</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/dist-input</outputDirectory>
+                  <includeScope>runtime</includeScope>
+                  <overWriteReleases>false</overWriteReleases>
+                  <overWriteSnapshots>false</overWriteSnapshots>
+                  <overWriteIfNewer>true</overWriteIfNewer>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
@@ -351,12 +404,9 @@
                     <argument>--java-options</argument>
                     <argument>--add-opens=java.base/java.lang=ALL-UNNAMED</argument>
                     <argument>--type</argument>
-                    <argument>exe</argument>
+                    <argument>app-image</argument>
                     <argument>--icon</argument>
                     <argument>${project.basedir}/deploy/landmark.ico</argument>
-                    <argument>--win-dir-chooser</argument>
-                    <argument>--win-menu</argument>
-                    <argument>--win-shortcut</argument>
                     <argument>--dest</argument>
                     <argument>${project.build.directory}/installer</argument>
                   </arguments>
@@ -366,7 +416,7 @@
             </executions>
           </plugin>
 
-          <!-- Copy fat JAR + per-client config template into dist-input staging dir -->
+          <!-- Copy per-client config template into dist-input so it lands in app/config/ -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-resources-plugin</artifactId>
@@ -380,6 +430,9 @@
                   <resources>
                     <resource>
                       <directory>${project.basedir}/deploy</directory>
+                      <includes>
+                        <include>config/**</include>
+                      </includes>
                       <filtering>false</filtering>
                     </resource>
                   </resources>

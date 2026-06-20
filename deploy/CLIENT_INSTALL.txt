@@ -1,0 +1,188 @@
+===============================================================================
+  LANDMARK REPORTING — CLIENT INSTALLATION GUIDE
+  Version 1.0  |  2026-06-20
+===============================================================================
+
+
+OVERVIEW
+--------
+Landmark Reporting is a standalone Windows desktop application that connects
+to your existing Landmark (lmextract) MySQL or MariaDB database and generates
+PDF and Excel reports across General Ledger, Accounts Receivable, Accounts
+Payable, Cash Management, BAS, Purchasing, Inventory Management, and Payroll.
+
+No internet connection is required.  The app ships with a bundled Java runtime
+— no separate Java installation is needed.
+
+
+CONTENTS OF THIS PACKAGE
+-------------------------
+  Landmark Reporting\          <- application folder (see Installation below)
+  config\
+    application.properties     <- EDIT THIS with your database credentials
+  CLIENT_INSTALL.txt           <- this document
+
+
+PREREQUISITES
+-------------
+  1. Windows 10 or Windows 11 (64-bit)
+  2. Network access to the Landmark MySQL / MariaDB database server
+  3. A database user account for the lmextract schema (see Database Setup below)
+  4. The lmextract schema must be populated from the ACU extract pipeline
+
+
+INSTALLATION
+------------
+1. Copy the entire "Landmark Reporting" folder to the machine that will run
+   the application.  A recommended location is:
+
+       C:\Program Files\Landmark Reporting\
+
+   You can place it anywhere — the app does not use the Windows registry.
+
+2. Create a subfolder called "config" inside the same parent folder:
+
+       C:\Program Files\Landmark Reporting\config\
+
+3. Copy the supplied "application.properties" file into that config folder:
+
+       C:\Program Files\Landmark Reporting\config\application.properties
+
+4. Edit application.properties with a text editor (Notepad is fine) and fill
+   in your database server details — see "Database Configuration" below.
+
+5. Create a shortcut to the launcher:
+
+       C:\Program Files\Landmark Reporting\Landmark Reporting\
+                                            LandmarkReporting.exe   (or .app)
+
+   Right-click → "Send to → Desktop (create shortcut)" for easy access.
+
+
+DATABASE CONFIGURATION
+----------------------
+Open  config\application.properties  and update the following lines:
+
+  spring.datasource.url=jdbc:mysql://SERVER:3306/lmextract?useSSL=false
+                                     ^^^^^^^
+                         Replace SERVER with your database server's hostname
+                         or IP address (e.g. 192.168.1.10 or db.yourdomain.com)
+
+  spring.datasource.username=landmark_user
+  spring.datasource.password=CHANGE_ME
+
+Replace landmark_user and CHANGE_ME with the credentials for the MySQL account
+that has SELECT access to the lmextract schema.
+
+If you are using MariaDB instead of MySQL, comment out the MySQL block and
+uncomment the MariaDB block in the file (instructions are inside the file).
+
+Save the file.  The application reads it on every launch — no reinstall needed
+when you change credentials.
+
+
+DATABASE USER SETUP (run once on the DB server)
+-------------------------------------------------
+If a dedicated reporting user does not yet exist, run the following SQL on the
+MySQL / MariaDB server as an administrator:
+
+    CREATE USER 'landmark_user'@'%' IDENTIFIED BY 'your_strong_password';
+    GRANT SELECT ON lmextract.* TO 'landmark_user'@'%';
+    FLUSH PRIVILEGES;
+
+Replace 'your_strong_password' with a secure password, and update
+application.properties to match.
+
+If the reporting PC and DB server are on the same machine, replace '%' with
+'localhost' for tighter security.
+
+
+REPORT OUTPUT DIRECTORY
+-----------------------
+Generated PDF and Excel files are saved to the directory stored in the
+cpcntrl.local_pc_dir field of the Landmark database.  This is the same
+directory used by the full Landmark application on the server.
+
+To check or change this directory, log in to the full Landmark system and
+look in System → Company Control → Local PC Directory, or update the
+cpcntrl table directly:
+
+    UPDATE lmextract.cpcntrl SET local_pc_dir = 'C:\\Reports\\' LIMIT 1;
+
+If the directory is blank or does not exist on this PC, generated reports
+are saved to the current user's Downloads folder as a fallback.
+
+
+FIRST LAUNCH
+------------
+1. Double-click the desktop shortcut or the .exe in the application folder.
+2. The login screen appears.  Enter your Landmark user ID and password
+   (same credentials used for the full Landmark system — stored in meusers).
+3. Select the company and financial year when prompted.
+4. The Reports Hub opens.  Click any module card to see available reports.
+5. Fill in the selection criteria and click "PDF" or "Excel" to generate.
+
+
+PAYROLL REPORTS — ACCESS CONTROL
+---------------------------------
+The Payroll module card is only shown to users whose meusers account has
+  print_pa_from_pass = 'Y'
+Contact your system administrator to enable this flag if you need payroll
+reports and the card does not appear.
+
+
+TROUBLESHOOTING
+---------------
+App does not start
+  - Confirm application.properties is in the config\ subfolder alongside
+    the "Landmark Reporting" application folder (not inside it).
+  - Check the database server is reachable:  ping SERVER  from this PC.
+  - Verify the MySQL port (default 3306) is open on any firewall between
+    this PC and the database server.
+
+"Access denied for user" error
+  - The database credentials in application.properties are wrong, or the
+    user account does not have SELECT access to lmextract.
+  - Re-run the GRANT statement in "Database User Setup" above.
+
+Login fails with correct username/password
+  - Confirm the user account exists in  lmextract.meusers  and that
+    user_status is not 'L' (locked).
+  - Passwords in meusers may be plain text (legacy) or BCrypt-hashed
+    depending on the Landmark version.  Contact Landmark Software if
+    login consistently fails for a valid account.
+
+Reports show no data
+  - The lmextract schema may not have been populated yet.  Run the ACU
+    extract pipeline on the Landmark server first.
+  - Confirm the selected company number and year match data in the schema.
+
+Report PDF opens but is blank
+  - Check that the output directory (cpcntrl.local_pc_dir) exists and is
+    writable by the Windows user running the application.
+
+"Report generation failed" error
+  - This usually means a required Jasper template could not be found or
+    compiled.  Contact Landmark Software support with the error text from
+    the application console (run the .exe from a Command Prompt to see it).
+
+
+UPDATING THE APPLICATION
+------------------------
+To update to a newer version:
+
+1. Close Landmark Reporting if it is running.
+2. Delete (or rename) the existing "Landmark Reporting" application folder.
+3. Copy the new "Landmark Reporting" folder from the update package.
+4. The config\ folder and application.properties do NOT need to be changed
+   unless the release notes say otherwise.
+
+
+SUPPORT
+-------
+Landmark Software
+Email:  support@landmarksoftware.com.au
+Phone:  (08) XXXX XXXX
+
+
+===============================================================================
