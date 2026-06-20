@@ -50,7 +50,7 @@
 -keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable
 
 # Retain runtime-visible attributes Spring/JavaFX rely on.
--keepattributes *Annotation*,Signature,Exceptions,InnerClasses,EnclosingMethod
+-keepattributes *Annotation*,Signature,Exceptions,InnerClasses,EnclosingMethod,StackMapTable
 -keepattributes RuntimeVisibleParameterAnnotations,RuntimeInvisibleParameterAnnotations
 
 # ══════════════════════════════════════════════════════════════════════
