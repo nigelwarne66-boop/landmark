@@ -1,0 +1,526 @@
+/* ==========================================================================
+   Landmark Design System — web tokens and primitives
+   Target: landmark-reports (Spring Boot + Thymeleaf, port 8091)
+   Path:   src/main/resources/static/css/landmark-tokens.css
+   Import FIRST in the base layout, before any page stylesheet.
+
+   Rule: component CSS references tokens only. No raw hex, no raw px for
+   spacing, radius, type or colour. Add a token here if one is missing.
+   ========================================================================== */
+
+/* --- Fonts -------------------------------------------------------------- */
+/* Bundle woff2 under static/fonts/. SIL Open Font Licence — safe to
+   redistribute with a commercial product. */
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Medium.woff2") format("woff2");
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-SemiBold.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-SemiBold.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+
+/* --- Tokens ------------------------------------------------------------- */
+
+:root {
+  /* Surfaces */
+  --lm-surface-app:       #F6F6F3;
+  --lm-surface-raised:    #FFFFFF;
+  --lm-surface-rail:      #FBFBF9;
+  --lm-surface-sunken:    #EFEFEA;
+  --lm-surface-hover:     #F0F0EC;
+  --lm-surface-selected:  #E9EFEC;
+
+  /* Borders */
+  --lm-border-subtle:     #E5E5DF;
+  --lm-border-default:    #D3D3CB;
+  --lm-border-strong:     #B5B5AB;
+
+  /* Text */
+  --lm-text-primary:      #1A1D1B;
+  --lm-text-secondary:    #5A5F5B;
+  --lm-text-muted:        #868C87;
+  --lm-text-inverse:      #FFFFFF;
+
+  /* Brand — Landmark teal */
+  --lm-brand-800:         #08483F;
+  --lm-brand-700:         #0B5F53;
+  --lm-brand-600:         #0E7263;
+  --lm-brand-300:         #7FBDB2;
+  --lm-brand-100:         #D6E9E5;
+  --lm-brand-050:         #EDF5F3;
+
+  /* Semantic */
+  --lm-success:           #1E7B45;
+  --lm-success-tint:      #E4F1E9;
+  --lm-warning:           #A8630A;
+  --lm-warning-tint:      #FAEEDD;
+  --lm-danger:            #B3261E;
+  --lm-danger-tint:       #FAE9E7;
+  --lm-info:              #1B5E9C;
+  --lm-info-tint:         #E5EEF7;
+  --lm-focus:             #14887A;
+  --lm-focus-ring:        rgba(20, 136, 122, .40);
+
+  /* Financial */
+  --lm-amount-negative:   #B3261E;
+  --lm-ageing-current:    #5A5F5B;
+  --lm-ageing-30:         #7A7A4E;
+  --lm-ageing-60:         #A8630A;
+  --lm-ageing-90:         #9A4218;
+  --lm-ageing-90plus:     #B3261E;
+
+  /* Module accents — see DESIGN_SYSTEM.md §4 */
+  --lm-mod-gl:  #3D5A98;  --lm-mod-gl-tint:  #E8EBF3;
+  --lm-mod-ar:  #2E7D57;  --lm-mod-ar-tint:  #E6EFEB;
+  --lm-mod-ap:  #B26B12;  --lm-mod-ap-tint:  #F6EDE3;
+  --lm-mod-cm:  #0E7263;  --lm-mod-cm-tint:  #E2EEEC;
+  --lm-mod-po:  #6B4FA8;  --lm-mod-po-tint:  #EDEAF5;
+  --lm-mod-sm:  #2F6F8F;  --lm-mod-sm-tint:  #E4EEF2;
+  --lm-mod-fa:  #8A5A3C;  --lm-mod-fa-tint:  #F1EBE8;
+  --lm-mod-py:  #A63D6B;  --lm-mod-py-tint:  #F4E8ED;
+  --lm-mod-bas: #5F7A2E;  --lm-mod-bas-tint: #ECEFE6;
+  --lm-mod-sy:  #5A5F5B;  --lm-mod-sy-tint:  #EBECEB;
+
+  /* Type */
+  --lm-font-ui:  "IBM Plex Sans", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --lm-font-num: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+
+  --lm-size-display: 24px;  --lm-lh-display: 32px;
+  --lm-size-title:   18px;  --lm-lh-title:   26px;
+  --lm-size-subtitle:15px;  --lm-lh-subtitle:22px;
+  --lm-size-body:    14px;  --lm-lh-body:    20px;
+  --lm-size-label:   13px;  --lm-lh-label:   18px;
+  --lm-size-caption: 12px;  --lm-lh-caption: 16px;
+  --lm-size-micro:   11px;  --lm-lh-micro:   14px;
+
+  /* Spacing — 4px base */
+  --lm-space-1:  4px;   --lm-space-2:  8px;   --lm-space-3: 12px;
+  --lm-space-4: 16px;   --lm-space-5: 20px;   --lm-space-6: 24px;
+  --lm-space-7: 32px;   --lm-space-8: 40px;   --lm-space-9: 48px;
+  --lm-space-10:64px;
+
+  /* Radius */
+  --lm-radius-sm:   4px;
+  --lm-radius-md:   6px;
+  --lm-radius-lg:  10px;
+  --lm-radius-pill: 999px;
+
+  /* Elevation */
+  --lm-elev-1: 0 1px 2px rgba(20, 24, 26, .06);
+  --lm-elev-2: 0 4px 12px rgba(20, 24, 26, .10);
+  --lm-elev-3: 0 12px 32px rgba(20, 24, 26, .16);
+
+  /* Motion */
+  --lm-motion-fast: 120ms cubic-bezier(.2, 0, .2, 1);
+  --lm-motion-base: 160ms cubic-bezier(.2, 0, .2, 1);
+
+  /* Shell geometry */
+  --lm-header-h:      56px;
+  --lm-rail-w:       240px;
+  --lm-rail-w-collapsed: 64px;
+  --lm-commandbar-h:  44px;
+  --lm-row-h:         32px;
+  --lm-row-h-compact: 28px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --lm-motion-fast: 1ms; --lm-motion-base: 1ms; }
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}
+
+/* --- Base --------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--lm-font-ui);
+  font-size: var(--lm-size-body);
+  line-height: var(--lm-lh-body);
+  color: var(--lm-text-primary);
+  background: var(--lm-surface-app);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--lm-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--lm-radius-sm);
+}
+
+.lm-num  { font-family: var(--lm-font-num); font-size: var(--lm-size-body); }
+.lm-num--strong { font-family: var(--lm-font-num); font-weight: 600; }
+.lm-num--negative { color: var(--lm-amount-negative); }  /* applied only when the
+   red-negatives preference is on; parentheses are always rendered by the formatter */
+
+/* --- Shell -------------------------------------------------------------- */
+
+.lm-shell {
+  display: grid;
+  grid-template-columns: var(--lm-rail-w) 1fr;
+  grid-template-rows: var(--lm-header-h) 1fr;
+  grid-template-areas: "header header" "rail content";
+  min-height: 100vh;
+}
+.lm-shell[data-rail="collapsed"] { grid-template-columns: var(--lm-rail-w-collapsed) 1fr; }
+
+.lm-header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: var(--lm-space-3);
+  padding: 0 var(--lm-space-4);
+  background: var(--lm-surface-raised);
+  border-bottom: 1px solid var(--lm-border-subtle);
+}
+.lm-header__brand { display: flex; align-items: center; gap: var(--lm-space-3); }
+.lm-header__wordmark {
+  font-size: var(--lm-size-subtitle); font-weight: 600; letter-spacing: -.01em;
+}
+.lm-header__spacer { flex: 1; }
+
+/* Company · financial year — a control, not a label */
+.lm-context-chip {
+  display: inline-flex; align-items: center; gap: var(--lm-space-2);
+  height: 28px; padding: 0 var(--lm-space-3);
+  border: 0; border-radius: var(--lm-radius-pill);
+  background: var(--lm-surface-sunken);
+  color: var(--lm-text-secondary);
+  font-family: var(--lm-font-ui); font-size: var(--lm-size-label);
+  cursor: pointer; transition: background var(--lm-motion-fast);
+}
+.lm-context-chip:hover { background: var(--lm-surface-hover); color: var(--lm-text-primary); }
+
+.lm-search {
+  width: 320px; height: 32px;
+  padding: 0 var(--lm-space-3) 0 var(--lm-space-8);
+  border: 1px solid var(--lm-border-default); border-radius: var(--lm-radius-md);
+  background: var(--lm-surface-raised) no-repeat left var(--lm-space-3) center;
+  font-family: var(--lm-font-ui); font-size: var(--lm-size-body);
+}
+.lm-search::placeholder { color: var(--lm-text-muted); }
+.lm-search:hover { border-color: var(--lm-border-strong); }
+.lm-search:focus { border-color: var(--lm-focus); box-shadow: 0 0 0 2px var(--lm-focus-ring); outline: none; }
+
+.lm-user {
+  display: inline-flex; align-items: center; gap: var(--lm-space-2);
+  height: 36px; padding: 0 var(--lm-space-2);
+  border: 0; background: transparent; border-radius: var(--lm-radius-md);
+  font-family: var(--lm-font-ui); font-size: var(--lm-size-label);
+  color: var(--lm-text-primary); cursor: pointer;
+}
+.lm-user:hover { background: var(--lm-surface-hover); }
+.lm-user__avatar {
+  width: 28px; height: 28px; border-radius: var(--lm-radius-pill);
+  display: grid; place-items: center;
+  background: var(--lm-surface-sunken); color: var(--lm-text-secondary);
+  font-size: var(--lm-size-micro); font-weight: 600; letter-spacing: .04em;
+}
+
+/* --- Navigation rail ---------------------------------------------------- */
+
+.lm-rail {
+  grid-area: rail;
+  background: var(--lm-surface-rail);
+  border-right: 1px solid var(--lm-border-subtle);
+  padding: var(--lm-space-3) var(--lm-space-2);
+  display: flex; flex-direction: column; gap: var(--lm-space-1);
+}
+.lm-rail__label {
+  padding: var(--lm-space-4) var(--lm-space-3) var(--lm-space-2);
+  font-size: var(--lm-size-micro); line-height: var(--lm-lh-micro);
+  font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--lm-text-muted);
+}
+.lm-nav-item {
+  position: relative;
+  display: flex; align-items: center; gap: var(--lm-space-3);
+  height: 36px; padding: 0 var(--lm-space-3);
+  border-radius: var(--lm-radius-md);
+  color: var(--lm-text-secondary);
+  font-size: var(--lm-size-body); font-weight: 500;
+  text-decoration: none; cursor: pointer;
+  transition: background var(--lm-motion-fast), color var(--lm-motion-fast);
+}
+.lm-nav-item:hover { background: var(--lm-surface-hover); color: var(--lm-text-primary); }
+.lm-nav-item .lm-icon { width: 18px; height: 18px; flex: none; }
+
+/* The ledger spine — the one signature device, reused for active nav,
+   selected rows and focused cards. */
+.lm-nav-item[aria-current="page"] {
+  background: var(--lm-brand-050);
+  color: var(--lm-brand-700);
+  font-weight: 600;
+}
+.lm-nav-item[aria-current="page"]::before {
+  content: ""; position: absolute; left: 0; top: 6px; bottom: 6px;
+  width: 3px; border-radius: 0 2px 2px 0; background: var(--lm-brand-600);
+}
+.lm-nav-item__count {
+  margin-left: auto;
+  font-family: var(--lm-font-num); font-size: var(--lm-size-micro);
+  color: var(--lm-text-muted);
+}
+
+/* --- Content and page header -------------------------------------------- */
+
+.lm-content { grid-area: content; padding: var(--lm-space-7); background: var(--lm-surface-app); }
+@media (max-width: 1280px) { .lm-content { padding: var(--lm-space-6); } }
+
+.lm-page-header { margin-bottom: var(--lm-space-5); }
+.lm-page-header__row { display: flex; align-items: flex-start; gap: var(--lm-space-4); }
+.lm-page-header__title {
+  margin: 0; font-size: var(--lm-size-display); line-height: var(--lm-lh-display);
+  font-weight: 600; letter-spacing: -.02em;
+}
+.lm-page-header__subtitle {
+  margin: var(--lm-space-1) 0 0;
+  font-size: var(--lm-size-body); color: var(--lm-text-secondary);
+}
+.lm-page-header__actions { margin-left: auto; display: flex; gap: var(--lm-space-2); }
+.lm-page-header__rule {
+  height: 1px; margin-top: var(--lm-space-5);
+  background: linear-gradient(to right,
+    var(--lm-page-accent, var(--lm-border-subtle)) 0 48px,
+    var(--lm-border-subtle) 48px);
+}
+
+/* --- CommandBar --------------------------------------------------------- */
+
+.lm-commandbar {
+  display: flex; align-items: center; gap: var(--lm-space-2);
+  height: var(--lm-commandbar-h);
+  margin-bottom: var(--lm-space-3);
+}
+.lm-commandbar__end { margin-left: auto; display: flex; align-items: center; gap: var(--lm-space-2); }
+.lm-filter {
+  width: 240px; height: 28px;
+  padding: 0 var(--lm-space-3) 0 var(--lm-space-7);
+  border: 1px solid var(--lm-border-default); border-radius: var(--lm-radius-md);
+  background: var(--lm-surface-raised);
+  font-family: var(--lm-font-ui); font-size: var(--lm-size-label);
+}
+
+/* --- Buttons ------------------------------------------------------------ */
+
+.lm-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--lm-space-2);
+  height: 32px; padding: 0 var(--lm-space-3);
+  border-radius: var(--lm-radius-md); border: 1px solid transparent;
+  font-family: var(--lm-font-ui); font-size: var(--lm-size-body); font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--lm-motion-fast), border-color var(--lm-motion-fast);
+}
+.lm-btn--sm { height: 28px; font-size: var(--lm-size-label); }
+.lm-btn--lg { height: 36px; }
+.lm-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.lm-btn--primary   { background: var(--lm-brand-600); color: var(--lm-text-inverse); }
+.lm-btn--primary:hover  { background: var(--lm-brand-700); }
+.lm-btn--primary:active { background: var(--lm-brand-800); }
+
+.lm-btn--secondary { background: var(--lm-surface-raised); border-color: var(--lm-border-default); color: var(--lm-text-primary); }
+.lm-btn--secondary:hover { border-color: var(--lm-border-strong); background: var(--lm-surface-hover); }
+
+.lm-btn--ghost     { background: transparent; color: var(--lm-text-secondary); }
+.lm-btn--ghost:hover { background: var(--lm-surface-hover); color: var(--lm-text-primary); }
+
+/* Destructive only. Never sign-out, never navigation. */
+.lm-btn--danger    { background: var(--lm-danger); color: var(--lm-text-inverse); }
+
+/* --- Cards and rows ----------------------------------------------------- */
+
+.lm-card-grid {
+  display: grid; gap: var(--lm-space-5);
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+.lm-card {
+  background: var(--lm-surface-raised);
+  border: 1px solid var(--lm-border-subtle);
+  border-radius: var(--lm-radius-lg);
+  overflow: hidden;
+  transition: border-color var(--lm-motion-fast), box-shadow var(--lm-motion-fast);
+}
+.lm-card:hover { border-color: var(--lm-border-strong); box-shadow: var(--lm-elev-1); }
+.lm-card__header { display: flex; align-items: flex-start; gap: var(--lm-space-3); padding: var(--lm-space-5); }
+.lm-card__title { margin: 0; font-size: var(--lm-size-title); line-height: var(--lm-lh-title); font-weight: 600; letter-spacing: -.01em; }
+.lm-card__desc  { margin: var(--lm-space-1) 0 0; font-size: var(--lm-size-caption); color: var(--lm-text-muted); }
+.lm-card__link  { margin-left: auto; color: var(--lm-brand-700); font-size: var(--lm-size-label); font-weight: 500; text-decoration: none; }
+
+/* Module icon tile. Set --lm-accent and --lm-accent-tint per module. */
+.lm-tile {
+  width: 36px; height: 36px; flex: none;
+  display: grid; place-items: center;
+  border-radius: var(--lm-radius-md);
+  background: var(--lm-accent-tint, var(--lm-brand-100));
+  color: var(--lm-accent, var(--lm-brand-600));
+}
+.lm-tile--sm { width: 32px; height: 32px; }
+
+.lm-row {
+  display: flex; align-items: center; gap: var(--lm-space-3);
+  min-height: 52px; padding: var(--lm-space-2) var(--lm-space-4);
+  border-top: 1px solid var(--lm-border-subtle);
+  color: inherit; text-decoration: none;
+  transition: background var(--lm-motion-fast);
+}
+.lm-row:hover { background: var(--lm-surface-hover); }
+.lm-row__title { font-size: var(--lm-size-body); font-weight: 500; }
+.lm-row__desc  { font-size: var(--lm-size-caption); color: var(--lm-text-muted); }
+.lm-row__end   { margin-left: auto; display: flex; align-items: center; gap: var(--lm-space-3); }
+
+/* Not yet built: full contrast text, badge carries the state. */
+.lm-row--pending { cursor: default; }
+.lm-row--pending:hover { background: transparent; }
+
+.lm-fav { border: 0; background: none; padding: var(--lm-space-1); cursor: pointer; color: var(--lm-text-muted); }
+.lm-fav[aria-pressed="true"] { color: var(--lm-warning); }
+
+/* --- Chips and badges --------------------------------------------------- */
+
+.lm-chip {
+  display: inline-flex; align-items: center;
+  height: 20px; padding: 0 var(--lm-space-2);
+  border-radius: var(--lm-radius-pill);
+  font-size: var(--lm-size-micro); line-height: var(--lm-lh-micro); font-weight: 600;
+}
+.lm-chip--draft, .lm-chip--open, .lm-chip--outstanding { background: var(--lm-info-tint);    color: var(--lm-info); }
+.lm-chip--ready,  .lm-chip--due                        { background: var(--lm-warning-tint); color: var(--lm-warning); }
+.lm-chip--posted, .lm-chip--paid, .lm-chip--reconciled { background: var(--lm-success-tint); color: var(--lm-success); }
+.lm-chip--overdue, .lm-chip--failed                    { background: var(--lm-danger-tint);  color: var(--lm-danger); }
+.lm-chip--cancelled, .lm-chip--inactive                { background: var(--lm-surface-sunken); color: var(--lm-text-muted); }
+
+.lm-badge {
+  display: inline-flex; align-items: center;
+  height: 16px; padding: 0 var(--lm-space-1) 0 var(--lm-space-1);
+  border-radius: var(--lm-radius-sm);
+  background: var(--lm-surface-sunken); color: var(--lm-text-muted);
+  font-size: var(--lm-size-micro); line-height: var(--lm-lh-micro); font-weight: 600;
+}
+
+/* --- DataTable ---------------------------------------------------------- */
+
+.lm-table { width: 100%; border-collapse: collapse; background: var(--lm-surface-raised);
+            border: 1px solid var(--lm-border-subtle); border-radius: var(--lm-radius-lg); }
+.lm-table thead th {
+  position: sticky; top: 0; z-index: 1;
+  height: 36px; padding: 0 var(--lm-space-4);
+  background: var(--lm-surface-sunken);
+  border-bottom: 1px solid var(--lm-border-default);
+  font-size: var(--lm-size-label); font-weight: 600; color: var(--lm-text-secondary);
+  text-align: left; white-space: nowrap;
+}
+.lm-table tbody td {
+  height: var(--lm-row-h); padding: 0 var(--lm-space-4);
+  border-bottom: 1px solid var(--lm-border-subtle);
+  font-size: var(--lm-size-body);
+}
+.lm-table[data-density="compact"] tbody td { height: var(--lm-row-h-compact); }
+.lm-table tbody tr:hover { background: var(--lm-surface-hover); }
+.lm-table tbody tr[aria-selected="true"] {
+  background: var(--lm-surface-selected);
+  box-shadow: inset 3px 0 0 var(--lm-brand-600);   /* the spine again */
+}
+
+/* Amounts, dates and codes — Plex Mono, right-aligned where numeric. */
+.lm-table .num  { font-family: var(--lm-font-num); text-align: right; }
+.lm-table .code { font-family: var(--lm-font-num); }
+.lm-table .date { font-family: var(--lm-font-num); }
+
+/* Drill-down affordance. Only on cells that actually drill. */
+.lm-table tbody tr:hover .drill { color: var(--lm-brand-700); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+.lm-table tfoot td {
+  position: sticky; bottom: 0;
+  height: 36px; padding: 0 var(--lm-space-4);
+  background: var(--lm-surface-sunken);
+  border-top: 2px solid var(--lm-border-strong);
+  font-family: var(--lm-font-num); font-weight: 600;
+}
+
+/* Ageing columns */
+.age-current  { color: var(--lm-ageing-current); }
+.age-30       { color: var(--lm-ageing-30); }
+.age-60       { color: var(--lm-ageing-60); }
+.age-90       { color: var(--lm-ageing-90); }
+.age-90plus   { color: var(--lm-ageing-90plus); font-weight: 600; }
+
+/* --- Forms -------------------------------------------------------------- */
+
+.lm-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--lm-space-4); }
+.lm-field__label { font-size: var(--lm-size-label); font-weight: 500; color: var(--lm-text-secondary); }
+.lm-field__label .req { color: var(--lm-danger); }
+.lm-input, .lm-select {
+  height: 32px; padding: 0 var(--lm-space-3);
+  border: 1px solid var(--lm-border-default); border-radius: var(--lm-radius-md);
+  background: var(--lm-surface-raised); color: var(--lm-text-primary);
+  font-family: var(--lm-font-ui); font-size: var(--lm-size-body);
+}
+.lm-input:hover, .lm-select:hover { border-color: var(--lm-border-strong); }
+.lm-input:focus, .lm-select:focus {
+  border-color: var(--lm-focus); box-shadow: 0 0 0 2px var(--lm-focus-ring); outline: none;
+}
+.lm-input:disabled { background: var(--lm-surface-sunken); color: var(--lm-text-muted); }
+.lm-input--num  { font-family: var(--lm-font-num); text-align: right; }
+.lm-input--code { font-family: var(--lm-font-num); }
+.lm-input[aria-invalid="true"] { border-color: var(--lm-danger); }
+.lm-field__error { font-size: var(--lm-size-caption); color: var(--lm-danger); }
+.lm-field__help  { font-size: var(--lm-size-caption); color: var(--lm-text-muted); }
+.lm-form { max-width: 720px; }
+.lm-form--two-col { max-width: 960px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--lm-space-6); }
+
+/* --- Cue tiles (module dashboards) -------------------------------------- */
+
+.lm-cues { display: grid; gap: var(--lm-space-4); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: var(--lm-space-6); }
+.lm-cue {
+  background: var(--lm-surface-raised); border: 1px solid var(--lm-border-subtle);
+  border-radius: var(--lm-radius-lg); padding: var(--lm-space-4);
+  cursor: pointer; transition: border-color var(--lm-motion-fast), box-shadow var(--lm-motion-fast);
+}
+.lm-cue:hover { border-color: var(--lm-border-strong); box-shadow: var(--lm-elev-1); }
+.lm-cue__value { font-family: var(--lm-font-num); font-size: 28px; line-height: 36px; font-weight: 600; }
+.lm-cue__label { font-size: var(--lm-size-label); color: var(--lm-text-secondary); }
+
+/* --- Empty state -------------------------------------------------------- */
+
+.lm-empty { display: grid; justify-items: center; gap: var(--lm-space-3); padding: var(--lm-space-10) var(--lm-space-6); text-align: center; }
+.lm-empty__icon { opacity: .4; }
+.lm-empty__text { font-size: var(--lm-size-body); color: var(--lm-text-secondary); max-width: 42ch; }
+
+/* --- Popover ------------------------------------------------------------ */
+
+.lm-popover {
+  min-width: 240px; padding: var(--lm-space-1);
+  background: var(--lm-surface-raised);
+  border: 1px solid var(--lm-border-subtle); border-radius: var(--lm-radius-lg);
+  box-shadow: var(--lm-elev-2);
+}
+.lm-popover__item {
+  display: flex; align-items: center; gap: var(--lm-space-3);
+  height: 32px; padding: 0 var(--lm-space-3); border-radius: var(--lm-radius-md);
+  font-size: var(--lm-size-body); color: var(--lm-text-primary);
+  text-decoration: none; cursor: pointer;
+}
+.lm-popover__item:hover { background: var(--lm-surface-hover); }
+.lm-popover__sep { height: 1px; margin: var(--lm-space-1) 0; background: var(--lm-border-subtle); }
+.lm-popover__meta { padding: var(--lm-space-3); font-size: var(--lm-size-caption); color: var(--lm-text-muted); }

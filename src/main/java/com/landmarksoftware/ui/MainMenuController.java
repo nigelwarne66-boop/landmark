@@ -218,6 +218,8 @@ public class MainMenuController {
             getClass().getResource("/css/landmark.css").toExternalForm());
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
+        scene.getStylesheets().add(
+            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
         return scene;
     }
 
@@ -1469,6 +1471,8 @@ public class MainMenuController {
                 getClass().getResource("/css/fixedassets.css").toExternalForm());
             scene.getStylesheets().add(
                 getClass().getResource("/css/reporting.css").toExternalForm());
+            scene.getStylesheets().add(
+                getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
             dialog.setScene(scene);
             dialog.setTitle(title);
             dialog.setResizable(false);
