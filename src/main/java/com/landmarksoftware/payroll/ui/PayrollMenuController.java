@@ -12,6 +12,11 @@
 package com.landmarksoftware.payroll.ui;
 
 import com.landmarksoftware.model.AppSession;
+import com.landmarksoftware.payroll.model.Employee;
+import com.landmarksoftware.payroll.service.EmployeeService;
+import com.landmarksoftware.payroll.service.PayCodeService;
+import com.landmarksoftware.ui.components.CueGrid;
+import com.landmarksoftware.ui.components.CueTile;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.*;
@@ -24,6 +29,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Payroll Module Menu — the top-level hub for all PY programs.
@@ -68,6 +75,17 @@ public class PayrollMenuController {
     private final AbaPaymentController             pabk02;
     private final AppSession                       appSession;
     private final ApplicationContext               springContext;
+    private final EmployeeService                  employeeService;
+    private final PayCodeService                   payCodeService;
+
+    // Wave 6 — module dashboard cues (§7.10) read pre-aggregated counts off
+    // the JavaFX thread, same pattern as PayCodeMaintenanceController's
+    // loadList().
+    private final ExecutorService cueExec = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "py-menu-cues");
+        t.setDaemon(true);
+        return t;
+    });
 
     public PayrollMenuController(PayCodeMaintenanceController pacd01,
                                   EmployeeMaintenanceController paem01,
@@ -86,7 +104,9 @@ public class PayrollMenuController {
                                   PayRunProcessingController papp01,
                                   AbaPaymentController pabk02,
                                   AppSession appSession,
-                                  ApplicationContext springContext) {
+                                  ApplicationContext springContext,
+                                  EmployeeService employeeService,
+                                  PayCodeService payCodeService) {
         this.pacd01       = pacd01;
         this.paem01       = paem01;
         this.papg01       = papg01;
@@ -105,6 +125,8 @@ public class PayrollMenuController {
         this.pabk02        = pabk02;
         this.appSession    = appSession;
         this.springContext = springContext;
+        this.employeeService = employeeService;
+        this.payCodeService  = payCodeService;
     }
 
     // ── Entry point ───────────────────────────────────────────────────────
@@ -116,13 +138,59 @@ public class PayrollMenuController {
     public Scene buildScene(Stage stage) {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color:#F2F1EC;");
-        root.setTop(buildPageHeader());
+        root.setTop(new VBox(buildPageHeader(), buildCueRow(stage)));
         root.setCenter(buildGrid(stage));
 
         Scene scene = new Scene(root, 880, 580);
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
+        // Wave 6 — landmark-theme.css carries the .lm-cue / .lm-cue-value /
+        // .lm-cue-label classes the module dashboard cue row (§7.10) uses.
+        scene.getStylesheets().add(
+            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
         return scene;
+    }
+
+    // ── Module dashboard cues — DESIGN_SYSTEM.md §7.10 ──────────────────────
+
+    /**
+     * Row of cue tiles opening the Payroll module landing page: total
+     * employees, active employees, pay codes configured. Each drills into
+     * the maintenance screen it summarises. Counts load off the JavaFX
+     * thread — {@code EmployeeService}/{@code PayCodeService} hit the DB —
+     * tiles show "…" until the background load completes.
+     */
+    private HBox buildCueRow(Stage parentStage) {
+        CueTile tileEmployees   = CueTile.of("…", "Total employees",   () -> openEmployeeMaintenance(parentStage));
+        CueTile tileActive      = CueTile.of("…", "Active employees",  () -> openEmployeeMaintenance(parentStage));
+        CueTile tilePayCodes    = CueTile.of("…", "Pay codes configured", () -> openPayCodeMaintenance(parentStage));
+
+        HBox row = CueGrid.of(tileEmployees, tileActive, tilePayCodes);
+        row.setPadding(new Insets(0, 24, 20, 24));
+
+        int companyNo = appSession.getCompanyNo();
+        cueExec.submit(() -> {
+            try {
+                List<Employee> employees = employeeService.findAll(companyNo);
+                long activeCount = employees.stream()
+                    .filter(e -> "A".equals(e.employeeStatus))
+                    .count();
+                int payCodeCount = payCodeService.findAll(companyNo).size();
+                Platform.runLater(() -> {
+                    tileEmployees.setValue(String.valueOf(employees.size()));
+                    tileActive.setValue(String.valueOf(activeCount));
+                    tilePayCodes.setValue(String.valueOf(payCodeCount));
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    tileEmployees.setValue("—");
+                    tileActive.setValue("—");
+                    tilePayCodes.setValue("—");
+                });
+            }
+        });
+
+        return row;
     }
 
     // ── Page header ───────────────────────────────────────────────────────

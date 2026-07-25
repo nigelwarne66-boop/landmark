@@ -18,8 +18,8 @@ import com.landmarksoftware.payroll.service.FundService;
 import com.landmarksoftware.payroll.service.PayCodeService;
 import com.landmarksoftware.ui.components.CommandBar;
 import com.landmarksoftware.ui.components.LmButton;
+import com.landmarksoftware.ui.components.LmTableView;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.*;
@@ -34,7 +34,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
 
 /**
  * PACD01 — Pay Code Maintenance.
@@ -60,7 +59,7 @@ public class PayCodeMaintenanceController {
     private final AppSession     appSession;
 
     private final ObservableList<PayCode> rows = FXCollections.observableArrayList();
-    private TableView<PayCode>            table;
+    private LmTableView<PayCode>          table;
     private Label                         lblStatus;
     private int                           currentTypeFilter = 0;  // 0 = all
 
@@ -122,20 +121,28 @@ public class PayCodeMaintenanceController {
     // ── Content — toolbar + table ─────────────────────────────────────────
 
     private VBox buildContent(Stage stage) {
-        table = new TableView<>(rows);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        // Wave 6 — DESIGN_SYSTEM.md §7.7 DataTable, reference implementation.
+        // LmTableView wires the .lm-table style class (header/row/hover/
+        // selection-spine) and typed column factories (col-code / col-num)
+        // in place of the previous plain TableView + ad-hoc col() helper —
+        // same columns, same data, same behaviour, new component.
+        table = new LmTableView<>(rows);
         VBox.setVgrow(table, Priority.ALWAYS);
-        table.setPlaceholder(new Label("No pay codes found for this company."));
+        table.setEmptyState("fth-file-text", "No pay codes found for this company.",
+            "+ Add pay code", () -> openDialog(null, stage));
+
+        TableColumn<PayCode, String> colCode = LmTableView.codeColumn("Code", pc -> pc.payCode, 90);
+        LmTableView.markDrillable(colCode);   // double-click on the row opens the edit dialog
 
         table.getColumns().addAll(List.of(
-            col("Code",         pc -> pc.payCode,                       90),
-            col("Description",  pc -> pc.desc1,                         220),
-            col("Payslip Desc", pc -> pc.payslipDesc,                   140),
-            col("Type",         PayCode::payTypeLabel,                  100),
-            col("Super",        pc -> "Y".equals(pc.superFlag) ? "✓" : "",  55),
-            col("Wcomp",        pc -> "Y".equals(pc.wcompFlag) ? "✓" : "",  55),
-            col("Rate",         PayCode::primaryRate,                   90),
-            col("Amount",       PayCode::primaryAmount,                 90)
+            colCode,
+            LmTableView.textColumn("Description",  pc -> pc.desc1,                         220),
+            LmTableView.textColumn("Payslip Desc",  pc -> pc.payslipDesc,                   140),
+            LmTableView.textColumn("Type",          PayCode::payTypeLabel,                  100),
+            LmTableView.textColumn("Super",         pc -> "Y".equals(pc.superFlag) ? "✓" : "",  55),
+            LmTableView.textColumn("Wcomp",         pc -> "Y".equals(pc.wcompFlag) ? "✓" : "",  55),
+            LmTableView.numColumn("Rate",           PayCode::primaryRate,                   90),
+            LmTableView.numColumn("Amount",         PayCode::primaryAmount,                 90)
         ));
 
         table.setOnMouseClicked(e -> {
@@ -1289,14 +1296,6 @@ public class PayCodeMaintenanceController {
 
     // ── UI helpers ────────────────────────────────────────────────────────
 
-    private TableColumn<PayCode, String> col(String header,
-                                              Function<PayCode, String> fn, double w) {
-        TableColumn<PayCode, String> c = new TableColumn<>(header);
-        c.setCellValueFactory(p -> new SimpleStringProperty(safe(fn.apply(p.getValue()))));
-        c.setPrefWidth(w);
-        return c;
-    }
-
     private void addFormRow(GridPane g, int row, String label, Node ctrl) {
         Label l = new Label(label);
         l.setStyle("-fx-font-size:12px;-fx-text-fill:#374151;");
@@ -1480,8 +1479,6 @@ public class PayCodeMaintenanceController {
         Alert a = new Alert(Alert.AlertType.INFORMATION, msg, ButtonType.OK);
         a.setTitle(title); a.setHeaderText(null); a.showAndWait();
     }
-
-    private static String safe(String s) { return s == null ? "" : s; }
 
     private static String decStr(BigDecimal v) {
         if (v == null || v.compareTo(BigDecimal.ZERO) == 0) return "";
