@@ -4,129 +4,111 @@
  */
 package com.landmarksoftware.ui;
 
-import javafx.geometry.Insets;
+import com.landmarksoftware.ui.components.ListRow;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.Rectangle;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
 
 /**
- * Reusable card component matching the DESIGN_SYSTEM.md ModuleCard spec.
+ * Reusable card component matching the DESIGN_SYSTEM.md §7.3 ModuleCard
+ * spec. Migrated onto the {@code landmark-theme.css} token classes
+ * ({@code .lm-card}/{@code .lm-card-header}/{@code .lm-tile}/
+ * {@code .lm-card-title}/{@code .lm-card-desc}/{@code .lm-card-link}) and
+ * the shared {@link ListRow} component for its body rows — Wave 3 of the
+ * design-system rollout.
  *
- * Layout:
+ * <p><b>Accent-hex-to-tile mapping.</b> §7.3's icon tile wants a tint
+ * background plus an accent-coloured icon (two colours), but this class's
+ * public constructor only ever received one hex (the accent). Rather than
+ * changing the constructor signature — which would break the ~50
+ * {@code MainMenuController} call sites this wave must not touch — the tile
+ * fill is derived from the accent hex itself by appending alpha (`"22"` ≈
+ * 13%), the same technique the pre-design-system version of this class used
+ * for its icon chip. This also sidesteps a mismatch: many of
+ * {@code MainMenuController}'s existing hexes (e.g. {@code #BA7517},
+ * {@code #0F6E56}, {@code #D97706}) are legacy per-section accents that
+ * predate {@link com.landmarksoftware.ui.nav.Module} and don't map 1:1 onto
+ * a module's registry tint, so a {@code Module.getTintHex()} lookup would
+ * either fail or silently pick the wrong module for several call sites.
+ *
+ * <p>Layout:
+ * <pre>
  *   ┌─────────────────────────────────────────┐
- *   │ [icon chip]  Title                       │  ← card header
+ *   │ [icon tile]  Title                       │  ← .lm-card-header
  *   │              Subtitle                    │
  *   ├─────────────────────────────────────────┤
- *   │  Link row                            ›  │  ← repeated per entry
- *   │  Link row (dim = coming soon)           │
+ *   │  ListRow                             ›  │
+ *   │  ListRow (pending = "soon" badge)        │
  *   └─────────────────────────────────────────┘
+ * </pre>
  *
  * Usage:
+ * <pre>
  *   ModuleCard card = new ModuleCard("#0F6E56", "fth-user", "Payroll Setup",
  *       "Pay codes, employees and groups");
  *   card.addRow("Pay Code Maintenance", () -> openPayCodes(), true);
  *   card.addRow("Single Touch Payroll", null, false);  // soon
- *   card.setOpenAction(() -> openReports());  // optional "Open ›" header button
+ *   card.setOpenAction(() -> openReports());  // optional "Open ›" header link
+ * </pre>
  */
 public class ModuleCard extends VBox {
 
-    private final String accentHex;
-    private final VBox   rowContainer;
-    private Runnable     openAction;
+    private final VBox  rowContainer;
+    private final Label openLink;
+    private Runnable    openAction;
 
     public ModuleCard(String accentHex, String iconLiteral,
                       String title, String subtitle) {
-        this.accentHex = accentHex;
-        super.setStyle(
-            "-fx-background-color: -lm-bg-surface;" +
-            "-fx-background-radius: 10;" +
-            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);");
+        getStyleClass().add("lm-card");
 
-        // ── Icon chip ─────────────────────────────────────────────────
+        // ── Icon tile ─────────────────────────────────────────────────
         FontIcon icon = new FontIcon(iconLiteral);
-        icon.setIconSize(14);
+        icon.setIconSize(16);
         icon.setStyle("-fx-icon-color: " + accentHex + ";");
 
-        Rectangle chip = new Rectangle(28, 28);
-        chip.setArcWidth(8); chip.setArcHeight(8);
-        chip.setStyle("-fx-fill: " + accentHex + "22;");
-
-        javafx.scene.layout.StackPane iconChip = new javafx.scene.layout.StackPane(chip, icon);
-        iconChip.setPrefSize(28, 28);
-        iconChip.setMaxSize(28, 28);
+        StackPane tile = new StackPane(icon);
+        tile.getStyleClass().add("lm-tile");
+        tile.setStyle("-fx-background-color: " + accentHex + "22;");
 
         // ── Title + subtitle ──────────────────────────────────────────
         Label lTitle = new Label(title);
-        lTitle.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: -lm-text-primary;");
+        lTitle.getStyleClass().add("lm-card-title");
         Label lSub = new Label(subtitle);
-        lSub.setStyle("-fx-font-size: 12px; -fx-text-fill: -lm-text-tertiary;");
+        lSub.getStyleClass().add("lm-card-desc");
         VBox textBox = new VBox(2, lTitle, lSub);
         HBox.setHgrow(textBox, Priority.ALWAYS);
 
-        // ── Open button (optional) ────────────────────────────────────
-        Label openBtn = new Label("Open ›");
-        openBtn.setStyle(
-            "-fx-font-size: 11px; -fx-text-fill: -lm-accent; -fx-cursor: hand;");
-        openBtn.setVisible(false);
-        openBtn.setManaged(false);
-        openBtn.setOnMouseClicked(e -> { if (openAction != null) openAction.run(); });
+        // ── Open link (optional) ────────────────────────────────────
+        openLink = new Label("Open ›");
+        openLink.getStyleClass().add("lm-card-link");
+        openLink.setVisible(false);
+        openLink.setManaged(false);
+        openLink.setOnMouseClicked(e -> { if (openAction != null) openAction.run(); });
 
-        HBox header = new HBox(10, iconChip, textBox, openBtn);
+        HBox header = new HBox(10, tile, textBox, openLink);
+        header.getStyleClass().add("lm-card-header");
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(14, 16, 14, 16));
-        header.setStyle(
-            "-fx-border-color: transparent transparent -lm-border transparent;" +
-            "-fx-border-width: 0 0 0.5 0;");
-
-        // Store openBtn reference so setOpenAction can reveal it
-        header.setUserData(openBtn);
 
         rowContainer = new VBox(0);
 
         getChildren().addAll(header, rowContainer);
     }
 
-    /** Adds a clickable link row. Pass action=null and available=false for "coming soon". */
+    /** Adds a clickable row. Pass action=null and available=false for "coming soon". */
     public void addRow(String label, Runnable action, boolean available) {
-        Label lbl = new Label(label);
-        lbl.setStyle("-fx-font-size: 13px; -fx-text-fill: " +
-                     (available ? "-lm-text-secondary;" : "-lm-text-tertiary;"));
-        HBox.setHgrow(lbl, Priority.ALWAYS);
-
-        HBox row = new HBox(lbl);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setPadding(new Insets(7, 16, 7, 16));
-
+        ListRow row = ListRow.builder().title(label);
         if (!available) {
-            Label soon = new Label("soon");
-            soon.setStyle(
-                "-fx-font-size: 10px; -fx-text-fill: -lm-text-tertiary;" +
-                "-fx-background-color: -lm-border;" +
-                "-fx-background-radius: 4; -fx-padding: 1 5 1 5;");
-            row.getChildren().add(soon);
+            row.badge("soon").pending();
         } else if (action != null) {
-            row.setStyle("-fx-cursor: hand;");
-            row.setOnMouseEntered(e ->
-                row.setStyle("-fx-background-color: -lm-bg-selected; -fx-cursor: hand;"));
-            row.setOnMouseExited(e ->
-                row.setStyle("-fx-background-color: transparent; -fx-cursor: hand;"));
-            row.setOnMouseClicked(e -> action.run());
+            row.chevron().onClick(action);
         }
-
-        // Divider on all but the last row (patched by getChildren observer would be fragile;
-        // instead set border on all and let the last row's border be clipped by the card radius)
-        row.setStyle(row.getStyle() +
-            "-fx-border-color: transparent transparent -lm-border transparent;" +
-            "-fx-border-width: 0 0 0.5 0;");
-
-        rowContainer.getChildren().add(row);
+        rowContainer.getChildren().add(row.build());
     }
 
     /** Adds multiple rows from a list of MenuEntry objects. */
@@ -142,13 +124,7 @@ public class ModuleCard extends VBox {
      */
     public void setOpenAction(Runnable action) {
         this.openAction = action;
-        getChildren().stream()
-            .filter(n -> n instanceof HBox && ((HBox) n).getUserData() instanceof Label)
-            .findFirst()
-            .ifPresent(n -> {
-                Label btn = (Label) ((HBox) n).getUserData();
-                btn.setVisible(true);
-                btn.setManaged(true);
-            });
+        openLink.setVisible(true);
+        openLink.setManaged(true);
     }
 }
