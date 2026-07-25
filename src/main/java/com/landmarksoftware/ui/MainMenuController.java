@@ -214,7 +214,7 @@ public class MainMenuController {
         HBox.setHgrow(scroll, Priority.ALWAYS);
 
         HBox body = new HBox(shellRail.getNode(), scroll);
-        body.setStyle("-fx-background-color: #F6F7F9;");
+        body.setStyle("-fx-background-color: -lm-surface-app;");
         VBox.setVgrow(body, Priority.ALWAYS);
 
         VBox root = new VBox(shellHeader.getNode(), body);
@@ -385,12 +385,12 @@ public class MainMenuController {
 
     private VBox buildMainContent() {
         VBox main = new VBox(0);
-        main.setStyle("-fx-background-color: -lm-bg-page;");
+        main.setStyle("-fx-background-color: -lm-surface-app;");
 
         // ── Tab content area ───────────────────────────────────────────────
         tabContentArea = new StackPane();
         tabContentArea.setPadding(new Insets(20, 24, 24, 24));
-        tabContentArea.setStyle("-fx-background-color: -lm-bg-page;");
+        tabContentArea.setStyle("-fx-background-color: -lm-surface-app;");
         VBox.setVgrow(tabContentArea, Priority.ALWAYS);
 
         tabPanes = new java.util.HashMap<>();

@@ -16,6 +16,8 @@ import com.landmarksoftware.payroll.model.Fund;
 import com.landmarksoftware.payroll.model.PayCode;
 import com.landmarksoftware.payroll.service.FundService;
 import com.landmarksoftware.payroll.service.PayCodeService;
+import com.landmarksoftware.ui.components.CommandBar;
+import com.landmarksoftware.ui.components.LmButton;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -90,6 +92,11 @@ public class PayCodeMaintenanceController {
         Scene scene = new Scene(root, 880, 560);
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
+        // Wave 5 — CommandBar/LmButton (DESIGN_SYSTEM.md §7.4) classes live in
+        // the shared theme stylesheet; load it alongside the screen's existing
+        // sheet so the toolbar renders with the design-system tokens.
+        scene.getStylesheets().add(
+            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
         return scene;
     }
 
@@ -136,36 +143,30 @@ public class PayCodeMaintenanceController {
                 openDialog(table.getSelectionModel().getSelectedItem(), stage);
         });
 
-        // Toolbar
-        Button btnAdd  = btnPrimary("+ Add");
-        Button btnEdit = btnSecondary("✎ Edit");
-        Button btnDel  = btnDanger("✕ Delete");
-        Button btnRef  = btnSecondary("↺");
-
-        btnAdd.setOnAction(e -> openDialog(null, stage));
-
-        btnEdit.setOnAction(e -> {
+        // Toolbar — DESIGN_SYSTEM.md §7.4 CommandBar, reference implementation
+        // (Wave 5). Same four actions as before, now built with LmButton
+        // (§7.1) inside the shared CommandBar component instead of an ad-hoc
+        // HBox of inline-styled buttons — a pure component swap, no change
+        // in behaviour.
+        Button btnAdd  = LmButton.primary("+ Add", () -> openDialog(null, stage));
+        Button btnEdit = LmButton.secondary("✎ Edit", () -> {
             PayCode sel = table.getSelectionModel().getSelectedItem();
             if (sel != null) openDialog(sel, stage);
             else showInfo("Edit", "Select a pay code to edit.");
         });
-        btnDel.setOnAction(e -> {
+        Button btnDel  = LmButton.danger("✕ Delete", () -> {
             PayCode sel = table.getSelectionModel().getSelectedItem();
             if (sel != null) confirmDelete(sel);
             else showInfo("Delete", "Select a pay code to delete.");
         });
-        btnRef.setOnAction(e -> loadList());
+        Button btnRef  = LmButton.ghost("↺ Refresh", this::loadList);
 
-        HBox toolbar = new HBox(8,
-            btnAdd, btnEdit, btnDel,
-            new Separator(Orientation.VERTICAL),
-            btnRef);
-        toolbar.setPadding(new Insets(10, 16, 10, 16));
-        toolbar.setAlignment(Pos.CENTER_LEFT);
-        toolbar.setStyle(
-            "-fx-background-color:#F8F8F6;" +
-            "-fx-border-color:transparent transparent rgba(0,0,0,.10) transparent;" +
-            "-fx-border-width:0 0 0.5 0;");
+        HBox toolbar = CommandBar.builder()
+            .primary(btnAdd)
+            .secondary(btnEdit)
+            .secondary(btnDel)
+            .ghost(btnRef)
+            .build();
 
         // Type filter tabs
         HBox typeFilter = buildTypeFilter();
