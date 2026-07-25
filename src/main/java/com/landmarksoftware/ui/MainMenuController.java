@@ -21,6 +21,12 @@ import com.landmarksoftware.payroll.ui.TaxScaleLoadController;
 import com.landmarksoftware.payroll.ui.SetSuperPercentageController;
 import com.landmarksoftware.payroll.ui.UpdateAwardRateChangesController;
 import com.landmarksoftware.payroll.ui.GlobalEmployeeAwardUpdateController;
+import com.landmarksoftware.ui.nav.Module;
+import com.landmarksoftware.ui.shell.AppShell;
+import com.landmarksoftware.ui.shell.PageHeader;
+import com.landmarksoftware.ui.shell.ShellContext;
+import com.landmarksoftware.ui.shell.ShellHeader;
+import com.landmarksoftware.ui.shell.ShellRail;
 import com.landmarksoftware.payroll.ui.ChangeEmployeePayRatesController;
 import com.landmarksoftware.payroll.ui.DuplicateTimesheetsController;
 import com.landmarksoftware.payroll.ui.LeaveAccrualReversalController;
@@ -102,6 +108,7 @@ public class MainMenuController {
     private final CompanyRepository                  companyRepo;
     private final LastSessionStore                   lastSessionStore;
     private final AppSession                         appSession;
+    private final AppShell                           appShell;
     private final org.springframework.context.ApplicationContext springContext;
 
     // ── Session state (mirrors GLPASS / MENU23 selection) ────────
@@ -110,23 +117,16 @@ public class MainMenuController {
     private int    sessionYearNo      = 0;       // 4-digit e.g. 2025
     private String sessionYearDesc    = "";      // e.g. "FY 2024–25"
 
-    // ── Live header labels (updated when session changes) ─────────
-    private Label lblHeaderCompany;
-    private Label lblHeaderYear;
-    private Label lblHeaderUser;
-    // Legacy aliases — kept so refreshFooterUser() compiles during transition
-    private Label lblFooterCompany;
-    private Label lblFooterYear;
-    private Label lblFooterUser;
+    // ── Shared shell handles (DESIGN_SYSTEM.md §5) — built once in
+    // buildScene(), kept so a MENU23 switch can refresh them in place. ────
+    private ShellHeader shellHeader;
+    private ShellRail   shellRail;
 
     private final List<MenuEntry> allEntries = new ArrayList<>();
 
     // Recently-used list — last 5 opened
     private final LinkedList<MenuEntry> recentlyUsed = new LinkedList<>();
     private VBox recentlyUsedBox;
-
-    // Sidebar module rows (hub-style) — used for active-state toggling
-    private final java.util.List<HBox> sidebarModuleRows = new java.util.ArrayList<>();
 
     public MainMenuController(ProjectionScreenController projectionScreen,
                                TransactionListScreenController transactionListScreen,
@@ -158,6 +158,7 @@ public class MainMenuController {
                                CompanyRepository companyRepo,
                                LastSessionStore lastSessionStore,
                                AppSession appSession,
+                               AppShell appShell,
                                org.springframework.context.ApplicationContext springContext) {
         this.projectionScreen      = projectionScreen;
         this.transactionListScreen = transactionListScreen;
@@ -189,6 +190,7 @@ public class MainMenuController {
         this.companyRepo           = companyRepo;
         this.lastSessionStore      = lastSessionStore;
         this.appSession            = appSession;
+        this.appShell              = appShell;
         this.springContext         = springContext;
     }
 
@@ -200,18 +202,22 @@ public class MainMenuController {
         buildEntries();
         loadDefaultSession();
 
-        VBox sidebar = buildSidebar();
+        // Shared shell (DESIGN_SYSTEM.md §5) — rail built before
+        // buildMainContent() so its default selectSidebarModule("fa") call
+        // has a live ShellRail to highlight.
+        shellRail   = buildSidebar();
+        shellHeader = buildHeaderBar();
 
         ScrollPane scroll = new ScrollPane(buildMainContent());
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("scroll-pane");
         HBox.setHgrow(scroll, Priority.ALWAYS);
 
-        HBox body = new HBox(sidebar, scroll);
+        HBox body = new HBox(shellRail.getNode(), scroll);
         body.setStyle("-fx-background-color: #F6F7F9;");
         VBox.setVgrow(body, Priority.ALWAYS);
 
-        VBox root = new VBox(buildHeaderBar(), body);
+        VBox root = new VBox(shellHeader.getNode(), body);
 
         Scene scene = new Scene(root, 1024, 720);
         scene.getStylesheets().add(
@@ -267,16 +273,6 @@ public class MainMenuController {
         pushToAppSession();
     }
 
-    /** Refresh the user display in the header bar after login populates AppSession. */
-    private void refreshFooterUser() {
-        String name = appSession.getUserName();
-        if (name == null || name.isBlank()) name = appSession.getUserId();
-        if (lblHeaderUser != null) {
-            lblHeaderUser.setText(deriveInitials(name) + "  " + name);
-        }
-        if (lblFooterUser != null) lblFooterUser.setText(name);
-    }
-
     /** Push current sidebar session state into the shared AppSession bean. */
     private void pushToAppSession() {
         appSession.setCompanyNo(sessionCompanyNo);
@@ -328,235 +324,60 @@ public class MainMenuController {
     // Header bar (D3)
     // ═══════════════════════════════════════════════════════════════
 
-    private HBox buildHeaderBar() {
-        // Left: company name · separator · FY
-        lblHeaderCompany = new Label(sessionCompanyName.isEmpty() ? "Landmark" : sessionCompanyName);
-        lblHeaderCompany.getStyleClass().add("lm-header-company");
-
-        Label sep = new Label("·");
-        sep.getStyleClass().add("lm-header-sep");
-
-        lblHeaderYear = new Label(sessionYearDesc.isEmpty() ? "" : sessionYearDesc);
-        lblHeaderYear.getStyleClass().add("lm-header-year");
-
-        HBox left = new HBox(8, lblHeaderCompany, sep, lblHeaderYear);
-        left.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(left, Priority.ALWAYS);
-
-        // Centre: search field
-        javafx.scene.control.TextField search = new javafx.scene.control.TextField();
-        search.setPromptText("Search…");
-        search.getStyleClass().add("lm-search");
-
-        // Right: Switch Company button · user label · Sign Out button (all separate)
-        String userName = appSession.getUserName();
-        if (userName == null || userName.isBlank()) userName = appSession.getUserId();
-        String initials = deriveInitials(userName);
-
-        Label switchBtn = new Label("↺  Switch Company");
-        switchBtn.setStyle(
-            "-fx-font-size:12px;-fx-text-fill:-lm-text-secondary;" +
-            "-fx-cursor:hand;-fx-padding:4 10 4 10;" +
-            "-fx-background-color:transparent;" +
-            "-fx-border-color:-lm-border;-fx-border-radius:6;-fx-background-radius:6;");
-        switchBtn.setOnMouseEntered(e -> switchBtn.setStyle(switchBtn.getStyle()
-            .replace("-lm-text-secondary","-lm-accent")
-            .replace("transparent","-lm-accent-bg")));
-        switchBtn.setOnMouseExited(e -> switchBtn.setStyle(
-            "-fx-font-size:12px;-fx-text-fill:-lm-text-secondary;" +
-            "-fx-cursor:hand;-fx-padding:4 10 4 10;" +
-            "-fx-background-color:transparent;" +
-            "-fx-border-color:-lm-border;-fx-border-radius:6;-fx-background-radius:6;"));
-        switchBtn.setOnMouseClicked(e -> showCompanyYearDialog(
-            switchBtn.getScene() != null ? switchBtn.getScene().getWindow() : null));
-
-        lblHeaderUser = new Label(initials + "  " + userName);
-        lblHeaderUser.getStyleClass().add("lm-user-btn");
-
-        Label signOutBtn = new Label("Sign Out");
-        signOutBtn.setStyle(
-            "-fx-font-size:12px;-fx-text-fill:#DC2626;" +
-            "-fx-cursor:hand;-fx-padding:4 10 4 10;" +
-            "-fx-background-color:transparent;" +
-            "-fx-border-color:#FCA5A5;-fx-border-radius:6;-fx-background-radius:6;");
-        signOutBtn.setOnMouseEntered(e -> signOutBtn.setStyle(signOutBtn.getStyle()
-            .replace("transparent","#FEF2F2")));
-        signOutBtn.setOnMouseExited(e -> signOutBtn.setStyle(
-            "-fx-font-size:12px;-fx-text-fill:#DC2626;" +
-            "-fx-cursor:hand;-fx-padding:4 10 4 10;" +
-            "-fx-background-color:transparent;" +
-            "-fx-border-color:#FCA5A5;-fx-border-radius:6;-fx-background-radius:6;"));
-        signOutBtn.setOnMouseClicked(e -> javafx.application.Platform.exit());
-
-        HBox right = new HBox(10, switchBtn, lblHeaderUser, signOutBtn);
-        right.setAlignment(Pos.CENTER_RIGHT);
-
-        HBox header = new HBox(16, left, search, right);
-        header.getStyleClass().add("lm-header");
-        header.setAlignment(Pos.CENTER);
-        header.setPadding(new Insets(0, 20, 0, 20));
-        return header;
-    }
-
-    private String deriveInitials(String name) {
-        if (name == null || name.isBlank()) return "?";
-        String[] parts = name.trim().split("\\s+");
-        if (parts.length == 1) return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
-        return (parts[0].charAt(0) + "" + parts[parts.length - 1].charAt(0)).toUpperCase();
+    /** Builds the shared 56px header (DESIGN_SYSTEM.md §5.1) via {@link AppShell}. */
+    private ShellHeader buildHeaderBar() {
+        return appShell.buildHeader(buildShellContext());
     }
 
     // ═══════════════════════════════════════════════════════════════
     // Sidebar
     // ═══════════════════════════════════════════════════════════════
 
-    private VBox buildSidebar() {
-        VBox sb = new VBox(0);
-        sb.getStyleClass().add("lm-sidebar");
-        sb.getChildren().add(buildSidebarLogo());
-
-        // "MODULES" section label
-        Label sectionLbl = new Label("MODULES");
-        sectionLbl.getStyleClass().add("lm-nav-section-label");
-        sb.getChildren().add(sectionLbl);
-
-        // Canonical module order per DESIGN_SYSTEM.md.
-        // Using Feather (fth-*) as desktop equivalents; swap to tai-* when
-        // ikonli-tabler-pack reaches Maven Central.
-        // Format: id, fth-icon, label, accent-hex
-        String[][] mods = {
-            {"gl",  "fth-bar-chart-2",   "General Ledger",      "#185FA5"},
-            {"ar",  "fth-users",         "Accounts Receivable", "#1D9E75"},
-            {"ap",  "fth-file-text",     "Accounts Payable",    "#D85A30"},
-            {"cm",  "fth-dollar-sign",   "Cash Management",     "#639922"},
-            {"po",  "fth-shopping-cart", "Purchasing",          "#D4537E"},
-            {"sm",  "fth-package",       "Inventory",           "#534AB7"},
-            {"fa",  "fth-home",          "Fixed Assets",        "#BA7517"},
-            {"py",  "fth-user",          "Payroll",             "#0F6E56"},
-            {"bas", "fth-percent",       "BAS / Tax",           "#5F5E5A"},
-            {"sys", "fth-settings",      "System",              "#5F5E5A"},
-        };
-
-        sidebarModuleRows.clear();
-        for (String[] m : mods) {
-            HBox row = buildSidebarModuleRow(m[0], m[1], m[2], m[3]);
-            sidebarModuleRows.add(row);
-            sb.getChildren().add(row);
-        }
-
-        Region spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-        sb.getChildren().add(spacer);
-        return sb;
+    /** Builds the shared 240px/64px navigation rail (DESIGN_SYSTEM.md §5.2)
+     *  via {@link AppShell}, driven by {@link Module#values()}. */
+    private ShellRail buildSidebar() {
+        return appShell.buildRail(buildShellContext());
     }
 
-    /** accentHex is stored as userData[1] so selectSidebarModule can apply the left bar. */
-    private HBox buildSidebarModuleRow(String id, String iconLiteral,
-                                        String label, String accentHex) {
-        org.kordamp.ikonli.javafx.FontIcon icon =
-            new org.kordamp.ikonli.javafx.FontIcon(iconLiteral);
-        icon.setIconSize(15);
-        icon.setStyle("-fx-icon-color: " + accentHex + ";");
+    /** Config shared by {@link #buildHeaderBar()} and {@link #buildSidebar()}
+     *  — see {@link ShellContext}. The Favourites row is left as the shared
+     *  shell's default static placeholder: there is no favourites-in-nav
+     *  feature in the desktop app today (see {@code AppShell} javadoc).
+     *  {@code moduleVisible} defaults to always-visible here — install-flag
+     *  gating lands separately alongside the module-visibility feature work. */
+    private ShellContext buildShellContext() {
+        String userName = appSession.getUserName();
+        if (userName == null || userName.isBlank()) userName = appSession.getUserId();
 
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("lm-nav-label");
-        HBox.setHgrow(lbl, Priority.ALWAYS);
+        return new ShellContext()
+            .companyName(sessionCompanyName)
+            .financialYearLabel(sessionYearDesc)
+            .onContextChipClick(this::openCompanyYearSwitcher)
+            .userDisplayName(userName)
+            .userSecondaryLine(appSession.getUserId())
+            .onSwitchCompany(this::openCompanyYearSwitcher)
+            .onSwitchFinancialYear(this::openCompanyYearSwitcher)
+            .onPreferences(() -> stubInfo("Preferences",
+                "Preferences are not yet available in this build."))
+            .onSignOut(() -> javafx.application.Platform.exit())
+            .activeModule(Module.FIXED_ASSETS)
+            .moduleVisible(m -> true)
+            .onModuleSelected(m -> selectSidebarModule(m.getRouteId()));
+    }
 
-        HBox row = new HBox(10, icon, lbl);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setPadding(new Insets(8, 16, 8, 16));
-        row.setUserData(new String[]{id, accentHex});
-        row.getStyleClass().add("lm-nav-item");
-        row.setOnMouseClicked(e -> selectSidebarModule(id));
-        return row;
+    /** Opens the MENU23 company/year switcher, owned by the header's window
+     *  if the shell has been built yet (it always has by the time a user can
+     *  click the chip or open the user menu). */
+    private void openCompanyYearSwitcher() {
+        Window owner = (shellHeader != null && shellHeader.getNode().getScene() != null)
+            ? shellHeader.getNode().getScene().getWindow() : null;
+        showCompanyYearDialog(owner);
     }
 
     private void selectSidebarModule(String moduleId) {
-        for (HBox row : sidebarModuleRows) {
-            String[] data = (String[]) row.getUserData();
-            boolean active = data != null && moduleId.equals(data[0]);
-            row.getStyleClass().removeAll("lm-nav-item-active");
-            // Reset to plain style
-            row.setStyle(null);
-            // Update label weight
-            row.getChildren().stream()
-               .filter(n -> n instanceof Label)
-               .map(n -> (Label) n)
-               .forEach(lbl -> {
-                   lbl.getStyleClass().removeAll("lm-nav-label-active");
-                   lbl.getStyleClass().add(active ? "lm-nav-label-active" : "lm-nav-label");
-               });
-            if (active && data != null) {
-                String accent = data[1];
-                row.setStyle("-fx-background-color: -lm-bg-selected;" +
-                             "-fx-border-color: " + accent + " transparent transparent transparent;" +
-                             "-fx-border-width: 0 0 0 3;");
-            }
-        }
+        if (shellRail != null) shellRail.setActive(Module.byRouteId(moduleId));
         showTab(moduleId);
     }
-
-
-    private HBox buildSidebarLogo() {
-        HBox logo = new HBox(10);
-        logo.setPadding(new Insets(14, 16, 14, 16));
-        logo.setAlignment(Pos.CENTER_LEFT);
-        logo.setStyle(
-            "-fx-background-color: -lm-bg-page;" +
-            "-fx-border-color: transparent transparent -lm-border transparent;" +
-            "-fx-border-width: 0 0 1 0;");
-        logo.getChildren().add(LandmarkLogo.iconMark(28));
-        return logo;
-    }
-
-    private Label sidebarSectionLabel(String text) {
-        Label lbl = new Label(text.toUpperCase());
-        lbl.getStyleClass().add("sidebar-section-label");
-        lbl.setMaxWidth(Double.MAX_VALUE);
-        return lbl;
-    }
-
-    private HBox sidebarNavItem(String text, boolean active) {
-        return sidebarNavItem(text, active, null);
-    }
-
-    private HBox sidebarNavItem(String text, boolean active, String badge) {
-        Label lbl = new Label(text);
-        lbl.setStyle("-fx-font-size: 12px; -fx-text-fill: " +
-            (active ? "#1A6EF5; -fx-font-weight: bold;" : "#555553;"));
-        HBox.setHgrow(lbl, Priority.ALWAYS);
-
-        HBox row = new HBox(lbl);
-        row.setAlignment(Pos.CENTER_LEFT);
-
-        if (badge != null) {
-            Label b = new Label(badge);
-            b.setStyle(
-                "-fx-font-size: 9px; -fx-font-weight: bold;" +
-                "-fx-text-fill: #1A6EF5; -fx-background-color: #EEF4FF;" +
-                "-fx-background-radius: 4; -fx-padding: 1 5 1 5;");
-            row.getChildren().add(b);
-        }
-
-        row.setPadding(new Insets(6, 16, 6, active ? 14 : 16));
-        row.setStyle(
-            "-fx-background-color: " + (active ? "#EEF4FF" : "transparent") + ";" +
-            "-fx-border-color: transparent transparent transparent " +
-            (active ? "#1A6EF5" : "transparent") + ";" +
-            "-fx-border-width: 0 0 0 2;" +
-            "-fx-cursor: hand;");
-
-        if (!active) {
-            row.setOnMouseEntered(e ->
-                row.setStyle("-fx-background-color: #F8F8F6; -fx-cursor: hand;" +
-                    "-fx-border-color: transparent; -fx-border-width: 0 0 0 2;"));
-            row.setOnMouseExited(e ->
-                row.setStyle("-fx-background-color: transparent; -fx-cursor: hand;" +
-                    "-fx-border-color: transparent; -fx-border-width: 0 0 0 2;"));
-        }
-        return row;
-    }
-
-
 
     // ═══════════════════════════════════════════════════════════════
     // Main content
@@ -603,14 +424,12 @@ public class MainMenuController {
 
     // ── Shared helpers ─────────────────────────────────────────────
 
-    private VBox moduleTabBase(String title, String subtitle) {
+    /** Module landing page header — DESIGN_SYSTEM.md §5.3, via {@link PageHeader}.
+     *  {@code module} supplies the 2px ledger-spine accent for the rule. */
+    private VBox moduleTabBase(String title, String subtitle, Module module) {
         VBox tab = new VBox(16);
         tab.setPadding(new Insets(4, 0, 0, 0));
-        Label lTitle = new Label(title);
-        lTitle.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:-lm-text-primary;");
-        Label lSub = new Label(subtitle);
-        lSub.setStyle("-fx-font-size:13px;-fx-text-fill:-lm-text-secondary;");
-        tab.getChildren().add(new VBox(4, lTitle, lSub));
+        tab.getChildren().add(PageHeader.build(title, subtitle, null, module.getAccentHex()));
         return tab;
     }
 
@@ -625,7 +444,7 @@ public class MainMenuController {
 
     private VBox buildFaContent() {
         VBox tab = moduleTabBase("Fixed Assets",
-            "Asset register, depreciation and acquisition management");
+            "Asset register, depreciation and acquisition management", Module.FIXED_ASSETS);
 
         GridPane grid = twoColGrid();
 
@@ -658,7 +477,7 @@ public class MainMenuController {
 
     private VBox buildGlContent() {
         VBox tab = moduleTabBase("General Ledger",
-            "Journals, account balances and period reporting");
+            "Journals, account balances and period reporting", Module.GENERAL_LEDGER);
         GridPane grid = twoColGrid();
 
         ModuleCard maint = new ModuleCard("#185FA5", "fth-bar-chart-2",
@@ -689,7 +508,7 @@ public class MainMenuController {
 
     private VBox buildArContent() {
         VBox tab = moduleTabBase("Accounts Receivable",
-            "Customer invoicing, debtor management and receipts");
+            "Customer invoicing, debtor management and receipts", Module.ACCOUNTS_RECEIVABLE);
         GridPane grid = twoColGrid();
 
         ModuleCard maint = new ModuleCard("#1D9E75", "fth-users",
@@ -722,7 +541,7 @@ public class MainMenuController {
 
     private VBox buildApContent() {
         VBox tab = moduleTabBase("Accounts Payable",
-            "Supplier invoicing, creditor management and payments");
+            "Supplier invoicing, creditor management and payments", Module.ACCOUNTS_PAYABLE);
         GridPane grid = twoColGrid();
 
         ModuleCard maint = new ModuleCard("#D85A30", "fth-file-text",
@@ -753,7 +572,7 @@ public class MainMenuController {
 
     private VBox buildCmContent() {
         VBox tab = moduleTabBase("Cash Management",
-            "Bank accounts, cashbook transactions and reconciliation");
+            "Bank accounts, cashbook transactions and reconciliation", Module.CASH_MANAGEMENT);
         GridPane grid = twoColGrid();
 
         ModuleCard maint = new ModuleCard("#639922", "fth-dollar-sign",
@@ -784,7 +603,7 @@ public class MainMenuController {
 
     private VBox buildPoContent() {
         VBox tab = moduleTabBase("Purchasing",
-            "Purchase orders, delivery and supplier invoicing");
+            "Purchase orders, delivery and supplier invoicing", Module.PURCHASING);
         GridPane grid = twoColGrid();
 
         ModuleCard maint = new ModuleCard("#D4537E", "fth-shopping-cart",
@@ -815,7 +634,7 @@ public class MainMenuController {
 
     private VBox buildSmContent() {
         VBox tab = moduleTabBase("Inventory",
-            "Stock control, movements and warehousing");
+            "Stock control, movements and warehousing", Module.INVENTORY);
         GridPane grid = twoColGrid();
 
         ModuleCard maint = new ModuleCard("#534AB7", "fth-package",
@@ -848,7 +667,7 @@ public class MainMenuController {
 
     private VBox buildBasContent() {
         VBox tab = moduleTabBase("BAS / Tax",
-            "Business Activity Statement and GST reporting");
+            "Business Activity Statement and GST reporting", Module.BAS_TAX);
         GridPane grid = twoColGrid();
 
         ModuleCard maint = new ModuleCard("#5F5E5A", "fth-percent",
@@ -875,7 +694,7 @@ public class MainMenuController {
     // ── System ─────────────────────────────────────────────────────
 
     private VBox buildSysContent() {
-        VBox tab = moduleTabBase("System", "Company setup and system configuration");
+        VBox tab = moduleTabBase("System", "Company setup and system configuration", Module.SYSTEM);
         GridPane grid = twoColGrid();
 
         ModuleCard admin = new ModuleCard("#5F5E5A", "fth-settings",
@@ -892,12 +711,10 @@ public class MainMenuController {
         VBox tab = new VBox(16);
         tab.setPadding(new Insets(4, 0, 0, 0));
 
-        // Header
-        Label title = new Label("Payroll");
-        title.setStyle("-fx-font-size:18px;-fx-font-weight:bold;-fx-text-fill:-lm-text-primary;");
-        Label sub = new Label("Pay codes, employees, timesheets and pay processing");
-        sub.setStyle("-fx-font-size:13px;-fx-text-fill:-lm-text-secondary;");
-        tab.getChildren().add(new VBox(4, title, sub));
+        // Header — DESIGN_SYSTEM.md §5.3
+        tab.getChildren().add(PageHeader.build("Payroll",
+            "Pay codes, employees, timesheets and pay processing",
+            null, Module.PAYROLL.getAccentHex()));
 
         // Three primary cards in a row (D5 mockup layout)
         GridPane grid = new GridPane();
@@ -1674,11 +1491,12 @@ public class MainMenuController {
                 lastSessionStore.save(sessionCompanyNo, sessionYearNo);
             }
 
-            // Update header + legacy footer labels — null-guarded for reporting build.
-            if (lblHeaderCompany != null) lblHeaderCompany.setText(sessionCompanyName);
-            if (lblHeaderYear    != null) lblHeaderYear.setText(sessionYearDesc);
-            if (lblFooterCompany != null) lblFooterCompany.setText(sessionCompanyName);
-            if (lblFooterYear    != null) lblFooterYear.setText(sessionYearDesc);
+            // Refresh the shared shell's context chip — null-guarded because
+            // ReportsHubController reuses this dialog before its own shell
+            // has necessarily finished building.
+            if (shellHeader != null) {
+                shellHeader.updateContext(ShellContext.chipText(sessionCompanyName, sessionYearDesc));
+            }
 
             // Push to shared AppSession — all screens/services will now use this
             pushToAppSession();

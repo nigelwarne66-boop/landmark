@@ -14,6 +14,11 @@ import com.landmarksoftware.export.TransactionListPdfService;
 import com.landmarksoftware.export.TransactionListExportService;
 import com.landmarksoftware.export.EmployeePdfService;
 import com.landmarksoftware.report.AssetRegisterViewerService;
+import com.landmarksoftware.ui.nav.Module;
+import com.landmarksoftware.ui.shell.AppShell;
+import com.landmarksoftware.ui.shell.ShellContext;
+import com.landmarksoftware.ui.shell.ShellHeader;
+import com.landmarksoftware.ui.shell.ShellRail;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -25,6 +30,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -37,16 +43,18 @@ import java.util.*;
 public class ReportsHubController implements Initializable {
 
     /* ── FXML ──────────────────────────────────────────────────── */
-    @FXML private HBox      brandBox;
-    @FXML private Label     companyLabel;
-    @FXML private Label     yearLabel;
-    @FXML private Label     userLabel;
+    @FXML private StackPane headerSlot;
+    @FXML private StackPane railSlot;
     @FXML private TextField searchField;
-    @FXML private VBox      moduleList;
     @FXML private Label     moduleTitle;
     @FXML private Label     reportCount;
     @FXML private VBox      reportList;
     @FXML private Label     emptyLabel;
+
+    /* ── Shared shell (DESIGN_SYSTEM.md §5) — built at initialize(), kept
+       so a company switch or favourites toggle can refresh in place. ──── */
+    private ShellHeader shellHeader;
+    private ShellRail   shellRail;
 
     /* ── Spring ────────────────────────────────────────────────── */
     @Autowired private AppSession                   session;
@@ -54,6 +62,7 @@ public class ReportsHubController implements Initializable {
     @Autowired private JasperReportService          jasper;
     @Autowired private ApplicationContext           springContext;
     @Autowired private CpCntrlService               cpCntrl;
+    @Autowired private AppShell                     appShell;
     // Used only to spawn MENU23 (Switch Company) — same dialog code as the full app.
     @Autowired private MainMenuController           mainMenu;
     // Injected for future selection-screen wiring — runners below stub to
@@ -71,39 +80,76 @@ public class ReportsHubController implements Initializable {
     private List<ModuleDef> modules;
     private ModuleDef       activeModule;
 
-    /* ── Colour + icon maps ────────────────────────────────────── */
+    /* ── Colour map — report-row icon tiles only; rail icons come from the
+       Module enum via the shared shell. ──────────────────────────────── */
     private static final Map<String, String> MODULE_STYLE = Map.ofEntries(
         Map.entry("fa", "icon-fa"), Map.entry("gl", "icon-gl"), Map.entry("py", "icon-py"),
         Map.entry("ar", "icon-ar"), Map.entry("ap", "icon-ap"), Map.entry("cm", "icon-cm"),
         Map.entry("bas", "icon-ap"), Map.entry("po", "icon-ap"), Map.entry("sm", "icon-cm"),
         Map.entry("fav", "icon-fav")
     );
-    // Feather (fth-*) — closest available substitute for the original Tabler ti-* names.
-    private static final Map<String, String> MODULE_ICON = Map.ofEntries(
-        Map.entry("fa", "fth-package"),  Map.entry("gl", "fth-bar-chart-2"),
-        Map.entry("py", "fth-users"),    Map.entry("ar", "fth-file-text"),
-        Map.entry("ap", "fth-file"),     Map.entry("cm", "fth-dollar-sign"),
-        Map.entry("bas", "fth-percent"), Map.entry("po", "fth-shopping-cart"),
-        Map.entry("sm", "fth-box"),      Map.entry("fav", "fth-star")
-    );
 
     /* ── Init ──────────────────────────────────────────────────── */
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         buildModuleRegistry();
-        populateHeader();
-        buildSidebar();
-        selectModule(modules.get(0));
+
+        ShellContext ctx = buildShellContext();
+        shellHeader = appShell.buildHeader(ctx);
+        shellRail   = appShell.buildRail(ctx);
+        headerSlot.getChildren().setAll(shellHeader.getNode());
+        railSlot.getChildren().setAll(shellRail.getNode());
+
+        selectModule(modules.isEmpty() ? null : modules.get(0));
         searchField.textProperty().addListener((obs, old, val) -> filterReports(val));
     }
 
-    private void populateHeader() {
-        // Pin-mark only (mirrors landmark-logo-icon.svg) in the slim topbar —
-        // a near-square mark fits the bar height better than the stacked logo.
-        brandBox.getChildren().setAll(LandmarkLogo.iconMark(34));
-        companyLabel.setText(session.getCompanyName());
-        yearLabel.setText(session.getYearDesc());
-        userLabel.setText(session.getUserId());
+    /** Config shared by the header + rail — DESIGN_SYSTEM.md §5. Unlike
+     *  MainMenuController, this app already has a working per-report
+     *  favourites feature (ReportFavouritesStore), so the shared shell's
+     *  Favourites row is wired up here instead of left as a placeholder.
+     *  {@code moduleVisible} hides "sys" (no System module in this app's
+     *  report registry) — install-flag gating lands separately alongside
+     *  the module-visibility feature work. */
+    private ShellContext buildShellContext() {
+        String displayName = session.getUserName();
+        if (displayName == null || displayName.isBlank()) displayName = session.getUserId();
+        String secondary = session.getUserId();
+        if (secondary != null && secondary.equals(displayName)) secondary = null;
+
+        return new ShellContext()
+            .companyName(session.getCompanyName())
+            .financialYearLabel(session.getYearDesc())
+            .onContextChipClick(this::openCompanyYearSwitcher)
+            .userDisplayName(displayName)
+            .userSecondaryLine(secondary)
+            .onSwitchCompany(this::openCompanyYearSwitcher)
+            .onSwitchFinancialYear(this::openCompanyYearSwitcher)
+            .onPreferences(() -> comingSoon("Preferences"))
+            .onSignOut(this::onSignOut)
+            .activeModule(null)
+            .moduleVisible(m -> !"sys".equals(m.getRouteId()))
+            .onModuleSelected(this::selectModuleByRoute)
+            .onFavouritesClick(() -> selectModule(null))
+            .favouritesCount(favStore::count);
+    }
+
+    /** Refresh the chip + user name after a MENU23 switch, without a full
+     *  header rebuild. */
+    private void refreshHeader() {
+        if (shellHeader == null) return;
+        shellHeader.updateContext(ShellContext.chipText(session.getCompanyName(), session.getYearDesc()));
+        String displayName = session.getUserName();
+        if (displayName == null || displayName.isBlank()) displayName = session.getUserId();
+        shellHeader.updateUserName(displayName);
+    }
+
+    /** {@link Module#byRouteId(String)} bridge for {@link ShellContext#onModuleSelected}. */
+    private void selectModuleByRoute(Module m) {
+        modules.stream()
+            .filter(mod -> mod.getId().equals(m.getRouteId()))
+            .findFirst()
+            .ifPresent(this::selectModule);
     }
 
     /* ── Module registry ───────────────────────────────────────── */
@@ -666,60 +712,16 @@ public class ReportsHubController implements Initializable {
         modules = mods;
     }
 
-    /* ── Sidebar ────────────────────────────────────────────────── */
-    private void buildSidebar() {
-        moduleList.getChildren().clear();
-        moduleList.getChildren().add(buildModuleRow(null)); // Favourites
-        for (ModuleDef mod : modules) {
-            moduleList.getChildren().add(buildModuleRow(mod));
-        }
-    }
-
-    private HBox buildModuleRow(ModuleDef mod) {
-        boolean isFav = (mod == null);
-        String  id    = isFav ? "fav" : mod.getId();
-
-        HBox row = new HBox(8);
-        row.getStyleClass().add("module-item");
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setUserData(id);
-
-        StackPane iconBadge = new StackPane();
-        iconBadge.getStyleClass().addAll("module-icon-badge",
-            MODULE_STYLE.getOrDefault(id, "icon-fa"));
-        FontIcon icon = new FontIcon(MODULE_ICON.getOrDefault(id, "fth-file"));
-        icon.getStyleClass().add("module-badge-icon");
-        iconBadge.getChildren().add(icon);
-
-        Label lbl = new Label(isFav ? "Favourites" : mod.getLabel());
-        lbl.getStyleClass().add("module-item-label");
-        HBox.setHgrow(lbl, Priority.ALWAYS);
-
-        row.getChildren().addAll(iconBadge, lbl);
-        // Favourites keeps a count badge; module rows show the name only.
-        if (isFav) {
-            Label countLbl = new Label(String.valueOf(favStore.count()));
-            countLbl.getStyleClass().add("module-badge-fav");
-            row.getChildren().add(countLbl);
-        }
-        row.setOnMouseClicked(e -> selectModule(mod));
-        return row;
-    }
-
     /* ── Module selection ───────────────────────────────────────── */
     private void selectModule(ModuleDef mod) {
         activeModule = mod;
         searchField.clear();
-        String activeId = (mod == null) ? "fav" : mod.getId();
 
-        moduleList.getChildren().forEach(n ->
-            n.getStyleClass().removeAll("module-item-active", "module-item-active-fav"));
-
-        moduleList.getChildren().stream()
-            .filter(n -> activeId.equals(n.getUserData()))
-            .findFirst()
-            .ifPresent(n -> n.getStyleClass().add(
-                "fav".equals(activeId) ? "module-item-active-fav" : "module-item-active"));
+        if (shellRail != null) {
+            boolean isFav = (mod == null);
+            shellRail.setFavouritesActive(isFav);
+            shellRail.setActive(isFav ? null : Module.byRouteId(mod.getId()));
+        }
 
         if (mod == null) {
             moduleTitle.setText("Favourites");
@@ -851,15 +853,7 @@ public class ReportsHubController implements Initializable {
 
     /* ── Favourites badge refresh ───────────────────────────────── */
     private void refreshFavBadge() {
-        moduleList.getChildren().stream()
-            .filter(n -> "fav".equals(n.getUserData()))
-            .findFirst()
-            .ifPresent(n -> ((HBox) n).getChildren().stream()
-                .filter(c -> c instanceof Label &&
-                    ((Label) c).getStyleClass().contains("module-badge-fav"))
-                .map(c -> (Label) c)
-                .findFirst()
-                .ifPresent(l -> l.setText(String.valueOf(favStore.count()))));
+        if (shellRail != null) shellRail.refreshFavouritesCount(favStore.count());
     }
 
     /* ── Search ─────────────────────────────────────────────────── */
@@ -875,16 +869,16 @@ public class ReportsHubController implements Initializable {
     }
 
     /* ── Navigation ─────────────────────────────────────────────── */
-    @FXML
-    private void onSwitchCompany() {
-        javafx.stage.Window owner = companyLabel.getScene().getWindow();
+    private void openCompanyYearSwitcher() {
+        Window owner = headerSlot.getScene() != null ? headerSlot.getScene().getWindow() : null;
         mainMenu.showCompanyYearDialog(owner);
-        // AppSession is now updated. Refresh the top-bar labels so the
-        // user sees the new company/year selection immediately.
-        populateHeader();
+        // AppSession is now updated — refresh the shared shell's chip/user
+        // name so the user sees the new company/year selection immediately.
+        refreshHeader();
+        if (!modules.isEmpty()) selectModule(modules.get(0));
     }
 
-    @FXML private void onSignOut() { javafx.application.Platform.exit(); }
+    private void onSignOut() { javafx.application.Platform.exit(); }
 
     /* ── Jasper bridge — every selection screen controller calls this ──
      *

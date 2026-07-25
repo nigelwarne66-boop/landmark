@@ -10,70 +10,40 @@
     fx:controller="com.landmarksoftware.ui.ReportsHubController"
     styleClass="reports-root">
 
-    <!-- ── Top bar ─────────────────────────────────────────────── -->
+    <!-- ── Header — shared shell (DESIGN_SYSTEM.md §5.1), built by AppShell
+         and injected by the controller at initialize() so both apps render
+         pixel-identical chrome. ─────────────────────────────────────── -->
     <top>
-        <HBox styleClass="hub-topbar" alignment="CENTER_LEFT" spacing="10">
-            <HBox.margin><Insets/></HBox.margin>
-
-            <HBox fx:id="brandBox" styleClass="hub-brand" alignment="CENTER_LEFT"/>
-
-            <Label styleClass="hub-sep" text="|"/>
-
-            <Label fx:id="companyLabel" styleClass="hub-company"/>
-            <Label styleClass="hub-dot" text="·"/>
-            <Label fx:id="yearLabel"    styleClass="hub-year"/>
-
-            <Region HBox.hgrow="ALWAYS"/>
-
-            <Label fx:id="userLabel"    styleClass="hub-user"/>
-            <Hyperlink text="Switch company"
-                       styleClass="hub-link"
-                       onAction="#onSwitchCompany"/>
-            <Hyperlink text="Sign out"
-                       styleClass="hub-link"
-                       onAction="#onSignOut"/>
-
-            <HBox.margin>
-                <Insets left="16" right="16" top="0" bottom="0"/>
-            </HBox.margin>
-        </HBox>
+        <StackPane fx:id="headerSlot"/>
     </top>
 
     <!-- ── Two-panel body ──────────────────────────────────────── -->
     <center>
         <HBox>
 
-            <!-- Left sidebar: module list -->
-            <VBox styleClass="hub-sidebar" prefWidth="220" minWidth="180">
-
-                <VBox styleClass="hub-search-wrap">
-                    <TextField fx:id="searchField"
-                               promptText="Search reports…"
-                               styleClass="hub-search"/>
-                    <VBox.margin><Insets top="12" right="12" bottom="8" left="12"/></VBox.margin>
-                </VBox>
-
-                <Separator/>
-
-                <VBox fx:id="moduleList"
-                      styleClass="hub-module-list"
-                      VBox.vgrow="ALWAYS"
-                      spacing="2">
-                    <VBox.margin><Insets top="8" bottom="8"/></VBox.margin>
-                </VBox>
-
-            </VBox>
+            <!-- Left: shared navigation rail (§5.2), built by AppShell and
+                 injected by the controller — carries navigation only. -->
+            <StackPane fx:id="railSlot"/>
 
             <Separator orientation="VERTICAL"/>
 
             <!-- Right content: report rows -->
             <VBox HBox.hgrow="ALWAYS" styleClass="hub-content">
 
-                <!-- Module title + count -->
-                <HBox styleClass="hub-content-header" alignment="BASELINE_LEFT" spacing="12">
+                <!-- Module title + count + report filter. The report-list
+                     filter (not global search — DESIGN_SYSTEM.md §7.6) lives
+                     here rather than in the rail, which carries navigation
+                     only in the shared shell. -->
+                <HBox styleClass="hub-content-header" alignment="CENTER_LEFT" spacing="12">
                     <Label fx:id="moduleTitle" styleClass="hub-content-title"/>
                     <Label fx:id="reportCount" styleClass="hub-content-sub"/>
-                    <HBox.margin><Insets top="20" right="28" bottom="16" left="28"/></HBox.margin>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <TextField fx:id="searchField"
+                               promptText="Filter reports…"
+                               styleClass="hub-search"/>
+                    <HBox.margin>
+                        <Insets top="20" right="28" bottom="16" left="28"/>
+                    </HBox.margin>
                 </HBox>
 
                 <!-- Report rows in a scroll pane -->
