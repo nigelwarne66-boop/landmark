@@ -44,6 +44,12 @@ public final class ShellContext {
     Runnable onSwitchCompany = () -> { };
     Runnable onSwitchFinancialYear = () -> { };
     Runnable onPreferences = () -> { };
+    /** Wave 7 (DESIGN_SYSTEM.md §10) — "Open in Reports" user-menu item,
+     *  sibling of {@link #onPreferences}. {@code () -> { }} no-op default so
+     *  a caller that hasn't wired the handoff (e.g. the reporting build
+     *  itself, which has no "open in reports" to offer) doesn't need to set
+     *  it. See {@code AppShell} javadoc for the menu placement. */
+    Runnable onOpenInReports = () -> { };
     Runnable onSignOut = () -> { };
 
     /** Currently active module for the ledger-spine indicator, or
@@ -67,6 +73,7 @@ public final class ShellContext {
     public ShellContext onSwitchCompany(Runnable v) { this.onSwitchCompany = v; return this; }
     public ShellContext onSwitchFinancialYear(Runnable v) { this.onSwitchFinancialYear = v; return this; }
     public ShellContext onPreferences(Runnable v) { this.onPreferences = v; return this; }
+    public ShellContext onOpenInReports(Runnable v) { this.onOpenInReports = v; return this; }
     public ShellContext onSignOut(Runnable v) { this.onSignOut = v; return this; }
 
     public ShellContext activeModule(Module v) { this.activeModule = v; return this; }

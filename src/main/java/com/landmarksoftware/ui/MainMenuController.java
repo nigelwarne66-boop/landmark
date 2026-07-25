@@ -109,6 +109,7 @@ public class MainMenuController {
     private final LastSessionStore                   lastSessionStore;
     private final AppSession                         appSession;
     private final AppShell                           appShell;
+    private final com.landmarksoftware.service.ReportsHandoffService reportsHandoffService;
     private final org.springframework.context.ApplicationContext springContext;
 
     // ── Session state (mirrors GLPASS / MENU23 selection) ────────
@@ -159,6 +160,7 @@ public class MainMenuController {
                                LastSessionStore lastSessionStore,
                                AppSession appSession,
                                AppShell appShell,
+                               com.landmarksoftware.service.ReportsHandoffService reportsHandoffService,
                                org.springframework.context.ApplicationContext springContext) {
         this.projectionScreen      = projectionScreen;
         this.transactionListScreen = transactionListScreen;
@@ -191,6 +193,7 @@ public class MainMenuController {
         this.lastSessionStore      = lastSessionStore;
         this.appSession            = appSession;
         this.appShell              = appShell;
+        this.reportsHandoffService = reportsHandoffService;
         this.springContext         = springContext;
     }
 
@@ -359,6 +362,7 @@ public class MainMenuController {
             .onSwitchFinancialYear(this::openCompanyYearSwitcher)
             .onPreferences(() -> stubInfo("Preferences",
                 "Preferences are not yet available in this build."))
+            .onOpenInReports(() -> reportsHandoffService.openInReports("gl"))
             .onSignOut(() -> javafx.application.Platform.exit())
             .activeModule(Module.FIXED_ASSETS)
             .moduleVisible(m -> true)

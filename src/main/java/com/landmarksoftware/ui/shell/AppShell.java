@@ -142,7 +142,14 @@ public class AppShell {
         switchYear.setOnAction(e -> ctx.onSwitchFinancialYear.run());
         MenuItem preferences = new MenuItem("Preferences");
         preferences.setOnAction(e -> ctx.onPreferences.run());
-        menu.getItems().addAll(switchCompany, switchYear, preferences);
+        // Wave 7 (DESIGN_SYSTEM.md §10) — sibling of Preferences. No-op by
+        // default (ShellContext.onOpenInReports); still shown so the item is
+        // discoverable, but harmless for a caller that never wires it.
+        FontIcon openInReportsIcon = new FontIcon("fth-external-link");
+        openInReportsIcon.setIconSize(14);
+        MenuItem openInReports = new MenuItem("Open in Reports", openInReportsIcon);
+        openInReports.setOnAction(e -> ctx.onOpenInReports.run());
+        menu.getItems().addAll(switchCompany, switchYear, preferences, openInReports);
 
         menu.getItems().add(new SeparatorMenuItem());
 
