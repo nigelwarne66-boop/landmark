@@ -11,7 +11,6 @@
  */
 package com.landmarksoftware.ui.bas;
 
-import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.model.bas.BasGroup;
 import com.landmarksoftware.model.bas.BasGroupMember;
@@ -109,7 +108,7 @@ public class BasGroupMaintenanceController {
 
         Scene scene = new Scene(root, 960, 600);
         scene.getStylesheets().add(getClass().getResource("/css/fixedassets.css").toExternalForm());
-        scene.getStylesheets().add(getClass().getResource(AppMode.themeCssPath()).toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
         return scene;
     }
 

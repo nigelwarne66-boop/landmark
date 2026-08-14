@@ -11,7 +11,6 @@
  */
 package com.landmarksoftware.ui.bas;
 
-import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.model.bas.BasRun;
 import com.landmarksoftware.service.bas.BasProcessingService;
@@ -103,7 +102,7 @@ public class BasProcessingController {
 
         Scene scene = new Scene(root, 1040, 640);
         scene.getStylesheets().add(getClass().getResource("/css/fixedassets.css").toExternalForm());
-        scene.getStylesheets().add(getClass().getResource(AppMode.themeCssPath()).toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
         return scene;
     }
 
