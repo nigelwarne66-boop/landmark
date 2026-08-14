@@ -152,6 +152,96 @@ public class Cpsubcy extends TableImpl<CpsubcyRecord> {
     public final TableField<CpsubcyRecord, Integer> INTER_COY_ACCT_SUB = createField(DSL.name("inter_coy_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
 
     /**
+     * The column <code>lmextract.cpsubcy.bas_1c_1d_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_1C_1D_ACCT_MAIN = createField(DSL.name("bas_1c_1d_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_1c_1d_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_1C_1D_ACCT_SUB = createField(DSL.name("bas_1c_1d_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_1e_1f_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_1E_1F_ACCT_MAIN = createField(DSL.name("bas_1e_1f_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_1e_1f_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_1E_1F_ACCT_SUB = createField(DSL.name("bas_1e_1f_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_1g_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_1G_ACCT_MAIN = createField(DSL.name("bas_1g_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_1g_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_1G_ACCT_SUB = createField(DSL.name("bas_1g_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_4_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_4_ACCT_MAIN = createField(DSL.name("bas_4_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_4_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_4_ACCT_SUB = createField(DSL.name("bas_4_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_5a_5b_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_5A_5B_ACCT_MAIN = createField(DSL.name("bas_5a_5b_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_5a_5b_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_5A_5B_ACCT_SUB = createField(DSL.name("bas_5a_5b_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_6a_6b_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_6A_6B_ACCT_MAIN = createField(DSL.name("bas_6a_6b_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_6a_6b_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_6A_6B_ACCT_SUB = createField(DSL.name("bas_6a_6b_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_7_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_7_ACCT_MAIN = createField(DSL.name("bas_7_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_7_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_7_ACCT_SUB = createField(DSL.name("bas_7_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_7a_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_7A_ACCT_MAIN = createField(DSL.name("bas_7a_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_7a_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_7A_ACCT_SUB = createField(DSL.name("bas_7a_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_7c_7d_acct_main</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_7C_7D_ACCT_MAIN = createField(DSL.name("bas_7c_7d_acct_main"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>lmextract.cpsubcy.bas_7c_7d_acct_sub</code>.
+     */
+    public final TableField<CpsubcyRecord, Integer> BAS_7C_7D_ACCT_SUB = createField(DSL.name("bas_7c_7d_acct_sub"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
      * The column <code>lmextract.cpsubcy.note_no</code>.
      */
     public final TableField<CpsubcyRecord, Long> NOTE_NO = createField(DSL.name("note_no"), SQLDataType.BIGINT.nullable(false), this, "");

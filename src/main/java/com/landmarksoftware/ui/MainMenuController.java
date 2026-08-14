@@ -88,6 +88,10 @@ public class MainMenuController {
     private final CompanyMaintenanceController       companyMaintenance;
     private final PayrollMenuController              payrollMenu;
     private final PayCodeMaintenanceController       payCodeScreen;
+    private final com.landmarksoftware.ui.bas.BasGroupMaintenanceController       basGroupScreen;
+    private final com.landmarksoftware.ui.bas.BasReasonCodeMaintenanceController  basReasonCodeScreen;
+    private final com.landmarksoftware.ui.bas.BasTransactionMaintenanceController basTransactionScreen;
+    private final com.landmarksoftware.ui.bas.BasProcessingController            basProcessingScreen;
     private final EmployeeMaintenanceController      employeeScreen;
     private final PayGroupMaintenanceController      payGroupScreen;
     private final TaxScaleMaintenanceController      taxScaleScreen;
@@ -154,6 +158,10 @@ public class MainMenuController {
                                TimesheetEntryController timesheetEntryScreen,
                                PayRunProcessingController payRunProcessingScreen,
                                AbaPaymentController abaPaymentScreen,
+                               com.landmarksoftware.ui.bas.BasGroupMaintenanceController basGroupScreen,
+                               com.landmarksoftware.ui.bas.BasReasonCodeMaintenanceController basReasonCodeScreen,
+                               com.landmarksoftware.ui.bas.BasTransactionMaintenanceController basTransactionScreen,
+                               com.landmarksoftware.ui.bas.BasProcessingController basProcessingScreen,
                                JdbcTemplate jdbc,
                                SessionService sessionService,
                                CompanyRepository companyRepo,
@@ -187,6 +195,10 @@ public class MainMenuController {
         this.timesheetEntryScreen  = timesheetEntryScreen;
         this.payRunProcessingScreen = payRunProcessingScreen;
         this.abaPaymentScreen      = abaPaymentScreen;
+        this.basGroupScreen        = basGroupScreen;
+        this.basReasonCodeScreen   = basReasonCodeScreen;
+        this.basTransactionScreen  = basTransactionScreen;
+        this.basProcessingScreen   = basProcessingScreen;
         this.jdbc                  = jdbc;
         this.sessionService        = sessionService;
         this.companyRepo           = companyRepo;
@@ -676,8 +688,9 @@ public class MainMenuController {
 
         ModuleCard maint = new ModuleCard("#5F5E5A", "fth-percent",
             "Maintenance", "BAS processing and GST setup");
-        maint.addRow("BAS Processing", null, false);
-        maint.addRow("GST Code Maintenance", null, false);
+        maint.addRows(List.of(
+            entry("BAS", "CPBA10"), entry("BAS", "CPBA01"),
+            entry("BAS", "CPBA07"), entry("BAS", "CPBA02")));
         grid.add(maint, 0, 0);
 
         ModuleCard reports = new ModuleCard("#5F5E5A", "fth-file-text",
@@ -980,6 +993,20 @@ public class MainMenuController {
         allEntries.add(MenuEntry.placeholder("GL", "GLTL03", "Balance Sheet", ""));
         allEntries.add(MenuEntry.placeholder("GL", "GLMA01", "Chart of Accounts", ""));
 
+        // BAS / Tax
+        allEntries.add(new MenuEntry("BAS", "CPBA01", "BAS Report Group Maintenance",
+            "Maintain BAS groups, member companies and GL clearing accounts",
+            true, this::openBasGroupMaintenance));
+        allEntries.add(new MenuEntry("BAS", "CPBA02", "BAS Reason Codes",
+            "Maintain income tax and FBT instalment variation reason codes",
+            true, this::openBasReasonCodeMaintenance));
+        allEntries.add(new MenuEntry("BAS", "CPBA07", "BAS Transactions",
+            "Add, edit and correct individual BAS tax transaction lines",
+            true, this::openBasTransactionMaintenance));
+        allEntries.add(new MenuEntry("BAS", "CPBA10", "BAS Processing",
+            "Create, edit and finalise a company's Business Activity Statement",
+            true, this::openBasProcessing));
+
         // AR
         allEntries.add(MenuEntry.placeholder("AR", "ARTL01", "Aged Debtors", ""));
         allEntries.add(MenuEntry.placeholder("AR", "ARTL02", "Debtor Statements", ""));
@@ -1235,6 +1262,30 @@ public class MainMenuController {
         Stage s = new Stage(); s.setTitle("Global Employee Award Update");
         s.setScene(globalAwardUpdateScreen.buildScene(s));
         s.setMinWidth(720); s.setMinHeight(580); s.show();
+    }
+
+    private void openBasGroupMaintenance() {
+        Stage s = new Stage(); s.setTitle("BAS Report Group Maintenance");
+        s.setScene(basGroupScreen.buildScene(s));
+        s.setMinWidth(900); s.setMinHeight(560); s.show();
+    }
+
+    private void openBasReasonCodeMaintenance() {
+        Stage s = new Stage(); s.setTitle("BAS Reason Codes");
+        s.setScene(basReasonCodeScreen.buildScene(s));
+        s.setMinWidth(760); s.setMinHeight(500); s.show();
+    }
+
+    private void openBasTransactionMaintenance() {
+        Stage s = new Stage(); s.setTitle("BAS Transactions");
+        s.setScene(basTransactionScreen.buildScene(s));
+        s.setMinWidth(960); s.setMinHeight(580); s.show();
+    }
+
+    private void openBasProcessing() {
+        Stage s = new Stage(); s.setTitle("BAS Processing");
+        s.setScene(basProcessingScreen.buildScene(s));
+        s.setMinWidth(960); s.setMinHeight(600); s.show();
     }
 
     private void openChangeEmployeePayRates() {

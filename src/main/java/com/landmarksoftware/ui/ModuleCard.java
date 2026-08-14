@@ -11,6 +11,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
@@ -62,15 +63,27 @@ public class ModuleCard extends VBox {
     private final VBox  rowContainer;
     private final Label openLink;
     private Runnable    openAction;
+    private final String accentHex;
+    private final String iconLiteral;
+    private final String tintHex;
 
     public ModuleCard(String accentHex, String iconLiteral,
                       String title, String subtitle) {
         getStyleClass().add("lm-card");
+        this.accentHex = accentHex;
+        this.iconLiteral = iconLiteral;
+        this.tintHex = accentHex + "22";
 
         // ── Icon tile ─────────────────────────────────────────────────
+        // setIconColor(Paint), NOT setStyle("-fx-icon-color: ...") — the
+        // latter triggers a CSS re-application pass that resets Ikonli's
+        // FontIcon.iconCode (itself a StyleableObjectProperty) back to its
+        // default, rendering a fallback glyph instead of the real icon. See
+        // the note on ListRow's TEXT_MUTED/WARNING constants for the full
+        // explanation — verified 2026-08-13 via a snapshot diagnostic.
         FontIcon icon = new FontIcon(iconLiteral);
         icon.setIconSize(16);
-        icon.setStyle("-fx-icon-color: " + accentHex + ";");
+        icon.setIconColor(Color.web(accentHex));
 
         StackPane tile = new StackPane(icon);
         tile.getStyleClass().add("lm-tile");
@@ -102,7 +115,7 @@ public class ModuleCard extends VBox {
 
     /** Adds a clickable row. Pass action=null and available=false for "coming soon". */
     public void addRow(String label, Runnable action, boolean available) {
-        ListRow row = ListRow.builder().title(label);
+        ListRow row = ListRow.builder().title(label).icon(iconLiteral, accentHex, tintHex);
         if (!available) {
             row.badge("soon").pending();
         } else if (action != null) {
@@ -111,10 +124,33 @@ public class ModuleCard extends VBox {
         rowContainer.getChildren().add(row.build());
     }
 
-    /** Adds multiple rows from a list of MenuEntry objects. */
+    /**
+     * Adds multiple rows from a list of {@link MenuEntry} objects — each row
+     * gets the card's icon tile (visual parity with the Landmark Reports
+     * hub, where every report row carries its own icon), the entry's
+     * subtitle as a description line, and — for available entries — a
+     * favourite star wired straight to {@link MenuEntry#toggleFavourite()}
+     * (already persisted via {@code FavouritesStore} by the listener
+     * {@code MainMenuController} attaches to every entry's {@code
+     * favouriteProperty()}). Unavailable ("soon") entries keep the plain
+     * pending badge — nothing to favourite yet.
+     */
     public void addRows(List<com.landmarksoftware.ui.MenuEntry> entries) {
+        rowContainer.getChildren().clear();
         for (MenuEntry e : entries) {
-            addRow(e.getTitle(), e.isAvailable() ? e.getAction() : null, e.isAvailable());
+            ListRow row = ListRow.builder()
+                .title(e.getTitle())
+                .description(e.getSubtitle())
+                .icon(iconLiteral, accentHex, tintHex);
+            if (!e.isAvailable()) {
+                row.badge("soon").pending();
+            } else {
+                if (e.getAction() != null) row.onClick(e.getAction());
+                // ListRow's star doesn't repaint itself on click, so rebuild
+                // this card's rows after every toggle to reflect the new state.
+                row.favourite(e.isFavourite(), () -> { e.toggleFavourite(); addRows(entries); });
+            }
+            rowContainer.getChildren().add(row.build());
         }
     }
 

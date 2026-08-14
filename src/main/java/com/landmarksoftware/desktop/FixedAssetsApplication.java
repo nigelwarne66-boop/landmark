@@ -128,7 +128,14 @@ public class FixedAssetsApplication extends Application {
         for (int size : sizes) {
             Node mark = LandmarkLogo.iconMark(size);
             new Scene(new Group(mark)).setFill(Color.TRANSPARENT);
-            icons.add(mark.snapshot(sp, null));
+            // Must snapshot into an explicit SQUARE WritableImage — the pin's
+            // source viewBox (264x248) isn't square, so scaling by height
+            // alone (LandmarkLogo.wrapAndScale) leaves a slightly wider than
+            // tall auto-sized image when snapshot() is given a null target.
+            // Windows silently rejects non-square Stage icons and falls back
+            // to the default javaw.exe icon instead of erroring — matches
+            // the proven-working pattern in GenerateLandmarkIco.java.
+            icons.add(mark.snapshot(sp, new javafx.scene.image.WritableImage(size, size)));
         }
         return icons;
     }

@@ -70,6 +70,14 @@
       <artifactId>ikonli-feather-pack</artifactId>
       <version>12.3.1</version>
     </dependency>
+    <!-- Feather is outline-only by design (no filled glyph variants) — this
+         pack supplies just the solid/filled star (mat2-star) for the
+         favourite toggle's "selected" state (mat2-* prefix). -->
+    <dependency>
+      <groupId>org.kordamp.ikonli</groupId>
+      <artifactId>ikonli-material2-pack</artifactId>
+      <version>12.3.1</version>
+    </dependency>
 
     <!-- PDF export (FA reports) — uses 2.x API (PDType1Font.HELVETICA as static field) -->
     <dependency>
@@ -236,11 +244,31 @@
     <!-- jOOQ code generation:  mvn generate-sources -Pjooq-codegen
          Connects to the local MySQL dev DB and regenerates the type-safe
          table/column DSL classes into src/main/generated/.
-         Re-run whenever the lmextract schema changes.
+         Re-run whenever the physical schema changes.
          To upgrade to SQL Server (commercial): change the jdbc block to point
          at the SQL Server DB, change database name to
          org.jooq.meta.sqlserver.SQLServerDatabase, and change groupId of
-         spring-boot-starter-jooq dependency to org.jooq.pro edition. -->
+         spring-boot-starter-jooq dependency to org.jooq.pro edition.
+
+         2026-08-13: the live schema on this box is actually named `landmarkdb`
+         (application.properties matches), NOT `lmextract` as CLAUDE.md/older
+         comments say — that name was stale and codegen was silently broken
+         (schema didn't exist) until this was pointed at landmarkdb. The
+         <schemata><outputSchema>lmextract</outputSchema> mapping below keeps
+         generated class/package names (Lmextract.java etc.) unchanged so this
+         doesn't ripple into every committed generated file.
+
+         CAUTION before running this: `landmarkdb` on a fresh/partial dev
+         restore may be MISSING entire modules that other generated code
+         depends on (observed: all payroll pa* tables, all ar* tables,
+         user_account/user_role tables were absent on this box on 2026-08-13).
+         Because codegen does a full `includes=.*` sweep, running it against
+         an incomplete DB will DELETE those tables' generated Java classes and
+         break the build. Always check `git status` and `git diff` (stat mode)
+         on src/main/generated after running this — if it proposes deleting
+         table classes you didn't intend to remove, do NOT commit; restore
+         with `git checkout HEAD src/main/generated` and investigate why
+         those tables are missing from the DB before re-running. -->
     <profile>
       <id>jooq-codegen</id>
       <build>
@@ -257,14 +285,20 @@
             <configuration>
               <jdbc>
                 <driver>com.mysql.cj.jdbc.Driver</driver>
-                <url>jdbc:mysql://localhost:3306/lmextract?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Australia/Perth</url>
+                <url>jdbc:mysql://localhost:3306/landmarkdb?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Australia/Perth</url>
                 <user>root</user>
                 <password>another</password>
               </jdbc>
               <generator>
                 <database>
                   <name>org.jooq.meta.mysql.MySQLDatabase</name>
-                  <inputSchema>lmextract</inputSchema>
+                  <outputSchemaToDefault>false</outputSchemaToDefault>
+                  <schemata>
+                    <schema>
+                      <inputSchema>landmarkdb</inputSchema>
+                      <outputSchema>lmextract</outputSchema>
+                    </schema>
+                  </schemata>
                   <includes>.*</includes>
                 </database>
                 <generate>

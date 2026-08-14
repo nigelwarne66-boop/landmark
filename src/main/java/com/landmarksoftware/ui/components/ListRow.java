@@ -19,6 +19,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 /**
@@ -41,6 +42,19 @@ import org.kordamp.ikonli.javafx.FontIcon;
  * handler) — the {@code .lm-row.pending} rule in landmark-theme.css.
  */
 public final class ListRow {
+
+    // Ikonli's FontIcon.iconCode is itself a StyleableObjectProperty — calling
+    // Node.setStyle(...) on a FontIcon triggers a full CSS re-application pass
+    // that resets iconCode back to its unset/default value (rendering a
+    // fallback glyph instead of the requested icon), even though the icon
+    // literal was set correctly via the constructor. Fix: colour icons via
+    // the proper setIconColor(Paint) Java API, never setStyle("-fx-icon-
+    // color: ..."). Verified 2026-08-13 via a snapshot diagnostic (see
+    // com.landmarksoftware.util.DiagnoseModuleCardIcons). These two literals
+    // mirror -lm-text-muted / -lm-warning, identical in both theme CSS files
+    // today — if a theme ever diverges on these tokens this needs revisiting.
+    private static final Color TEXT_MUTED = Color.web("#868C87");
+    private static final Color WARNING    = Color.web("#A8630A");
 
     private String title;
     private String description;
@@ -147,7 +161,7 @@ public final class ListRow {
         } else if (showChevron && !pending) {
             FontIcon chevron = new FontIcon("fth-chevron-right");
             chevron.setIconSize(14);
-            chevron.setStyle("-fx-icon-color: -lm-text-muted;");
+            chevron.setIconColor(TEXT_MUTED);
             row.getChildren().add(chevron);
         }
 
@@ -165,7 +179,7 @@ public final class ListRow {
         FontIcon icon = new FontIcon(iconLiteral);
         icon.setIconSize(14);
         if (tileAccentHex != null) {
-            icon.setStyle("-fx-icon-color: " + tileAccentHex + ";");
+            icon.setIconColor(Color.web(tileAccentHex));
         }
         StackPane tile = new StackPane(icon);
         tile.getStyleClass().addAll("lm-tile", "sm");
@@ -176,9 +190,14 @@ public final class ListRow {
     }
 
     private FontIcon buildFavouriteStar() {
-        FontIcon star = new FontIcon("fth-star");
+        // Feather ("fth-") is outline-only by design — no filled glyph
+        // variant — so the selected/favourited state switches to Material2's
+        // solid star ("mdmz-star") instead of just recolouring the same
+        // outline glyph, matching how a favourite toggle is conventionally
+        // drawn (solid when on, outline when off).
+        FontIcon star = new FontIcon(favourite ? "mdmz-star" : "fth-star");
         star.setIconSize(14);
-        star.setStyle("-fx-icon-color: " + (favourite ? "-lm-warning;" : "-lm-text-muted;"));
+        star.setIconColor(favourite ? WARNING : TEXT_MUTED);
         star.setCursor(Cursor.HAND);
         if (onFavouriteToggle != null) {
             star.setOnMouseClicked(e -> {

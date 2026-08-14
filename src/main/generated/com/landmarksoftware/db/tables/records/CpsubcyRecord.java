@@ -301,101 +301,353 @@ public class CpsubcyRecord extends UpdatableRecordImpl<CpsubcyRecord> {
     }
 
     /**
+     * Setter for <code>lmextract.cpsubcy.bas_1c_1d_acct_main</code>.
+     */
+    public void setBas1c1dAcctMain(Integer value) {
+        set(20, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_1c_1d_acct_main</code>.
+     */
+    public Integer getBas1c1dAcctMain() {
+        return (Integer) get(20);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_1c_1d_acct_sub</code>.
+     */
+    public void setBas1c1dAcctSub(Integer value) {
+        set(21, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_1c_1d_acct_sub</code>.
+     */
+    public Integer getBas1c1dAcctSub() {
+        return (Integer) get(21);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_1e_1f_acct_main</code>.
+     */
+    public void setBas1e1fAcctMain(Integer value) {
+        set(22, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_1e_1f_acct_main</code>.
+     */
+    public Integer getBas1e1fAcctMain() {
+        return (Integer) get(22);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_1e_1f_acct_sub</code>.
+     */
+    public void setBas1e1fAcctSub(Integer value) {
+        set(23, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_1e_1f_acct_sub</code>.
+     */
+    public Integer getBas1e1fAcctSub() {
+        return (Integer) get(23);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_1g_acct_main</code>.
+     */
+    public void setBas1gAcctMain(Integer value) {
+        set(24, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_1g_acct_main</code>.
+     */
+    public Integer getBas1gAcctMain() {
+        return (Integer) get(24);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_1g_acct_sub</code>.
+     */
+    public void setBas1gAcctSub(Integer value) {
+        set(25, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_1g_acct_sub</code>.
+     */
+    public Integer getBas1gAcctSub() {
+        return (Integer) get(25);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_4_acct_main</code>.
+     */
+    public void setBas4AcctMain(Integer value) {
+        set(26, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_4_acct_main</code>.
+     */
+    public Integer getBas4AcctMain() {
+        return (Integer) get(26);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_4_acct_sub</code>.
+     */
+    public void setBas4AcctSub(Integer value) {
+        set(27, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_4_acct_sub</code>.
+     */
+    public Integer getBas4AcctSub() {
+        return (Integer) get(27);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_5a_5b_acct_main</code>.
+     */
+    public void setBas5a5bAcctMain(Integer value) {
+        set(28, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_5a_5b_acct_main</code>.
+     */
+    public Integer getBas5a5bAcctMain() {
+        return (Integer) get(28);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_5a_5b_acct_sub</code>.
+     */
+    public void setBas5a5bAcctSub(Integer value) {
+        set(29, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_5a_5b_acct_sub</code>.
+     */
+    public Integer getBas5a5bAcctSub() {
+        return (Integer) get(29);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_6a_6b_acct_main</code>.
+     */
+    public void setBas6a6bAcctMain(Integer value) {
+        set(30, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_6a_6b_acct_main</code>.
+     */
+    public Integer getBas6a6bAcctMain() {
+        return (Integer) get(30);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_6a_6b_acct_sub</code>.
+     */
+    public void setBas6a6bAcctSub(Integer value) {
+        set(31, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_6a_6b_acct_sub</code>.
+     */
+    public Integer getBas6a6bAcctSub() {
+        return (Integer) get(31);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_7_acct_main</code>.
+     */
+    public void setBas7AcctMain(Integer value) {
+        set(32, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_7_acct_main</code>.
+     */
+    public Integer getBas7AcctMain() {
+        return (Integer) get(32);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_7_acct_sub</code>.
+     */
+    public void setBas7AcctSub(Integer value) {
+        set(33, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_7_acct_sub</code>.
+     */
+    public Integer getBas7AcctSub() {
+        return (Integer) get(33);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_7a_acct_main</code>.
+     */
+    public void setBas7aAcctMain(Integer value) {
+        set(34, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_7a_acct_main</code>.
+     */
+    public Integer getBas7aAcctMain() {
+        return (Integer) get(34);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_7a_acct_sub</code>.
+     */
+    public void setBas7aAcctSub(Integer value) {
+        set(35, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_7a_acct_sub</code>.
+     */
+    public Integer getBas7aAcctSub() {
+        return (Integer) get(35);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_7c_7d_acct_main</code>.
+     */
+    public void setBas7c7dAcctMain(Integer value) {
+        set(36, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_7c_7d_acct_main</code>.
+     */
+    public Integer getBas7c7dAcctMain() {
+        return (Integer) get(36);
+    }
+
+    /**
+     * Setter for <code>lmextract.cpsubcy.bas_7c_7d_acct_sub</code>.
+     */
+    public void setBas7c7dAcctSub(Integer value) {
+        set(37, value);
+    }
+
+    /**
+     * Getter for <code>lmextract.cpsubcy.bas_7c_7d_acct_sub</code>.
+     */
+    public Integer getBas7c7dAcctSub() {
+        return (Integer) get(37);
+    }
+
+    /**
      * Setter for <code>lmextract.cpsubcy.note_no</code>.
      */
     public void setNoteNo(Long value) {
-        set(20, value);
+        set(38, value);
     }
 
     /**
      * Getter for <code>lmextract.cpsubcy.note_no</code>.
      */
     public Long getNoteNo() {
-        return (Long) get(20);
+        return (Long) get(38);
     }
 
     /**
      * Setter for <code>lmextract.cpsubcy.audit_user_id</code>.
      */
     public void setAuditUserId(String value) {
-        set(21, value);
+        set(39, value);
     }
 
     /**
      * Getter for <code>lmextract.cpsubcy.audit_user_id</code>.
      */
     public String getAuditUserId() {
-        return (String) get(21);
+        return (String) get(39);
     }
 
     /**
      * Setter for <code>lmextract.cpsubcy.audit_date</code>.
      */
     public void setAuditDate(LocalDate value) {
-        set(22, value);
+        set(40, value);
     }
 
     /**
      * Getter for <code>lmextract.cpsubcy.audit_date</code>.
      */
     public LocalDate getAuditDate() {
-        return (LocalDate) get(22);
+        return (LocalDate) get(40);
     }
 
     /**
      * Setter for <code>lmextract.cpsubcy.audit_time_hr</code>.
      */
     public void setAuditTimeHr(Integer value) {
-        set(23, value);
+        set(41, value);
     }
 
     /**
      * Getter for <code>lmextract.cpsubcy.audit_time_hr</code>.
      */
     public Integer getAuditTimeHr() {
-        return (Integer) get(23);
+        return (Integer) get(41);
     }
 
     /**
      * Setter for <code>lmextract.cpsubcy.audit_time_min</code>.
      */
     public void setAuditTimeMin(Integer value) {
-        set(24, value);
+        set(42, value);
     }
 
     /**
      * Getter for <code>lmextract.cpsubcy.audit_time_min</code>.
      */
     public Integer getAuditTimeMin() {
-        return (Integer) get(24);
+        return (Integer) get(42);
     }
 
     /**
      * Setter for <code>lmextract.cpsubcy.audit_time_sec</code>.
      */
     public void setAuditTimeSec(Integer value) {
-        set(25, value);
+        set(43, value);
     }
 
     /**
      * Getter for <code>lmextract.cpsubcy.audit_time_sec</code>.
      */
     public Integer getAuditTimeSec() {
-        return (Integer) get(25);
+        return (Integer) get(43);
     }
 
     /**
      * Setter for <code>lmextract.cpsubcy.audit_time_hun</code>.
      */
     public void setAuditTimeHun(Integer value) {
-        set(26, value);
+        set(44, value);
     }
 
     /**
      * Getter for <code>lmextract.cpsubcy.audit_time_hun</code>.
      */
     public Integer getAuditTimeHun() {
-        return (Integer) get(26);
+        return (Integer) get(44);
     }
 
     // -------------------------------------------------------------------------
@@ -421,7 +673,7 @@ public class CpsubcyRecord extends UpdatableRecordImpl<CpsubcyRecord> {
     /**
      * Create a detached, initialised CpsubcyRecord
      */
-    public CpsubcyRecord(Integer companyNo, Integer companyNo_2, Integer subCoyNo, String companyName, String companyAddr_1, String companyAddr_2, String companyAddr_3, String abn, Integer basHoLoanAcctMain, Integer basHoLoanAcctSub, Integer basSubLoanAcctMain, Integer basSubLoanAcctSub, Integer taxPaidAcctMain, Integer taxPaidAcctSub, Integer nonLandAcctMain, Integer nonLandAcctSub, Integer varianceAcctMain, Integer varianceAcctSub, Integer interCoyAcctMain, Integer interCoyAcctSub, Long noteNo, String auditUserId, LocalDate auditDate, Integer auditTimeHr, Integer auditTimeMin, Integer auditTimeSec, Integer auditTimeHun) {
+    public CpsubcyRecord(Integer companyNo, Integer companyNo_2, Integer subCoyNo, String companyName, String companyAddr_1, String companyAddr_2, String companyAddr_3, String abn, Integer basHoLoanAcctMain, Integer basHoLoanAcctSub, Integer basSubLoanAcctMain, Integer basSubLoanAcctSub, Integer taxPaidAcctMain, Integer taxPaidAcctSub, Integer nonLandAcctMain, Integer nonLandAcctSub, Integer varianceAcctMain, Integer varianceAcctSub, Integer interCoyAcctMain, Integer interCoyAcctSub, Integer bas1c1dAcctMain, Integer bas1c1dAcctSub, Integer bas1e1fAcctMain, Integer bas1e1fAcctSub, Integer bas1gAcctMain, Integer bas1gAcctSub, Integer bas4AcctMain, Integer bas4AcctSub, Integer bas5a5bAcctMain, Integer bas5a5bAcctSub, Integer bas6a6bAcctMain, Integer bas6a6bAcctSub, Integer bas7AcctMain, Integer bas7AcctSub, Integer bas7aAcctMain, Integer bas7aAcctSub, Integer bas7c7dAcctMain, Integer bas7c7dAcctSub, Long noteNo, String auditUserId, LocalDate auditDate, Integer auditTimeHr, Integer auditTimeMin, Integer auditTimeSec, Integer auditTimeHun) {
         super(Cpsubcy.CPSUBCY);
 
         setCompanyNo(companyNo);
@@ -444,6 +696,24 @@ public class CpsubcyRecord extends UpdatableRecordImpl<CpsubcyRecord> {
         setVarianceAcctSub(varianceAcctSub);
         setInterCoyAcctMain(interCoyAcctMain);
         setInterCoyAcctSub(interCoyAcctSub);
+        setBas1c1dAcctMain(bas1c1dAcctMain);
+        setBas1c1dAcctSub(bas1c1dAcctSub);
+        setBas1e1fAcctMain(bas1e1fAcctMain);
+        setBas1e1fAcctSub(bas1e1fAcctSub);
+        setBas1gAcctMain(bas1gAcctMain);
+        setBas1gAcctSub(bas1gAcctSub);
+        setBas4AcctMain(bas4AcctMain);
+        setBas4AcctSub(bas4AcctSub);
+        setBas5a5bAcctMain(bas5a5bAcctMain);
+        setBas5a5bAcctSub(bas5a5bAcctSub);
+        setBas6a6bAcctMain(bas6a6bAcctMain);
+        setBas6a6bAcctSub(bas6a6bAcctSub);
+        setBas7AcctMain(bas7AcctMain);
+        setBas7AcctSub(bas7AcctSub);
+        setBas7aAcctMain(bas7aAcctMain);
+        setBas7aAcctSub(bas7aAcctSub);
+        setBas7c7dAcctMain(bas7c7dAcctMain);
+        setBas7c7dAcctSub(bas7c7dAcctSub);
         setNoteNo(noteNo);
         setAuditUserId(auditUserId);
         setAuditDate(auditDate);
