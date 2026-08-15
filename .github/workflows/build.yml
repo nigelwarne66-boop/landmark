@@ -27,4 +27,8 @@ jobs:
         run: mvn compile -B
 
       - name: Verify (compile + test, no UI launch)
-        run: mvn verify -B -Djava.awt.headless=true
+        # -Dproguard.skip=true: ProGuard's -libraryjars points at a Windows-only
+        # JRE 1.8 path (see pom.xml comment) that doesn't exist on this Linux
+        # runner. `verify` is meant to be a fast compile+test sanity check, not
+        # a full obfuscated dist build, so obfuscation is skipped here.
+        run: mvn verify -B -Djava.awt.headless=true -Dproguard.skip=true
