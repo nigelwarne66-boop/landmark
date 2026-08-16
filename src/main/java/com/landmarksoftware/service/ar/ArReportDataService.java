@@ -68,6 +68,42 @@ public class ArReportDataService {
         return list;
     }
 
+    /** All distinct alpha keys for the company, sorted — used to populate the typeahead. */
+    public List<String> getAlphaKeys(AppSession s) {
+        List<String> keys = new ArrayList<>();
+        try {
+            dsl.resultQuery(
+                    "SELECT DISTINCT alpha_key FROM arcusts WHERE company_no=? AND alpha_key <> '' ORDER BY alpha_key",
+                    s.getCompanyNo())
+               .fetch()
+               .forEach(r -> {
+                   String k = trim(r.get("alpha_key", String.class));
+                   if (!k.isEmpty()) keys.add(k);
+               });
+        } catch (Exception e) { log.warn("getAlphaKeys: {}", e.getMessage()); }
+        return keys;
+    }
+
+    /**
+     * ARTI01 alpha-key search — looks up arcusts by exact alpha_key match.
+     * Returns the matching customer(s) as CodeName(cust_no, "cust_no — name_1").
+     * Empty = not found; size > 1 = duplicate alpha key (COBOL: "DUPLICATE ALPHA KEY").
+     */
+    public List<CodeName> findCustomersByAlphaKey(AppSession s, String alphaKey) {
+        List<CodeName> result = new ArrayList<>();
+        if (alphaKey == null || alphaKey.isBlank()) return result;
+        try {
+            dsl.resultQuery(
+                    "SELECT cust_no, name_1 FROM arcusts WHERE company_no=? AND alpha_key=? ORDER BY cust_no",
+                    s.getCompanyNo(), alphaKey.trim())
+               .fetch()
+               .forEach(r -> result.add(new CodeName(
+                   trim(r.get("cust_no", String.class)),
+                   trim(r.get("cust_no", String.class)) + " — " + trim(r.get("name_1", String.class)))));
+        } catch (Exception e) { log.warn("findCustomersByAlphaKey: {}", e.getMessage()); }
+        return result;
+    }
+
     /** Salesmen for the company, "(All)" first, then "code — name" from arcodsm. */
     public List<CodeName> getSalesmen(AppSession s) {
         List<CodeName> list = new ArrayList<>();
@@ -881,7 +917,7 @@ public class ArReportDataService {
         }
         if (rows.isEmpty()) return warn("No distributions for this period-ending date.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PERIOD_END", p.periodEndDate().toString());
+        params.put("PERIOD_END", dmy(p.periodEndDate()));
         params.put("SUB_LEDGER_DESC", notBlank(p.subLedger()) ? p.subLedger() : "All sub ledgers");
         params.put("TOTAL_CONTROL", tot[0]); params.put("TOTAL_SALES", tot[1]); params.put("ROW_COUNT", rows.size());
         Map<String, Object> result = new LinkedHashMap<>();
@@ -1222,7 +1258,7 @@ public class ArReportDataService {
         }
         if (rows.isEmpty()) return warn("No sales for this selection.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PERIOD_END", p.periodEndDate().toString());
+        params.put("PERIOD_END", dmy(p.periodEndDate()));
         params.put("SUB_LEDGER_DESC", notBlank(p.subLedger()) ? p.subLedger() : "All sub ledgers");
         params.put("THIS_YR", thisYr); params.put("LAST_YR", lastYr);
         params.put("SUM_MTD_THIS", g[0]); params.put("SUM_MTD_LAST", g[1]);
@@ -1283,7 +1319,7 @@ public class ArReportDataService {
         }
         if (rows.isEmpty()) return warn("No GL sales for this selection.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PERIOD_END", p.periodEndDate().toString());
+        params.put("PERIOD_END", dmy(p.periodEndDate()));
         params.put("THIS_YR", thisYr); params.put("LAST_YR", lastYr);
         params.put("SUM_MTD_THIS", g[0]); params.put("SUM_MTD_LAST", g[1]);
         params.put("SUM_YTD_THIS", g[2]); params.put("SUM_YTD_LAST", g[3]);
@@ -1510,7 +1546,7 @@ public class ArReportDataService {
         if (rows.isEmpty()) return warn("No customer sales for this selection.");
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("GROUP_BY", p.byType() ? "Customer type" : "Sub ledger");
-        params.put("PERIOD_END", p.periodEndDate().toString());
+        params.put("PERIOD_END", dmy(p.periodEndDate()));
         params.put("THIS_YR", thisYr); params.put("LAST_YR", lastYr);
         params.put("SHOW_LAST_YR", p.includeLastYear());
         params.put("SUM_SALES", g[0]); params.put("SUM_COST", g[1]); params.put("SUM_SALES_LAST", g[2]);
@@ -1573,7 +1609,7 @@ public class ArReportDataService {
         }
         if (rows.isEmpty()) return warn("No customer sales for this selection.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PERIOD_END", p.periodEndDate().toString());
+        params.put("PERIOD_END", dmy(p.periodEndDate()));
         params.put("SALESMAN_RANGE", notBlank(p.startSalesman())
             ? p.startSalesman() + " to " + (notBlank(p.endSalesman()) ? p.endSalesman() : "end") : "All salespeople");
         params.put("SUM_MTD", g[0]); params.put("SUM_YTD", g[1]); params.put("ROW_COUNT", rows.size());
@@ -1942,5 +1978,352 @@ public class ArReportDataService {
         m.put("rows", new ArrayList<>()); m.put("params", new LinkedHashMap<>());
         m.put("rowCount", 0); m.put("warning", msg);
         return m;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ARTI01 — AR Transaction Inquiry  (cobol/ar2/arti01.pl)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** Selection parameters — mirrors the ARTI01S1 entry screen. */
+    public record TxnInquiryParams(
+            String custNo,
+            LocalDate startDate,
+            LocalDate endDate,
+            String docTypeFilter,     // "" = ALL
+            boolean includeFullyPaid,
+            boolean includeUnposted
+    ) {}
+
+    /** One P1 list row plus raw PK fields for drill-down. */
+    public record TxnInquiryRow(
+            LocalDate docDate,
+            String docTypeCode,
+            String docTypeDesc,
+            String docNo,
+            BigDecimal origAmt,
+            BigDecimal outstandingAmt,
+            BigDecimal grossAmt,
+            String forCurrCode,
+            String reconNoDisplay,
+            String status,
+            // raw PK fields for drill-down
+            String custNoRaw,
+            LocalDate docDateRaw,
+            String docTypeRaw,
+            String retentFlagRaw,
+            String docNoRaw,
+            // extra fields — Excel export
+            String custName,
+            String ref,
+            int batchNo,
+            LocalDate postingDate,
+            LocalDate dueDate,
+            BigDecimal taxAmt,
+            String poNo
+    ) {}
+
+    /** Aggregated ARTI01 result — customer info + rows + totals. */
+    public record TxnInquiryResult(
+            String custName,
+            BigDecimal acctBal,
+            String acctStatus,
+            List<TxnInquiryRow> rows,
+            BigDecimal totalGross,
+            BigDecimal totalNet,
+            BigDecimal totalDr,
+            BigDecimal totalCr
+    ) {}
+
+    /** One ardistn distribution line for the ARTI01 Details dialog. */
+    public record DistributionRow(
+            int lineNo,
+            String glAcctNo,   // "main" or "main-sub"
+            String desc,       // desc_1 or glchart.desc1 / cost dissection
+            BigDecimal amt,
+            BigDecimal taxAmt,
+            String taxCode,
+            String costedTo    // ref (G) | type/code (L) | sales/stock code (S/I)
+    ) {}
+
+    /**
+     * ARTI01 — transaction inquiry for a single customer. Ported from
+     * {@code CALC-TRX-DISPLAYS}, {@code SET-P1-DISPLAYS} and {@code CALC-BALANCES}.
+     */
+    public TxnInquiryResult getTransactionInquiry(AppSession s, TxnInquiryParams p) {
+        LocalDate start = p.startDate() != null ? p.startDate() : LocalDate.of(1900, 1, 1);
+        LocalDate end   = p.endDate()   != null ? p.endDate()   : LocalDate.now();
+
+        String sql =
+            "SELECT t.cust_no, t.doc_date, t.doc_type, t.retent_flag, t.doc_no, " +
+            "       t.amt, t.retent_amt, t.disc_taken, t.amt_paid, t.for_curr_fluct_amt, " +
+            "       t.trx_status, t.for_curr_code, t.recon_no, t.archive_flag, " +
+            "       t.ref, t.batch_no, t.posting_date, t.due_date, t.sales_tax_amt, t.po_no, " +
+            "       c.name_1, c.acct_bal, c.acct_status AS cust_acct_status, " +
+            "       r.gross_bal, r.outstanding_bal " +
+            "FROM artrans t " +
+            "JOIN arcusts c ON c.company_no = t.company_no AND c.cust_no = t.cust_no " +
+            "LEFT JOIN arrecon r ON r.company_no = t.company_no " +
+            "                    AND r.cust_no = t.cust_no AND r.recon_no = t.recon_no " +
+            "WHERE t.company_no = ? AND t.cust_no = ? " +
+            "  AND t.doc_date BETWEEN ? AND ? AND t.archive_flag != 'Y' " +
+            "ORDER BY t.doc_date, t.doc_type, t.retent_flag, t.doc_no";
+
+        String[] custName  = {""};
+        BigDecimal[] acctBal = {BigDecimal.ZERO};
+        String[] acctStatus = {""};
+        List<TxnInquiryRow> rows = new ArrayList<>();
+        BigDecimal totalGross = BigDecimal.ZERO, totalNet = BigDecimal.ZERO;
+        BigDecimal totalDr = BigDecimal.ZERO, totalCr = BigDecimal.ZERO;
+
+        try {
+            var records = dsl.resultQuery(sql, s.getCompanyNo(), p.custNo(),
+                java.sql.Date.valueOf(start), java.sql.Date.valueOf(end)).fetch();
+
+            for (var r : records) {
+                if (custName[0].isEmpty()) {
+                    custName[0]   = trim(r.get("name_1", String.class));
+                    acctBal[0]    = z(r.get("acct_bal", BigDecimal.class));
+                    acctStatus[0] = trim(r.get("cust_acct_status", String.class));
+                }
+
+                String docType   = trim(r.get("doc_type", String.class));
+                String trxStatus = trim(r.get("trx_status", String.class));
+
+                BigDecimal amt     = z(r.get("amt", BigDecimal.class));
+                BigDecimal retent  = z(r.get("retent_amt", BigDecimal.class));
+                BigDecimal discTkn = z(r.get("disc_taken", BigDecimal.class));
+                BigDecimal amtPaid = z(r.get("amt_paid", BigDecimal.class));
+                BigDecimal fcFluct = z(r.get("for_curr_fluct_amt", BigDecimal.class));
+
+                // CALC-TRX-DISPLAYS (local currency)
+                BigDecimal grossAmt, origAmt, outstandingAmt;
+                if ("P".equals(docType)) {
+                    grossAmt       = amt.add(discTkn);
+                    outstandingAmt = amt.add(discTkn).subtract(amtPaid);
+                    origAmt        = amt;
+                } else {
+                    grossAmt       = amt.subtract(retent);
+                    outstandingAmt = amt.subtract(retent).subtract(amtPaid).subtract(discTkn).subtract(fcFluct);
+                    origAmt        = amt.subtract(retent);
+                }
+
+                // arrecon zero-out (AR checks gross_bal + outstanding_bal only)
+                int reconNo = r.get("recon_no") != null ? r.get("recon_no", Integer.class) : 0;
+                if (outstandingAmt.compareTo(BigDecimal.ZERO) != 0 && reconNo > 0
+                        && isZero(r.get("gross_bal", BigDecimal.class))
+                        && isZero(r.get("outstanding_bal", BigDecimal.class))) {
+                    outstandingAmt = BigDecimal.ZERO;
+                }
+
+                if (!p.includeFullyPaid() && outstandingAmt.compareTo(BigDecimal.ZERO) == 0) continue;
+                if (!p.includeUnposted() && "U".equals(trxStatus)) continue;
+                if (notBlank(p.docTypeFilter()) && !p.docTypeFilter().equals(docType)) continue;
+
+                String docTypeDesc = switch (docType) {
+                    case "I" -> "Invoice";
+                    case "D" -> "Dr Note";
+                    case "C" -> "Cr Note";
+                    case "P" -> "Payment";
+                    case "V" -> "Void";
+                    default  -> docType;
+                };
+
+                String status = "U".equals(trxStatus) ? "unposted"
+                              : "H".equals(trxStatus) ? "on hold" : "";
+
+                int reconNoVal = reconNo;
+                String reconNoDisplay = reconNoVal > 0 ? String.valueOf(reconNoVal) : "";
+
+                LocalDate docDate   = r.get("doc_date", LocalDate.class);
+                String retentFlag  = trim(r.get("retent_flag", String.class));
+                String forCurrCode = trim(r.get("for_curr_code", String.class));
+                String docNo       = trim(r.get("doc_no", String.class));
+                String ref         = trim(r.get("ref", String.class));
+                int batchNo        = r.get("batch_no")     != null ? r.get("batch_no",    Integer.class) : 0;
+                LocalDate postDate = r.get("posting_date") != null ? r.get("posting_date", LocalDate.class) : null;
+                LocalDate dueDate  = r.get("due_date")     != null ? r.get("due_date",     LocalDate.class) : null;
+                BigDecimal taxAmt  = z(r.get("sales_tax_amt", BigDecimal.class));
+                String poNo        = trim(r.get("po_no", String.class));
+
+                rows.add(new TxnInquiryRow(
+                    docDate, docType, docTypeDesc, docNo,
+                    origAmt, outstandingAmt, grossAmt,
+                    forCurrCode, reconNoDisplay, status,
+                    p.custNo(), docDate, docType, retentFlag, docNo,
+                    custName[0], ref, batchNo, postDate, dueDate, taxAmt, poNo));
+
+                // DR/CR split: credit-side types (P, C) use grossAmt so fully-matched
+                // rows still contribute to the CR total (outstandingAmt would be 0).
+                // Debit-side types (I, D, V) contribute their outstanding to DR.
+                BigDecimal amtDr = BigDecimal.ZERO, amtCr = BigDecimal.ZERO;
+                if ("P".equals(docType) || "C".equals(docType)) {
+                    amtCr = grossAmt.abs();
+                } else {
+                    if (outstandingAmt.compareTo(BigDecimal.ZERO) > 0) amtDr = outstandingAmt;
+                }
+                totalDr = totalDr.add(amtDr);
+                totalCr = totalCr.add(amtCr);
+                totalNet = totalNet.add(outstandingAmt);
+                totalGross = totalGross.add(grossAmt);
+            }
+        } catch (Exception e) {
+            log.error("getTransactionInquiry failed: {}", e.getMessage(), e);
+        }
+
+        return new TxnInquiryResult(custName[0], acctBal[0], acctStatus[0],
+            rows, totalGross, totalNet, totalDr, totalCr);
+    }
+
+    /**
+     * ARTI01 Details dialog — ardistn lines for one transaction.
+     * Description falls back to glchart.desc1 (treating "0"/blank as empty);
+     * "costed to" follows COBOL SET-P2-DISPLAYS (ref for GL, type/code for cost
+     * ledger, sales/stock code for S/I lines).
+     */
+    public List<DistributionRow> getDistributions(AppSession s, String custNo,
+            LocalDate docDate, String docType, String retentFlag, String docNo) {
+        List<DistributionRow> list = new ArrayList<>();
+        try {
+            dsl.resultQuery(
+                "SELECT d.line_no, d.line_type, d.gl_acct_main, d.gl_acct_sub, " +
+                "       d.desc_1, g.desc1 AS gl_desc, d.amt, d.tax_amt, d.tax_code, " +
+                "       d.ref, d.ledger_type, d.ledger_code, d.sales_code, d.stock_code " +
+                "FROM ardistn d " +
+                "LEFT JOIN glchart g ON g.company_no = d.company_no " +
+                "       AND g.acct_main_no = d.gl_acct_main AND g.acct_sub_no = d.gl_acct_sub " +
+                "WHERE d.company_no=? AND d.cust_no=? AND d.doc_date=? " +
+                "  AND d.doc_type=? AND d.retent_flag=? AND d.doc_no=? " +
+                "ORDER BY d.line_no",
+                s.getCompanyNo(), custNo,
+                java.sql.Date.valueOf(docDate), docType, retentFlag, docNo)
+            .fetch().forEach(r -> {
+                int main = r.get("gl_acct_main") != null ? r.get("gl_acct_main", Integer.class) : 0;
+                int sub  = r.get("gl_acct_sub")  != null ? r.get("gl_acct_sub",  Integer.class) : 0;
+                String glAcct = sub > 0 ? main + "-" + sub : String.valueOf(main);
+
+                String rawDesc = trim(r.get("desc_1", String.class));
+                String glDesc  = trim(r.get("gl_desc", String.class));
+                String desc    = (rawDesc.isEmpty() || "0".equals(rawDesc)) ? glDesc : rawDesc;
+
+                String lineType   = trim(r.get("line_type", String.class));
+                String ref        = trim(r.get("ref", String.class));
+                String ledgerType = trim(r.get("ledger_type", String.class));
+                String ledgerCode = trim(r.get("ledger_code", String.class));
+                String salesCode  = trim(r.get("sales_code", String.class));
+                String stockCode  = trim(r.get("stock_code", String.class));
+                String costedTo;
+                if ("L".equals(lineType))      costedTo = ledgerType + "/" + ledgerCode;
+                else if ("S".equals(lineType)) costedTo = salesCode;
+                else if ("I".equals(lineType)) costedTo = stockCode;
+                else                           costedTo = ref;
+
+                list.add(new DistributionRow(
+                    r.get("line_no") != null ? r.get("line_no", Integer.class) : 0,
+                    glAcct, desc,
+                    z(r.get("amt", BigDecimal.class)),
+                    z(r.get("tax_amt", BigDecimal.class)),
+                    trim(r.get("tax_code", String.class)),
+                    costedTo));
+            });
+        } catch (Exception e) {
+            log.warn("getDistributions {}/{}: {}", custNo, docNo, e.getMessage());
+        }
+        return list;
+    }
+
+    // ── Document Tracking (DT) — dtdocix / dtpaths / cpcoyco ─────────────────
+
+    /** True when DT is licensed for this company (cpcoyco.dt_instal_flag = 'Y'). */
+    public boolean isDtInstalled(AppSession s) {
+        try {
+            String flag = dsl.resultQuery(
+                "SELECT dt_instal_flag FROM cpcoyco WHERE company_no=? LIMIT 1", s.getCompanyNo())
+                .fetchOne(0, String.class);
+            return "Y".equals(flag);
+        } catch (Exception e) {
+            log.warn("isDtInstalled: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /** dtpaths directory for an AR function ('CU' customer | 'TX' transaction); company row then company 0. */
+    public String getDocumentDirectory(AppSession s, String functionId) {
+        for (int co : new int[]{s.getCompanyNo(), 0}) {
+            try {
+                String dir = dsl.resultQuery(
+                    "SELECT directory FROM dtpaths WHERE company_no=? AND system_id='AR' AND function_id=?",
+                    co, functionId).fetchOne(0, String.class);
+                if (dir != null && !dir.isBlank()) return dir.trim();
+            } catch (Exception e) {
+                log.warn("getDocumentDirectory {}/{}: {}", co, functionId, e.getMessage());
+            }
+        }
+        return "";
+    }
+
+    /** One document index entry. */
+    public record DtDocument(String docNo, int seqNo, String addedBy, LocalDate addedDate) {}
+
+    /** Documents attached to an entity, by DTDOCIX search key. searchCode is 60 chars. */
+    public List<DtDocument> getDocuments(AppSession s, int searchKeyNo, String searchCode) {
+        List<DtDocument> list = new ArrayList<>();
+        try {
+            dsl.resultQuery(
+                "SELECT doc_no, seq_no, audit_user_id, audit_date " +
+                "FROM dtdocix WHERE search_key_no=? AND search_company_no=? AND search_code=? " +
+                "ORDER BY seq_no",
+                searchKeyNo, s.getCompanyNo(), searchCode)
+                .fetch()
+                .forEach(r -> list.add(new DtDocument(
+                    trim(r.get("doc_no", String.class)),
+                    r.get("seq_no") != null ? r.get("seq_no", Integer.class) : 0,
+                    trim(r.get("audit_user_id", String.class)),
+                    landmarkSerialToDate(r.get("audit_date") != null ? r.get("audit_date", Integer.class) : 0))));
+        } catch (Exception e) {
+            log.warn("getDocuments key={}: {}", searchKeyNo, e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * Landmark Julian serial epoch (1899-12-30; 1899-12-31 = 1) — same as AP /
+     * Excel's 1900 system. See ApReportDataService for the verification note.
+     */
+    private static final LocalDate LANDMARK_EPOCH = LocalDate.of(1899, 12, 30);
+
+    private static LocalDate landmarkSerialToDate(int serial) {
+        return serial > 0 ? LANDMARK_EPOCH.plusDays(serial) : null;
+    }
+
+    /** 60-char DTDOCIX customer search code (search_key_no = 1): cust_no(10) + 50 spaces. */
+    public static String buildDtSearchCodeCustomer(String custNo) {
+        return String.format("%-10s", custNo == null ? "" : custNo).substring(0, 10) + " ".repeat(50);
+    }
+
+    /**
+     * 60-char DTDOCIX AR transaction search code (search_key_no = 7):
+     * cust_no(10) + doc_date(6 Landmark serial) + doc_type(1) + retent_flag(1) + doc_no(10) + spaces(32).
+     * Note: AR doc_no is 10 chars in this key (AP key 8 uses 20).
+     */
+    public static String buildDtSearchCodeTransaction(
+            String custNo, LocalDate docDate, String docType, String retentFlag, String docNo) {
+        String date6 = docDate != null
+            ? String.format("%06d", java.time.temporal.ChronoUnit.DAYS.between(LANDMARK_EPOCH, docDate))
+            : "000000";
+        return String.format("%-10s", custNo == null ? "" : custNo).substring(0, 10)
+             + date6
+             + (docType    == null ? " " : docType.substring(0, 1))
+             + (retentFlag == null ? " " : retentFlag.substring(0, 1))
+             + String.format("%-10s", docNo == null ? "" : docNo).substring(0, 10)
+             + " ".repeat(32);
+    }
+
+    private static boolean isZero(BigDecimal v) {
+        return v != null && v.compareTo(BigDecimal.ZERO) == 0;
+    }
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
 }

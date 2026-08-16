@@ -241,6 +241,7 @@ public class ApDataService {
 
                 if (isDetail) {
                     Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("rowType", "txn");
                     row.put("suppNo", rs.getString("supplier_no"));
                     row.put("name", rs.getString("name_1"));
                     row.put("subLedger", rs.getString("sub_ledger"));
@@ -277,16 +278,7 @@ public class ApDataService {
         }
         if (err != null) return warn("Query failed: " + err);
 
-        List<Map<String, Object>> rows;
-        if (isDetail) {
-            rows = detail;
-        } else {
-            rows = new ArrayList<>();
-            for (Map<String, Object> a : summary.values())
-                if (p.zeroSupplier() || ((BigDecimal) a.get("total")).signum() != 0) rows.add(a);
-        }
-
-        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         Map<String, Object> params = new LinkedHashMap<>();
         for (int i = 0; i < 6; i++) params.put("PERIOD_" + (i + 1), i < nb ? bounds.get(i).format(f) : "");
         params.put("AS_AT_DATE", latest.format(f));
@@ -295,11 +287,74 @@ public class ApDataService {
         params.put("AMT_BASIS", isGross ? "Gross" : "Net outstanding");
         params.put("DATES_TYPE_DESC", agesTypeDesc(p.datesType()));
 
+        List<Map<String, Object>> rows;
+        if (isDetail) {
+            // Group the flat transaction list (already ordered by supplier) into
+            // header + txn + subtotal rows, mirroring the AR detail injected-rows layout.
+            rows = new ArrayList<>();
+            BigDecimal[] grand = {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                                  BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
+            int suppCount = 0;
+            String curSupp = null;
+            String curName = null;
+            BigDecimal[] sub = null;
+            for (Map<String, Object> txn : detail) {
+                String suppNo = (String) txn.get("suppNo");
+                if (!suppNo.equals(curSupp)) {
+                    if (curSupp != null) rows.add(ageingSubtotalRow(curSupp, curName, sub));
+                    curSupp = suppNo;
+                    curName = (String) txn.get("name");
+                    sub = new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                                           BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
+                    suppCount++;
+                    rows.add(ageingHeaderRow(suppNo, curName));
+                }
+                rows.add(txn);
+                for (int i = 0; i < 6; i++) {
+                    BigDecimal v = z((BigDecimal) txn.get("p" + (i + 1)));
+                    sub[i] = sub[i].add(v); grand[i] = grand[i].add(v);
+                }
+                BigDecimal bal = z((BigDecimal) txn.get("balance"));
+                sub[6] = sub[6].add(bal); grand[6] = grand[6].add(bal);
+            }
+            if (curSupp != null) rows.add(ageingSubtotalRow(curSupp, curName, sub));
+
+            params.put("SUPP_COUNT", suppCount);
+            for (int i = 0; i < 6; i++) params.put("GRAND_P" + (i + 1), grand[i]);
+            params.put("GRAND_BALANCE", grand[6]);
+        } else {
+            rows = new ArrayList<>();
+            for (Map<String, Object> a : summary.values())
+                if (p.zeroSupplier() || ((BigDecimal) a.get("total")).signum() != 0) rows.add(a);
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("rows", rows);
         result.put("params", params);
         result.put("rowCount", rows.size());
         return result;
+    }
+
+    /** Detail-mode supplier header row (blue band): "1234 — Supplier Name". */
+    private static Map<String, Object> ageingHeaderRow(String suppNo, String name) {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("rowType", "header");
+        r.put("suppNo", suppNo); r.put("name", name);
+        r.put("docDate", ""); r.put("docType", ""); r.put("docNo", ""); r.put("status", "");
+        for (int i = 1; i <= 6; i++) r.put("p" + i, BigDecimal.ZERO);
+        r.put("balance", BigDecimal.ZERO);
+        return r;
+    }
+
+    /** Detail-mode per-supplier subtotal row (light band). */
+    private static Map<String, Object> ageingSubtotalRow(String suppNo, String name, BigDecimal[] sub) {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("rowType", "subtotal");
+        r.put("suppNo", suppNo); r.put("name", name);
+        r.put("docDate", ""); r.put("docType", ""); r.put("docNo", ""); r.put("status", "");
+        for (int i = 0; i < 6; i++) r.put("p" + (i + 1), sub[i]);
+        r.put("balance", sub[6]);
+        return r;
     }
 
     /** Build the 1–6 ascending ageing boundary dates per the chosen dates-type (COBOL screen s2). */
@@ -370,7 +425,7 @@ public class ApDataService {
     }
     private static String fmt(Date d) {
         LocalDate v = ld(d);
-        return v == null ? "" : v.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        return v == null ? "" : v.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
     private static boolean notBlank(String s) { return s != null && !s.trim().isEmpty(); }
     private static String trim(String s) { return s == null ? "" : s.trim(); }

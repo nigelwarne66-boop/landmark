@@ -18,6 +18,7 @@ import java.util.*;
 import static com.landmarksoftware.db.tables.Apledgr.APLEDGR;
 import static com.landmarksoftware.db.tables.Apsupps.APSUPPS;
 import static com.landmarksoftware.db.tables.Aptrans.APTRANS;
+import static com.landmarksoftware.db.tables.Cpcoyco.CPCOYCO;
 
 /**
  * Accounts Payable <b>report</b> data service — one query method per AP report
@@ -62,6 +63,46 @@ public class ApReportDataService {
                });
         } catch (Exception e) { log.warn("getSubLedgers: {}", e.getMessage()); }
         return list;
+    }
+
+    /** All distinct alpha keys for the company, sorted — used to populate the typeahead. */
+    public List<String> getAlphaKeys(AppSession s) {
+        List<String> keys = new ArrayList<>();
+        try {
+            dsl.selectDistinct(APSUPPS.ALPHA_KEY)
+               .from(APSUPPS)
+               .where(APSUPPS.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(APSUPPS.ALPHA_KEY.ne("")))
+               .orderBy(APSUPPS.ALPHA_KEY)
+               .fetch()
+               .forEach(r -> {
+                   String k = trim(r.get(APSUPPS.ALPHA_KEY));
+                   if (!k.isEmpty()) keys.add(k);
+               });
+        } catch (Exception e) { log.warn("getAlphaKeys: {}", e.getMessage()); }
+        return keys;
+    }
+
+    /**
+     * APTI01 alpha-key search — looks up apsupps by exact alpha_key match.
+     * Returns matching supplier(s) as CodeName(supplier_no, "supplier_no — name_1").
+     * Empty = not found; size > 1 = duplicate alpha key.
+     */
+    public List<CodeName> findSuppliersByAlphaKey(AppSession s, String alphaKey) {
+        List<CodeName> result = new ArrayList<>();
+        if (alphaKey == null || alphaKey.isBlank()) return result;
+        try {
+            dsl.select(APSUPPS.SUPPLIER_NO, APSUPPS.NAME_1)
+               .from(APSUPPS)
+               .where(APSUPPS.COMPANY_NO.eq(s.getCompanyNo())
+                   .and(APSUPPS.ALPHA_KEY.eq(alphaKey.trim())))
+               .orderBy(APSUPPS.SUPPLIER_NO)
+               .fetch()
+               .forEach(r -> result.add(new CodeName(
+                   trim(r.get(APSUPPS.SUPPLIER_NO)),
+                   trim(r.get(APSUPPS.SUPPLIER_NO)) + " — " + trim(r.get(APSUPPS.NAME_1)))));
+        } catch (Exception e) { log.warn("findSuppliersByAlphaKey: {}", e.getMessage()); }
+        return result;
     }
 
     /**
@@ -755,7 +796,7 @@ public class ApReportDataService {
         }
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PERIOD_END", p.periodEndDate().toString());
+        params.put("PERIOD_END", dmy(p.periodEndDate()));
         params.put("FOR_CURR", forCurr ? "Y" : "N");
         params.put("GT_OPENING", gOpen); params.put("GT_INVOICES", gInv); params.put("GT_PAYMENTS", gPay);
         params.put("GT_CLOSING", gClose); params.put("GT_RETENT_CLOSING", gRetClose); params.put("GT_PERIOD_BAL", gPeriod);
@@ -841,7 +882,7 @@ public class ApReportDataService {
         if (rows.isEmpty()) return warn("No GL distributions for the selected period end date.");
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PERIOD_END", p.periodEndDate().toString());
+        params.put("PERIOD_END", dmy(p.periodEndDate()));
         params.put("SUB_LEDGER_DESC", notBlank(p.subLedger()) ? p.subLedger() : "All sub ledgers");
         params.put("GT_CONTROL", totals[0]);
         params.put("GT_EXPENSE", totals[1]);
@@ -956,7 +997,7 @@ public class ApReportDataService {
         if (rows.isEmpty()) return warn("No suppliers with purchase history matched the selection.");
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PERIOD_END", p.periodEndDate().toString());
+        params.put("PERIOD_END", dmy(p.periodEndDate()));
         params.put("YEAR_NO", yearNo[0]); params.put("PERIOD_NO", P);
         params.put("SUB_LEDGER_DESC", notBlank(p.subLedger()) ? p.subLedger() : "All sub ledgers");
         params.put("GT_PER_THIS", gt[0]); params.put("GT_PER_LAST", gt[1]); params.put("GT_PER_VAR", gt[2]);
@@ -1391,8 +1432,8 @@ public class ApReportDataService {
         if (rows.isEmpty()) return warn("No transactions matched the cash-requirements selection.");
 
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("PAYMENT_DATE", pay.toString());
-        params.put("NEXT_PAYMENT_DATE", next.toString());
+        params.put("PAYMENT_DATE", dmy(pay));
+        params.put("NEXT_PAYMENT_DATE", dmy(next));
         params.put("SUB_LEDGER_DESC", notBlank(p.subLedger()) ? p.subLedger() : "All sub ledgers");
         params.put("GT_MUST_PAY", gt[0]); params.put("GT_PROMPT_PAY", gt[1]); params.put("GT_OVERDUE", gt[2]);
         params.put("GT_NOW_DUE", gt[3]); params.put("GT_DISC_DUE", gt[4]); params.put("GT_DISC_AVAIL", gt[5]);
@@ -1870,4 +1911,466 @@ public class ApReportDataService {
     private static String  trim(String s)     { return s == null ? "" : s.trim(); }
     private static BigDecimal z(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
     private static String qMarks(int n)       { return String.join(",", Collections.nCopies(n, "?")); }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // APTI01 — Transaction Inquiry  (cobol/ap2/apti01.pl + apti01p1.pl + apti01s1.sd)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** Selection parameters for the APTI01 inquiry screen. */
+    public record TxnInquiryParams(
+            String supplierNo,
+            LocalDate startDate,
+            LocalDate endDate,
+            String docTypeFilter,       // "" = ALL; one of I/D/C/P/K/V/J
+            boolean includeFullyPaid,
+            boolean includeUnposted
+    ) {}
+
+    /** One row in the APTI01 transaction list. */
+    public record TxnInquiryRow(
+            // display columns (P1 list)
+            LocalDate docDate,
+            String docTypeCode,
+            String docTypeDesc,
+            String docNoDisplay,
+            BigDecimal origAmt,
+            BigDecimal outstandingAmt,
+            BigDecimal grossAmt,
+            String forCurrCode,
+            String reconNoDisplay,
+            String status,
+            // raw PK fields for drill-down
+            String supplierNoRaw,
+            LocalDate docDateRaw,
+            String docTypeRaw,
+            String retentFlagRaw,
+            String docNoRaw,
+            // extra fields — available for Excel export
+            String supplierName,
+            String ref,
+            int batchNo,
+            LocalDate postingDate,
+            LocalDate dueDate,
+            BigDecimal taxAmt,
+            String poNo
+    ) {}
+
+    /** Aggregated result for APTI01 — supplier info + list of rows + totals. */
+    public record TxnInquiryResult(
+            String supplierName,
+            BigDecimal acctBal,
+            String acctStatus,
+            List<TxnInquiryRow> rows,
+            BigDecimal totalGross,
+            BigDecimal totalNet,
+            BigDecimal totalDr,
+            BigDecimal totalCr
+    ) {}
+
+    /** One apdistn distribution line for the APTI01 distributions dialog. */
+    public record DistributionRow(
+            int lineNo,
+            String glAcctNo,   // "main" or "main-sub"
+            String desc,       // desc_1 or glchart.desc1 lookup
+            BigDecimal amt,
+            BigDecimal taxAmt,
+            String taxCode,
+            String costedTo    // ref for GL lines; "type/code" for cost-centre lines
+    ) {}
+
+    /**
+     * APTI01 — transaction inquiry for a single supplier. Ported from
+     * {@code CALC-TRX-DISPLAYS}, {@code SET-P1-DISPLAYS} and
+     * {@code CALC-THE-BALANCES} in apti01.pl.
+     */
+    public TxnInquiryResult getTransactionInquiry(AppSession s, TxnInquiryParams p) {
+        LocalDate start = p.startDate() != null ? p.startDate() : LocalDate.of(1900, 1, 1);
+        LocalDate end   = p.endDate()   != null ? p.endDate()   : LocalDate.now();
+
+        String sql =
+            "SELECT t.supplier_no, t.doc_date, t.doc_type, t.retent_flag, t.doc_no, " +
+            "       t.amt, t.retent_amt, t.disc_taken, t.amt_paid, t.for_curr_fluct_amt, " +
+            "       t.trx_status, t.paymt_batch_no, t.paymt_preview_status, " +
+            "       t.cmtrans_bank_code, t.cmtrans_doc_type, t.cmtrans_doc_no, " +
+            "       t.for_curr_code, t.recon_no, t.archive_flag, " +
+            "       t.ref, t.batch_no, t.posting_date, t.due_date, t.tax_amt, t.po_no, " +
+            "       s.name_1, s.acct_bal, s.acct_status AS supp_acct_status, " +
+            "       r.gross_bal, r.outstanding_bal, r.claim_bal " +
+            "FROM aptrans t " +
+            "JOIN apsupps s ON s.company_no = t.company_no AND s.supplier_no = t.supplier_no " +
+            "LEFT JOIN aprecon r ON r.company_no = t.company_no " +
+            "                    AND r.supplier_no = t.supplier_no " +
+            "                    AND r.recon_no = t.recon_no " +
+            "WHERE t.company_no = ? " +
+            "  AND t.supplier_no = ? " +
+            "  AND t.doc_date BETWEEN ? AND ? " +
+            "  AND t.archive_flag != 'Y' " +
+            "ORDER BY t.doc_date, t.doc_type, t.retent_flag, t.doc_no";
+
+        String[] supplierName   = {""};
+        BigDecimal[] acctBal    = {BigDecimal.ZERO};
+        String[] acctStatus     = {""};
+        List<TxnInquiryRow> rows = new ArrayList<>();
+        BigDecimal totalGross = BigDecimal.ZERO, totalNet = BigDecimal.ZERO;
+        BigDecimal totalDr = BigDecimal.ZERO, totalCr = BigDecimal.ZERO;
+
+        try {
+            var records = dsl.resultQuery(sql,
+                s.getCompanyNo(), p.supplierNo(),
+                Date.valueOf(start), Date.valueOf(end))
+                .fetch();
+
+            for (var r : records) {
+                // Supplier info from first row
+                if (supplierName[0].isEmpty()) {
+                    supplierName[0] = trim(r.get("name_1", String.class));
+                    acctBal[0]      = z(r.get("acct_bal", BigDecimal.class));
+                    acctStatus[0]   = trim(r.get("supp_acct_status", String.class));
+                }
+
+                String docType   = trim(r.get("doc_type", String.class));
+                String trxStatus = trim(r.get("trx_status", String.class));
+
+                BigDecimal amt      = z(r.get("amt", BigDecimal.class));
+                BigDecimal retent   = z(r.get("retent_amt", BigDecimal.class));
+                BigDecimal discTkn  = z(r.get("disc_taken", BigDecimal.class));
+                BigDecimal amtPaid  = z(r.get("amt_paid", BigDecimal.class));
+                BigDecimal fcFluct  = z(r.get("for_curr_fluct_amt", BigDecimal.class));
+
+                // CALC-TRX-DISPLAYS (local currency path)
+                BigDecimal grossAmt, origAmt, outstandingAmt;
+                if ("P".equals(docType)) {
+                    grossAmt       = amt.add(discTkn);
+                    outstandingAmt = amt.add(discTkn).subtract(amtPaid);
+                    origAmt        = amt;
+                } else {
+                    grossAmt       = amt.subtract(retent).subtract(fcFluct);
+                    outstandingAmt = amt.subtract(retent).subtract(amtPaid).subtract(discTkn).subtract(fcFluct);
+                    origAmt        = amt.subtract(retent);
+                }
+
+                // aprecon zero-out rule
+                int reconNo = r.get("recon_no") != null ? r.get("recon_no", Integer.class) : 0;
+                BigDecimal grossBal = r.get("gross_bal", BigDecimal.class);
+                BigDecimal outsBal  = r.get("outstanding_bal", BigDecimal.class);
+                BigDecimal clmBal   = r.get("claim_bal", BigDecimal.class);
+                if (outstandingAmt.compareTo(BigDecimal.ZERO) != 0
+                        && reconNo > 0
+                        && isZero(grossBal) && isZero(outsBal) && isZero(clmBal)) {
+                    outstandingAmt = BigDecimal.ZERO;
+                }
+
+                // includeFullyPaid filter
+                if (!p.includeFullyPaid() && outstandingAmt.compareTo(BigDecimal.ZERO) == 0) continue;
+
+                // includeUnposted filter
+                if (!p.includeUnposted() && "U".equals(trxStatus)) continue;
+
+                // docType filter
+                if (notBlank(p.docTypeFilter()) && !p.docTypeFilter().equals(docType)) continue;
+
+                // docTypeDesc (APTI01 P1 format)
+                String docTypeDesc = switch (docType) {
+                    case "I" -> "Invoice";
+                    case "D" -> "DR Note";
+                    case "C" -> "CR Note";
+                    case "P" -> "Payment";
+                    case "K" -> "Claim";
+                    case "V" -> "Void";
+                    case "J" -> "Journal";
+                    case "B" -> "Balance";
+                    default  -> docType;
+                };
+
+                // docNoDisplay — for payments, format as "chq/bank/docno" or "eft/bank/docno"
+                String bankCode    = trim(r.get("cmtrans_bank_code", String.class));
+                String cmDocType   = trim(r.get("cmtrans_doc_type", String.class));
+                int    cmDocNo     = r.get("cmtrans_doc_no") != null ? r.get("cmtrans_doc_no", Integer.class) : 0;
+                String rawDocNo    = trim(r.get("doc_no", String.class));
+                String docNoDisplay;
+                if ("P".equals(docType) && notBlank(bankCode)) {
+                    String prefix = "3".equals(cmDocType) ? "chq" : "4".equals(cmDocType) ? "eft" : "pmt";
+                    docNoDisplay = prefix + "/" + bankCode + "/" + cmDocNo;
+                } else {
+                    docNoDisplay = rawDocNo;
+                }
+
+                // reconNoDisplay
+                String reconNoDisplay = reconNo > 0 ? String.valueOf(reconNo) : "";
+
+                // status (SET-P1-DISPLAYS)
+                int paymtBatch = r.get("paymt_batch_no") != null ? r.get("paymt_batch_no", Integer.class) : 0;
+                String previewStatus = trim(r.get("paymt_preview_status", String.class));
+                String status;
+                if ("U".equals(trxStatus))       status = "unposted";
+                else if ("H".equals(trxStatus))  status = "on hold";
+                else if (paymtBatch > 0 && previewStatus.isEmpty()) status = "paying";
+                else if (paymtBatch > 0 && "S".equals(previewStatus)) status = "preview";
+                else status = "";
+
+                LocalDate docDate    = r.get("doc_date", LocalDate.class);
+                String retentFlag   = trim(r.get("retent_flag", String.class));
+                String forCurrCode  = trim(r.get("for_curr_code", String.class));
+                String ref          = trim(r.get("ref",           String.class));
+                int batchNo         = r.get("batch_no")     != null ? r.get("batch_no",    Integer.class) : 0;
+                LocalDate postDate  = r.get("posting_date") != null ? r.get("posting_date", LocalDate.class) : null;
+                LocalDate dueDate   = r.get("due_date")     != null ? r.get("due_date",     LocalDate.class) : null;
+                BigDecimal taxAmt   = z(r.get("tax_amt", BigDecimal.class));
+                String poNo         = r.get("po_no") != null ? String.valueOf(r.get("po_no", Integer.class)) : "";
+
+                rows.add(new TxnInquiryRow(
+                    docDate, docType, docTypeDesc, docNoDisplay,
+                    origAmt, outstandingAmt, grossAmt,
+                    forCurrCode, reconNoDisplay, status,
+                    p.supplierNo(), docDate, docType, retentFlag, rawDocNo,
+                    supplierName[0], ref, batchNo, postDate, dueDate, taxAmt, poNo
+                ));
+
+                // CALC-THE-BALANCES — negate negative grossAmt so CR total is shown positive.
+                if (grossAmt.compareTo(BigDecimal.ZERO) < 0) totalCr = totalCr.add(grossAmt.negate());
+                else                                          totalDr = totalDr.add(grossAmt);
+                totalNet   = totalNet.add(outstandingAmt);
+                totalGross = totalGross.add(grossAmt);
+            }
+        } catch (Exception e) {
+            log.error("getTransactionInquiry failed: {}", e.getMessage(), e);
+        }
+
+        return new TxnInquiryResult(
+            supplierName[0], acctBal[0], acctStatus[0],
+            rows, totalGross, totalNet, totalDr, totalCr);
+    }
+
+    /**
+     * APTI01 distributions dialog — apdistn lines for a single transaction.
+     *
+     * <p>GL account is formatted as "main-sub" (sub omitted when zero). Description
+     * falls back to glchart.desc1 when apdistn.desc_1 is blank, matching the COBOL
+     * SET-P2-DISPLAYS look-up. "Costed to" follows COBOL WS-COST-DISSECTION:
+     * ledger_type/ledger_code for cost-centre lines (C/L), ref for GL lines (G).
+     */
+    public List<DistributionRow> getDistributions(AppSession s, String supplierNo,
+            LocalDate docDate, String docType, String retentFlag, String docNo) {
+        List<DistributionRow> list = new ArrayList<>();
+        try {
+            dsl.resultQuery(
+                "SELECT d.line_no, d.line_type, d.gl_acct_main, d.gl_acct_sub, " +
+                "       d.desc_1, g.desc1 AS gl_desc, " +
+                "       d.amt, d.tax_amt, d.tax_code, " +
+                "       d.ref, d.ledger_type, d.ledger_code " +
+                "FROM apdistn d " +
+                "LEFT JOIN glchart g ON g.company_no = d.company_no " +
+                "       AND g.acct_main_no = d.gl_acct_main AND g.acct_sub_no = d.gl_acct_sub " +
+                "WHERE d.company_no = ? AND d.supplier_no = ? AND d.doc_date = ? " +
+                "  AND d.doc_type = ? AND d.retent_flag = ? AND d.doc_no = ? " +
+                "ORDER BY d.line_no",
+                s.getCompanyNo(), supplierNo,
+                Date.valueOf(docDate), docType, retentFlag, docNo)
+            .fetch().forEach(r -> {
+                int main = r.get("gl_acct_main") != null ? r.get("gl_acct_main", Integer.class) : 0;
+                int sub  = r.get("gl_acct_sub")  != null ? r.get("gl_acct_sub",  Integer.class) : 0;
+                String glAcct = sub > 0 ? main + "-" + sub : String.valueOf(main);
+
+                // desc_1 stores "0" as the COBOL numeric default — treat as blank and fall back to glchart
+                String rawDesc = trim(r.get("desc_1", String.class));
+                String glDesc  = trim(r.get("gl_desc", String.class));
+                String desc    = (rawDesc == null || rawDesc.isEmpty() || "0".equals(rawDesc))
+                        ? (glDesc != null ? glDesc : "")
+                        : rawDesc;
+
+                String lineType   = trim(r.get("line_type",   String.class));
+                String ref        = trim(r.get("ref",         String.class));
+                String ledgerType = trim(r.get("ledger_type", String.class));
+                String ledgerCode = trim(r.get("ledger_code", String.class));
+                String costedTo   = ("C".equals(lineType) || "L".equals(lineType))
+                        ? ledgerType + "/" + ledgerCode
+                        : ref;
+
+                list.add(new DistributionRow(
+                    r.get("line_no") != null ? r.get("line_no", Integer.class) : 0,
+                    glAcct,
+                    desc,
+                    z(r.get("amt", BigDecimal.class)),
+                    z(r.get("tax_amt", BigDecimal.class)),
+                    trim(r.get("tax_code", String.class)),
+                    costedTo
+                ));
+            });
+        } catch (Exception e) {
+            log.warn("getDistributions {}/{}: {}", supplierNo, docNo, e.getMessage());
+        }
+        return list;
+    }
+
+    /** Key apsupps fields for the APTI01 Supplier Docs dialog. */
+    public record SupplierInfo(
+            String supplierNo, String name1, String name2,
+            String addr1, String addr2, String city, String state, String postcode,
+            String contactName, String contactPhone, String contactFax, String contactEmail,
+            String acctStatus, BigDecimal acctBal, String forCurrCode, String abn,
+            String termsDesc, String subLedger
+    ) {}
+
+    /**
+     * APTI01 Supplier Docs dialog — returns key apsupps fields for one supplier.
+     */
+    public SupplierInfo getSupplierInfo(AppSession s, String supplierNo) {
+        try {
+            var result = dsl.resultQuery(
+                "SELECT supplier_no, name_1, name_2, addr_1, addr_2, city, state, postcode, " +
+                "       contact_name, contact_phone, contact_fax, contact_email_addr_1, " +
+                "       acct_status, acct_bal, for_curr_code, abn, terms_desc, sub_ledger " +
+                "FROM apsupps WHERE company_no=? AND supplier_no=?",
+                s.getCompanyNo(), supplierNo)
+                .fetch();
+            if (result.isEmpty()) return null;
+            var r = result.get(0);
+            return new SupplierInfo(
+                trim(r.get("supplier_no", String.class)),
+                trim(r.get("name_1",  String.class)),
+                trim(r.get("name_2",  String.class)),
+                trim(r.get("addr_1",  String.class)),
+                trim(r.get("addr_2",  String.class)),
+                trim(r.get("city",    String.class)),
+                trim(r.get("state",   String.class)),
+                trim(r.get("postcode",String.class)),
+                trim(r.get("contact_name",         String.class)),
+                trim(r.get("contact_phone",        String.class)),
+                trim(r.get("contact_fax",          String.class)),
+                trim(r.get("contact_email_addr_1", String.class)),
+                trim(r.get("acct_status",  String.class)),
+                z(r.get("acct_bal", BigDecimal.class)),
+                trim(r.get("for_curr_code", String.class)),
+                trim(r.get("abn",       String.class)),
+                trim(r.get("terms_desc",String.class)),
+                trim(r.get("sub_ledger",String.class))
+            );
+        } catch (Exception e) {
+            log.warn("getSupplierInfo {}: {}", supplierNo, e.getMessage());
+            return null;
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Document Tracking (DT module) — dtdocix / dtpaths / cpcoyco
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** True when DT is licensed for this company (cpcoyco.dt_instal_flag = 'Y'). */
+    public boolean isDtInstalled(AppSession s) {
+        try {
+            String flag = dsl.select(CPCOYCO.DT_INSTAL_FLAG)
+                .from(CPCOYCO)
+                .where(CPCOYCO.COMPANY_NO.eq(s.getCompanyNo()))
+                .limit(1)
+                .fetchOne(CPCOYCO.DT_INSTAL_FLAG);
+            return "Y".equals(flag);
+        } catch (Exception e) {
+            log.warn("isDtInstalled: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Returns the document directory configured in dtpaths for the given AP function.
+     * Tries company-specific row first, then falls back to company_no = 0.
+     * Returns empty string when not configured.
+     */
+    public String getDocumentDirectory(AppSession s, String functionId) {
+        for (int co : new int[]{s.getCompanyNo(), 0}) {
+            try {
+                String dir = dsl.resultQuery(
+                    "SELECT directory FROM dtpaths WHERE company_no=? AND system_id='AP' AND function_id=?",
+                    co, functionId)
+                    .fetchOne(0, String.class);
+                if (dir != null && !dir.isBlank()) return dir.trim();
+            } catch (Exception e) {
+                log.warn("getDocumentDirectory {}/{}: {}", co, functionId, e.getMessage());
+            }
+        }
+        return "";
+    }
+
+    /** One document index entry returned by {@link #getDocuments}. */
+    public record DtDocument(String docNo, int seqNo, String addedBy, LocalDate addedDate) {}
+
+    /**
+     * Returns documents attached to an entity, looked up by DTDOCIX search key.
+     *
+     * <p>{@code searchCode} must be exactly 60 chars — build it with
+     * {@link #buildDtSearchCodeSupplier} or {@link #buildDtSearchCodeTransaction}.
+     */
+    public List<DtDocument> getDocuments(AppSession s, int searchKeyNo, String searchCode) {
+        List<DtDocument> list = new ArrayList<>();
+        try {
+            dsl.resultQuery(
+                "SELECT doc_no, seq_no, audit_user_id, audit_date " +
+                "FROM dtdocix WHERE search_key_no=? AND search_company_no=? AND search_code=? " +
+                "ORDER BY seq_no",
+                searchKeyNo, s.getCompanyNo(), searchCode)
+                .fetch()
+                .forEach(r -> list.add(new DtDocument(
+                    trim(r.get("doc_no", String.class)),
+                    r.get("seq_no") != null ? r.get("seq_no", Integer.class) : 0,
+                    trim(r.get("audit_user_id", String.class)),
+                    landmarkSerialToDate(r.get("audit_date") != null ? r.get("audit_date", Integer.class) : 0)
+                )));
+        } catch (Exception e) {
+            log.warn("getDocuments key={}: {}", searchKeyNo, e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * Builds the 60-char DTDOCIX search code for a supplier (search_key_no = 2).
+     * Format: supplier_no left-justified padded to 10, then 50 spaces.
+     */
+    public static String buildDtSearchCodeSupplier(String supplierNo) {
+        return String.format("%-10s", supplierNo == null ? "" : supplierNo)
+                     .substring(0, 10) + " ".repeat(50);
+    }
+
+    /**
+     * Landmark Julian serial epoch. Day number = days since 1899-12-30, i.e.
+     * 1899-12-31 = 1. Verified against live dtdocix 2026-06-07: 2013-04-01 → 41365.
+     * (Same serial-date convention as Excel's 1900 system.)
+     */
+    private static final LocalDate LANDMARK_EPOCH = LocalDate.of(1899, 12, 30);
+
+    /** Converts a Landmark Julian serial day number back to a date; 0 → null. */
+    private static LocalDate landmarkSerialToDate(int serial) {
+        return serial > 0 ? LANDMARK_EPOCH.plusDays(serial) : null;
+    }
+
+    /**
+     * Builds the 60-char DTDOCIX search code for an AP transaction (search_key_no = 8).
+     * Format (from dtdocix.ws WS-DTDOCIX-SEARCH-KEY-08):
+     * supplier_no(10) + doc_date(6) + doc_type(1) + retent_flag(1) + doc_no(20) + spaces(22).
+     *
+     * <p>The doc_date segment is a 6-digit <b>Landmark Julian day number</b> (days since
+     * 1899-12-31), NOT yyMMdd — verified against live dtdocix data 2026-06-07
+     * (supplier DEE 2013-04-01 → 041365).
+     */
+    public static String buildDtSearchCodeTransaction(
+            String supplierNo, LocalDate docDate, String docType,
+            String retentFlag, String rawDocNo) {
+        String date6 = docDate != null
+            ? String.format("%06d", java.time.temporal.ChronoUnit.DAYS.between(LANDMARK_EPOCH, docDate))
+            : "000000";
+        return String.format("%-10s", supplierNo == null ? "" : supplierNo).substring(0, 10)
+             + date6
+             + (docType    == null ? " " : docType.substring(0, 1))
+             + (retentFlag == null ? " " : retentFlag.substring(0, 1))
+             + String.format("%-20s", rawDocNo == null ? "" : rawDocNo).substring(0, 20)
+             + " ".repeat(22);
+    }
+
+    /** True when v is non-null and equals zero. */
+    private static boolean isZero(BigDecimal v) {
+        return v != null && v.compareTo(BigDecimal.ZERO) == 0;
+    }
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+    }
 }

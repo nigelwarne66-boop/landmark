@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.ArTransactionInquiryController"
+    styleClass="sel-root"
+    prefWidth="1050"
+    prefHeight="680">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Transaction Inquiry" styleClass="sel-title"/>
+            <Label text="AR customer transaction inquiry with drill-down" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox>
+            <!-- Filter row 1 -->
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <padding><Insets top="8" right="16" bottom="4" left="16"/></padding>
+                <Label text="Customer" styleClass="sel-label" minWidth="70"/>
+                <ComboBox fx:id="customerPicker" prefWidth="200"/>
+                <Label text="Alpha" styleClass="sel-label"/>
+                <TextField fx:id="alphaField" prefWidth="120" promptText="alpha key + Enter"/>
+                <Label text="Date from" styleClass="sel-label" minWidth="60"/>
+                <DatePicker fx:id="startDate" prefWidth="130" promptText="blank = all"/>
+                <Label text="to" styleClass="sel-label"/>
+                <DatePicker fx:id="endDate" prefWidth="130"/>
+                <Button text="Filter" onAction="#onFilter" styleClass="sel-btn-pdf"/>
+            </HBox>
+            <!-- Filter row 2 -->
+            <HBox spacing="14" alignment="CENTER_LEFT">
+                <padding><Insets top="0" right="16" bottom="6" left="16"/></padding>
+                <Label text="Doc type" styleClass="sel-label" minWidth="70"/>
+                <ComboBox fx:id="docTypePicker" prefWidth="150"/>
+                <CheckBox fx:id="includeFullyPaid" text="Include fully paid"/>
+                <CheckBox fx:id="includeUnposted" text="Include unposted"/>
+            </HBox>
+            <!-- Account info bar (hidden until first filter) -->
+            <HBox fx:id="accountBar" spacing="16" alignment="CENTER_LEFT" styleClass="sel-row">
+                <padding><Insets top="4" right="16" bottom="4" left="16"/></padding>
+                <Label fx:id="lblCustomerName" styleClass="sel-label"/>
+                <Label text="Balance:" styleClass="sel-label"/>
+                <Label fx:id="lblAcctBal"/>
+                <Label fx:id="lblAcctStatus" style="-fx-text-fill: #c0392b; -fx-font-weight: bold;"/>
+            </HBox>
+            <!-- Results table -->
+            <TableView fx:id="txnTable" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="colDate"        text="Document Date"     prefWidth="105"/>
+                    <TableColumn fx:id="colType"        text="Type"              prefWidth="72"/>
+                    <TableColumn fx:id="colDocNo"       text="Document No"       prefWidth="165"/>
+                    <TableColumn fx:id="colOrigAmt"     text="Original Amt"      prefWidth="115"/>
+                    <TableColumn fx:id="colOutstanding" text="Outstanding"       prefWidth="115"/>
+                    <TableColumn fx:id="colFc"          text="Foreign Currency"  prefWidth="110"/>
+                    <TableColumn fx:id="colRecon"       text="Reconciliation"    prefWidth="100"/>
+                    <TableColumn fx:id="colStatus"      text="Status"            prefWidth="78"/>
+                </columns>
+                <placeholder><Label text="No transactions — select a customer and click Filter"/></placeholder>
+            </TableView>
+        </VBox>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_LEFT" spacing="10">
+            <padding><Insets top="10" right="24" bottom="14" left="24"/></padding>
+            <!-- Totals (left, hidden until first filter) -->
+            <HBox fx:id="totalsBar" spacing="20" alignment="CENTER_LEFT">
+                <Label fx:id="lblTotalDr" style="-fx-font-weight: bold;"/>
+                <Label fx:id="lblTotalCr" style="-fx-font-weight: bold;"/>
+                <Label fx:id="lblTotal"   style="-fx-font-weight: bold;"/>
+            </HBox>
+            <!-- Spacer pushes buttons to the right -->
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Display"         onAction="#onDisplay"       styleClass="sel-btn-excel"/>
+            <Button text="Details"         onAction="#onDistributions" styleClass="sel-btn-excel"/>
+            <Button text="Documents"       onAction="#onTrxDocs"       styleClass="sel-btn-excel"/>
+            <Button text="Customer Docs"   onAction="#onCustomerDocs"  styleClass="sel-btn-excel"/>
+            <Button text="Export to Excel" onAction="#onExportExcel"   styleClass="sel-btn-excel"/>
+            <Button text="Close"           onAction="#onCancel"        styleClass="sel-btn-cancel"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

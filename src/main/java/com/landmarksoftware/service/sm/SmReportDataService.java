@@ -786,7 +786,7 @@ public class SmReportDataService {
         params.put("LOC_DESC",      notBlank(p.locNo()) ? p.locNo() : "All locations");
         params.put("ITEM_RANGE",    rangeDesc(p.startItem(), p.endItem(), "items"));
         params.put("PTYPE_RANGE",   rangeDesc(p.startProdType(), p.endProdType(), "product types"));
-        params.put("REPORT_DATE",   p.reportDate() != null ? p.reportDate().toString() : LocalDate.now().toString());
+        params.put("REPORT_DATE",   dmy(p.reportDate() != null ? p.reportDate() : LocalDate.now()));
         params.put("SUM_VALUE", tot[0]); params.put("ROW_COUNT", rows.size());
         return result(rows, params);
     }
@@ -1097,5 +1097,143 @@ public class SmReportDataService {
         m.put("rows", new ArrayList<>()); m.put("params", new LinkedHashMap<>());
         m.put("rowCount", 0); m.put("warning", msg);
         return m;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SMTI01 — Stock Item Inquiry   (cobol/sm2/smti01.pl)
+    //   Pick an item → its locations (qty + value on hand, status) → drill to
+    //   the smtrans movement history for the selected item+location.
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** One smstloc location row for the SMTI01/SMTI03 P1 list. */
+    public record ItemLocationRow(
+            String locNo,
+            String locName,
+            BigDecimal qtyOnHand,
+            BigDecimal valueOnHand,
+            // SMTI03 availability columns
+            BigDecimal qtyAllocated,
+            BigDecimal qtyAvailable,
+            BigDecimal qtyBackord,
+            BigDecimal qtyOnPo,
+            String status
+    ) {}
+
+    /** Item header info + its location rows + totals. */
+    public record ItemInquiryResult(
+            String stockCode,
+            String desc1,
+            String desc2,
+            String stockUnit,
+            List<ItemLocationRow> rows,
+            BigDecimal totalQtyOnHand,
+            BigDecimal totalValueOnHand,
+            BigDecimal totalAvailable
+    ) {}
+
+    private static String itemStatusDesc(String code) {
+        return switch (trim(code)) {
+            case "S" -> "Suspended";
+            case "I" -> "Inactive";
+            case "N" -> "No buying";
+            default  -> "";
+        };
+    }
+
+    /** Shared loader for SMTI01/SMTI03 — reads the item header + all its locations. */
+    public ItemInquiryResult getItemInquiry(AppSession s, String stockCode) {
+        String[] desc1 = {""}, desc2 = {""}, unit = {""};
+        List<ItemLocationRow> rows = new ArrayList<>();
+        BigDecimal totQty = BigDecimal.ZERO, totVal = BigDecimal.ZERO, totAvail = BigDecimal.ZERO;
+        try {
+            var hdr = dsl.resultQuery(
+                "SELECT desc_1, desc_2, stock_unit FROM smsthed WHERE company_no=? AND stock_code=?",
+                s.getCompanyNo(), stockCode).fetch();
+            if (!hdr.isEmpty()) {
+                var h = hdr.get(0);
+                desc1[0] = trim(h.get("desc_1", String.class));
+                desc2[0] = trim(h.get("desc_2", String.class));
+                unit[0]  = trim(h.get("stock_unit", String.class));
+            }
+
+            var recs = dsl.resultQuery(
+                "SELECT l.loc_no, COALESCE(m.name1,'') AS loc_name, l.item_status, " +
+                "       l.qty_on_hand, l.value_on_hand, l.qty_allocated, l.qty_reserved, " +
+                "       l.qty_on_backord, l.qty_on_po " +
+                "FROM smstloc l " +
+                "LEFT JOIN smlocat m ON m.company_no=l.company_no AND m.loc_no=l.loc_no " +
+                "WHERE l.company_no=? AND l.stock_code=? ORDER BY l.loc_no",
+                s.getCompanyNo(), stockCode).fetch();
+
+            for (var r : recs) {
+                BigDecimal onHand  = z(r.get("qty_on_hand", BigDecimal.class));
+                BigDecimal value   = z(r.get("value_on_hand", BigDecimal.class));
+                BigDecimal alloc   = z(r.get("qty_allocated", BigDecimal.class))
+                                       .add(z(r.get("qty_reserved", BigDecimal.class)));
+                BigDecimal avail   = onHand.subtract(alloc);
+                BigDecimal backord = z(r.get("qty_on_backord", BigDecimal.class));
+                BigDecimal onPo    = z(r.get("qty_on_po", BigDecimal.class));
+
+                rows.add(new ItemLocationRow(
+                    trim(r.get("loc_no", String.class)),
+                    trim(r.get("loc_name", String.class)),
+                    onHand, value, alloc, avail, backord, onPo,
+                    itemStatusDesc(r.get("item_status", String.class))));
+
+                totQty   = totQty.add(onHand);
+                totVal   = totVal.add(value);
+                totAvail = totAvail.add(avail);
+            }
+        } catch (Exception e) {
+            log.error("getItemInquiry {}: {}", stockCode, e.getMessage(), e);
+        }
+        return new ItemInquiryResult(stockCode, desc1[0], desc2[0], unit[0],
+            rows, totQty, totVal, totAvail);
+    }
+
+    /** One smtrans movement row for the SMTI01 transaction drill-down. */
+    public record ItemTrxRow(
+            LocalDate moveDate,
+            String trxType,
+            String source,
+            BigDecimal qty,
+            BigDecimal unitCost,
+            BigDecimal value,
+            String docNo,
+            String ref
+    ) {}
+
+    /**
+     * SMTI01 transaction history (inventory view, WS-STOCK-OR-TRX-VALUE-IND='I'):
+     * smtrans movements for one item at one location. qty = smtrans.qty,
+     * unitCost = trx_unit_cost, value = cost_value.
+     */
+    public List<ItemTrxRow> getItemTransactions(AppSession s, String stockCode, String locNo) {
+        List<ItemTrxRow> list = new ArrayList<>();
+        try {
+            dsl.resultQuery(
+                "SELECT move_date, system_id, move_ind, qty, trx_unit_cost, cost_value, " +
+                "       doc_no, ref " +
+                "FROM smtrans WHERE company_no=? AND stock_code=? AND loc_no=? " +
+                "ORDER BY move_date, move_time",
+                s.getCompanyNo(), stockCode, locNo).fetch()
+            .forEach(r -> list.add(new ItemTrxRow(
+                r.get("move_date", LocalDate.class),
+                kindLabel(r.get("system_id", String.class), r.get("move_ind", String.class)),
+                trim(r.get("system_id", String.class)),
+                z(r.get("qty", BigDecimal.class)),
+                z(r.get("trx_unit_cost", BigDecimal.class)),
+                z(r.get("cost_value", BigDecimal.class)),
+                trim(r.get("doc_no", String.class)),
+                trim(r.get("ref", String.class)))));
+        } catch (Exception e) {
+            log.warn("getItemTransactions {}/{}: {}", stockCode, locNo, e.getMessage());
+        }
+        return list;
+    }
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
 }
