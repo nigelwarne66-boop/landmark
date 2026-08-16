@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.ui;
 
+import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.model.UserRecord;
 import com.landmarksoftware.service.PasswordService;
@@ -78,7 +79,7 @@ public class LoginController {
 
     public boolean showAndWait(Stage stage) {
         stage.setScene(buildScene(stage));
-        stage.setTitle("Landmark Software — Sign In");
+        stage.setTitle(AppMode.brandName() + " — Sign In");
         stage.setResizable(false);
         stage.showAndWait();
         return loginSuccess;
@@ -95,7 +96,7 @@ public class LoginController {
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
         scene.getStylesheets().add(
-            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+            getClass().getResource(AppMode.themeCssPath()).toExternalForm());
         return scene;
     }
 
@@ -110,12 +111,15 @@ public class LoginController {
             "-fx-background-radius: 14;" +
             "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 28, 0, 0, 4);");
 
-        // Logo — full pin + LANDMARK / SOFTWARE wordmark on the login card.
-        javafx.scene.Node pin = LandmarkLogo.fullLogo(110);
+        // Logo — full pin + wordmark on the login card. REPORTING keeps the
+        // LANDMARK wordmark (shipped to existing clients); FULL shows COMPAS.
+        javafx.scene.Node pin = AppMode.current == AppMode.Mode.REPORTING
+            ? LandmarkLogo.fullLogo(110)
+            : LandmarkLogo.fullLogo(110, "COMPAS", "ERP SOFTWARE");
         HBox logoRow = new HBox(pin);
         logoRow.setAlignment(Pos.CENTER);
-        // The full logo carries the LANDMARK wordmark, so a separate text title
-        // would be redundant. Bottom margin absorbs what the old title supplied.
+        // The full logo carries the wordmark, so a separate text title would
+        // be redundant. Bottom margin absorbs what the old title supplied.
         VBox.setMargin(logoRow, new Insets(0, 0, 32, 0));
 
         // Fields
@@ -153,7 +157,9 @@ public class LoginController {
 
         // Footer
         Label footer = new Label(
-            "© " + LocalDate.now().getYear() + " Landmark Business Software");
+            "© " + LocalDate.now().getYear() + " "
+                + (AppMode.current == AppMode.Mode.REPORTING
+                    ? "Landmark Business Software" : "Compas ERP"));
         footer.setStyle("-fx-font-size:10px; -fx-text-fill:#C4C4B4;");
         footer.setAlignment(Pos.CENTER);
         footer.setMaxWidth(Double.MAX_VALUE);

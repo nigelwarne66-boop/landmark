@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.ui.bas;
 
+import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.model.bas.BasReasonCode;
 import com.landmarksoftware.service.bas.BasReasonCodeService;
@@ -94,7 +95,7 @@ public class BasReasonCodeMaintenanceController {
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
         scene.getStylesheets().add(
-            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+            getClass().getResource(AppMode.themeCssPath()).toExternalForm());
         return scene;
     }
 

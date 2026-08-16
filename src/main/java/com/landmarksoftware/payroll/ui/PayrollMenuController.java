@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.payroll.ui;
 
+import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.payroll.model.Employee;
 import com.landmarksoftware.payroll.service.EmployeeService;
@@ -147,7 +148,7 @@ public class PayrollMenuController {
         // Wave 6 — landmark-theme.css carries the .lm-cue / .lm-cue-value /
         // .lm-cue-label classes the module dashboard cue row (§7.10) uses.
         scene.getStylesheets().add(
-            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+            getClass().getResource(AppMode.themeCssPath()).toExternalForm());
         return scene;
     }
 
@@ -508,7 +509,7 @@ public class PayrollMenuController {
             Scene scene = new Scene(root);
             scene.getStylesheets().add(getClass().getResource("/css/fixedassets.css").toExternalForm());
             scene.getStylesheets().add(getClass().getResource("/css/reporting.css").toExternalForm());
-            scene.getStylesheets().add(getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource(AppMode.themeCssPath()).toExternalForm());
             dialog.setScene(scene);
             dialog.setTitle(title);
             dialog.setResizable(false);

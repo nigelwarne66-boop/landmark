@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.payroll.ui;
 
+import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.payroll.model.Fund;
 import com.landmarksoftware.payroll.model.PayCode;
@@ -95,7 +96,7 @@ public class PayCodeMaintenanceController {
         // the shared theme stylesheet; load it alongside the screen's existing
         // sheet so the toolbar renders with the design-system tokens.
         scene.getStylesheets().add(
-            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+            getClass().getResource(AppMode.themeCssPath()).toExternalForm());
         return scene;
     }
 

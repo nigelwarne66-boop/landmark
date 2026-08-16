@@ -336,7 +336,7 @@ public class DepreciationPdfService {
         drawLine(cs, MARGIN, MARGIN + FOOTER_H, MARGIN + CONTENT_W,
             MARGIN + FOOTER_H, GREY_MED, 0.5f);
         drawText(cs, reg, 7f, GREY_MED,
-            "Landmark | FA Depreciation Projection",
+            "Compas ERP | FA Depreciation Projection",
             MARGIN, MARGIN + 6);
         drawTextRight(cs, reg, 7f, GREY_MED,
             "Confidential", MARGIN + CONTENT_W, MARGIN + 6);

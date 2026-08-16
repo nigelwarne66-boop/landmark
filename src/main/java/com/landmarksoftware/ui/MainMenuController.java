@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.ui;
 
+import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.SessionService;
 import com.landmarksoftware.model.SessionData;
@@ -256,7 +257,7 @@ public class MainMenuController {
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
         scene.getStylesheets().add(
-            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+            getClass().getResource(AppMode.themeCssPath()).toExternalForm());
         return scene;
     }
 
@@ -822,7 +823,7 @@ public class MainMenuController {
     /** Launcher: open the full Payroll module hub screen. */
     private void openPayrollMenu() {
         Stage s = new Stage();
-        s.setTitle("Payroll — Landmark Software");
+        s.setTitle("Payroll — " + AppMode.brandName());
         s.setScene(payrollMenu.buildScene(s));
         s.setMinWidth(880);
         s.setMinHeight(580);
@@ -1405,7 +1406,7 @@ public class MainMenuController {
             scene.getStylesheets().add(
                 getClass().getResource("/css/reporting.css").toExternalForm());
             scene.getStylesheets().add(
-                getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+                getClass().getResource(AppMode.themeCssPath()).toExternalForm());
             dialog.setScene(scene);
             dialog.setTitle(title);
             dialog.setResizable(false);

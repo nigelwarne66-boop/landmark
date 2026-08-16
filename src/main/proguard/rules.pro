@@ -1,8 +1,8 @@
-# Landmark — ProGuard rules
+# Compas ERP — ProGuard rules
 #
 # Triggered by proguard-maven-plugin during the package phase.
-# Input  : target/landmark-desktop-1.0.0-SNAPSHOT.jar (only com/landmarksoftware/**)
-# Output : target/landmark-desktop-1.0.0-SNAPSHOT-obf.jar
+# Input  : target/compas-erp-desktop-1.0.0-SNAPSHOT.jar (only com/landmarksoftware/**)
+# Output : target/compas-erp-desktop-1.0.0-SNAPSHOT-obf.jar
 # Mapping: target/proguard_map.txt   <-- keep this for stack-trace decoding
 
 # ── Global behaviour ───────────────────────────────────────────────────

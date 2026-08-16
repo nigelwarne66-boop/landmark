@@ -11,6 +11,7 @@
  */
 package com.landmarksoftware.ui.shell;
 
+import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.ui.LandmarkLogo;
 import com.landmarksoftware.ui.nav.Module;
 import javafx.geometry.Pos;
@@ -70,7 +71,7 @@ public class AppShell {
     public ShellHeader buildHeader(ShellContext ctx) {
         Node brand = LandmarkLogo.iconMark(24);
 
-        Label wordmark = new Label("Landmark");
+        Label wordmark = new Label(AppMode.brandName());
         wordmark.getStyleClass().add("lm-header-wordmark");
 
         Label contextChip = new Label(ctx.contextChipText());

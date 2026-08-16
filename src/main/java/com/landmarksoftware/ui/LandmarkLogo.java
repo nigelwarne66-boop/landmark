@@ -68,7 +68,17 @@ public final class LandmarkLogo {
      * combined on-screen height matches {@code height}.
      */
     public static Node fullLogo(double height) {
-        return wrapAndScale(buildFullLogoShapes(), height);
+        return fullLogo(height, "LANDMARK", "SOFTWARE");
+    }
+
+    /**
+     * Pin mark above a caller-supplied two-line wordmark (e.g. "COMPAS" /
+     * "ERP SOFTWARE"), scaled so the combined on-screen height matches
+     * {@code height}. The pin mark itself is brand-fixed per branding.md
+     * ("the mark is used unchanged") — only the wordmark text varies.
+     */
+    public static Node fullLogo(double height, String line1, String line2) {
+        return wrapAndScale(buildFullLogoShapes(line1, line2), height);
     }
 
     // ── Shape builders (coordinates copied verbatim from source SVGs) ────
@@ -97,7 +107,7 @@ public final class LandmarkLogo {
      * the icon, translated to the wordmark's centre line (cx = 340), with
      * LANDMARK + SOFTWARE wordmarks beneath.
      */
-    private static Group buildFullLogoShapes() {
+    private static Group buildFullLogoShapes(String line1, String line2) {
         SVGPath pin = new SVGPath();
         pin.setContent("M 406,120 L 340,230 L 274,120 A 72,72 0 1,1 406,120 Z");
         pin.setFill(NAVY);
@@ -110,9 +120,9 @@ public final class LandmarkLogo {
         arrowL.setFill(BLUE_DARK);
 
         // SVG: font-size 46, font-weight 300, letter-spacing 12, text-anchor middle, y=290
-        Node wordmark = spacedWordmark("LANDMARK", 340, 290, 46, 12, FontWeight.LIGHT);
+        Node wordmark = spacedWordmark(line1, 340, 290, 46, 12, FontWeight.LIGHT);
         // SVG: font-size 19, font-weight 300, letter-spacing 9, text-anchor middle, y=332
-        Node submark  = spacedWordmark("SOFTWARE", 340, 332, 19,  9, FontWeight.LIGHT);
+        Node submark  = spacedWordmark(line2, 340, 332, 19,  9, FontWeight.LIGHT);
 
         return new Group(pin, aperture, arrowR, arrowL, wordmark, submark);
     }

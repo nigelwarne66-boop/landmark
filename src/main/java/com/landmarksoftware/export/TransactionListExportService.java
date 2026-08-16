@@ -74,7 +74,7 @@ public class TransactionListExportService {
             // ── Title row ─────────────────────────────────────────────
             Row title = sheet.createRow(0);
             CellStyle titleStyle = buildTitleStyle(wb);
-            createTextCell(title, 0, "Landmark — Transaction List", titleStyle);
+            createTextCell(title, 0, "Compas ERP — Transaction List", titleStyle);
 
             // Sub-title: date range
             String range = buildRangeText(output);

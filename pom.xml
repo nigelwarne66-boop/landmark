@@ -13,9 +13,9 @@
   </parent>
 
   <groupId>com.landmarksoftware</groupId>
-  <artifactId>landmark-desktop</artifactId>
+  <artifactId>compas-erp-desktop</artifactId>
   <version>1.0.0-SNAPSHOT</version>
-  <name>Landmark</name>
+  <name>Compas ERP</name>
 
   <properties>
     <java.version>21</java.version>

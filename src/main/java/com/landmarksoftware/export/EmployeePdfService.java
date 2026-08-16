@@ -229,7 +229,7 @@ public class EmployeePdfService {
     private void drawFooter(PDPageContentStream cs, PDFont reg, Employee emp)
             throws IOException {
         textRight(cs, reg, 7, GREY,
-            "TFN masked for confidentiality • Landmark Payroll",
+            "TFN masked for confidentiality • Compas ERP Payroll",
             MARGIN + CONT_W, MARGIN - 8);
     }
 

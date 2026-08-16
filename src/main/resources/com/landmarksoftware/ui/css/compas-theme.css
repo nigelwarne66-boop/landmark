@@ -1,0 +1,539 @@
+/* ==========================================================================
+   Compas ERP Design System — JavaFX theme
+   Target: Compas ERP desktop (JavaFX + embedded Spring Boot, port 8090) —
+   the FULL (main app) AppMode. The REPORTING AppMode (-Preporting build,
+   shipped to existing clients as Landmark) keeps using landmark-theme.css
+   unchanged. See AppMode.themeCssPath().
+
+   This file is landmark-theme.css with ONLY the --brand and --focus tokens
+   swapped to the Compas ERP navy / compass-blue palette (Conventions/
+   branding.md). Every other token (surfaces, borders, text, semantic
+   success/warning/danger/info, financial ageing colours, module accents)
+   is intentionally identical — those aren't brand colours. If a non-brand
+   token changes in landmark-theme.css, mirror it here too.
+
+   Apply as the ONLY stylesheet on the primary Scene:
+       scene.getStylesheets().add(
+           getClass().getResource(AppMode.themeCssPath()).toExternalForm());
+
+   JavaFX constraints Claude Code must work around:
+   - No CSS custom properties. Looked-up colours are declared on .root below
+     and referenced by name.
+   - No font-variant-numeric. Amounts use IBM Plex Mono, which is fixed-width,
+     so digits align without it. This is why Plex Mono is in the system.
+   - No box-shadow. Use -fx-effect: dropshadow(...).
+   - No :focus-visible. Use :focused, and clear the platform focus colours
+     (done on .root).
+   - Custom states need PseudoClass in Java, e.g.
+       PseudoClass.getPseudoClass("active")  -> :active in this file.
+   - Popups/ContextMenus have their own scene graph root; add this stylesheet
+     to them explicitly or looked-up colours will not resolve.
+   - Fonts must be registered before the first Scene is shown:
+       Font.loadFont(getClass().getResourceAsStream(
+           "/com/landmarksoftware/ui/fonts/IBMPlexSans-Regular.ttf"), 14);
+     Load all five faces (Sans 400/500/600, Mono 400/600).
+   ========================================================================== */
+
+.root {
+
+    /* --- Surfaces --- */
+    -lm-surface-app:      #F6F6F3;
+    -lm-surface-raised:   #FFFFFF;
+    -lm-surface-rail:     #FBFBF9;
+    -lm-surface-sunken:   #EFEFEA;
+    -lm-surface-hover:    #F0F0EC;
+    -lm-surface-selected: #E9EFEC;
+
+    /* --- Borders --- */
+    -lm-border-subtle:    #E5E5DF;
+    -lm-border-default:   #D3D3CB;
+    -lm-border-strong:    #B5B5AB;
+
+    /* --- Text --- */
+    -lm-text-primary:     #1A1D1B;
+    -lm-text-secondary:   #5A5F5B;
+    -lm-text-muted:       #868C87;
+    -lm-text-inverse:     #FFFFFF;
+
+    /* --- Brand — Compas ERP navy + compass blue (branding.md) --- */
+    -lm-brand-800:        #1C2B4A;   /* Compas navy — pressed state */
+    -lm-brand-700:        #3574BF;   /* Deep compass — hover state */
+    -lm-brand-600:        #4D90D6;   /* Compass blue — base/CTA, spine, checkbox */
+    -lm-brand-300:        #B5D4F4;   /* Sky — light accent */
+    -lm-brand-100:        #DCEAFA;
+    -lm-brand-050:        #EEF4FB;   /* Blue tint — page/card bg accents */
+
+    /* --- Semantic --- */
+    -lm-success:          #1E7B45;   -lm-success-tint: #E4F1E9;
+    -lm-warning:          #A8630A;   -lm-warning-tint: #FAEEDD;
+    -lm-danger:           #B3261E;   -lm-danger-tint:  #FAE9E7;
+    -lm-info:             #1B5E9C;   -lm-info-tint:    #E5EEF7;
+    -lm-focus:            #4D90D6;   /* Compass blue */
+    -lm-focus-ring:       rgba(77, 144, 214, 0.40);
+
+    /* --- Financial --- */
+    -lm-amount-negative:  #B3261E;
+    -lm-ageing-current:   #5A5F5B;
+    -lm-ageing-30:        #7A7A4E;
+    -lm-ageing-60:        #A8630A;
+    -lm-ageing-90:        #9A4218;
+    -lm-ageing-90plus:    #B3261E;
+
+    /* --- Module accents (DESIGN_SYSTEM.md §4) --- */
+    -lm-mod-gl:  #3D5A98;   -lm-mod-gl-tint:  #E8EBF3;
+    -lm-mod-ar:  #2E7D57;   -lm-mod-ar-tint:  #E6EFEB;
+    -lm-mod-ap:  #B26B12;   -lm-mod-ap-tint:  #F6EDE3;
+    -lm-mod-cm:  #0E7263;   -lm-mod-cm-tint:  #E2EEEC;
+    -lm-mod-po:  #6B4FA8;   -lm-mod-po-tint:  #EDEAF5;
+    -lm-mod-sm:  #2F6F8F;   -lm-mod-sm-tint:  #E4EEF2;
+    -lm-mod-fa:  #8A5A3C;   -lm-mod-fa-tint:  #F1EBE8;
+    -lm-mod-py:  #A63D6B;   -lm-mod-py-tint:  #F4E8ED;
+    -lm-mod-bas: #5F7A2E;   -lm-mod-bas-tint: #ECEFE6;
+    -lm-mod-sy:  #5A5F5B;   -lm-mod-sy-tint:  #EBECEB;
+
+    /* --- Base --- */
+    -fx-font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: -lm-text-primary;
+    -fx-background-color: -lm-surface-app;
+
+    /* Kill the platform focus glow; we draw our own ring. */
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Typography helpers — apply as style classes
+   -------------------------------------------------------------------------- */
+
+.lm-display   { -fx-font-size: 24px; -fx-font-weight: 600; -fx-text-fill: -lm-text-primary; }
+.lm-title     { -fx-font-size: 18px; -fx-font-weight: 600; -fx-text-fill: -lm-text-primary; }
+.lm-subtitle  { -fx-font-size: 15px; -fx-font-weight: 500; -fx-text-fill: -lm-text-primary; }
+.lm-body      { -fx-font-size: 14px; -fx-text-fill: -lm-text-primary; }
+.lm-body-strong { -fx-font-size: 14px; -fx-font-weight: 600; }
+.lm-label     { -fx-font-size: 13px; -fx-font-weight: 500; -fx-text-fill: -lm-text-secondary; }
+.lm-caption   { -fx-font-size: 12px; -fx-text-fill: -lm-text-muted; }
+.lm-micro     { -fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: -lm-text-muted; }
+
+.lm-num        { -fx-font-family: "IBM Plex Mono", Consolas, monospace; -fx-font-size: 14px; }
+.lm-num-strong { -fx-font-family: "IBM Plex Mono", Consolas, monospace; -fx-font-size: 14px; -fx-font-weight: 600; }
+.lm-num-negative { -fx-text-fill: -lm-amount-negative; }
+
+/* --------------------------------------------------------------------------
+   Header — 56px
+   -------------------------------------------------------------------------- */
+
+.lm-header {
+    -fx-pref-height: 56px;
+    -fx-min-height: 56px;
+    -fx-background-color: -lm-surface-raised;
+    -fx-border-color: transparent transparent -lm-border-subtle transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 16 0 16;
+    -fx-spacing: 12;
+    -fx-alignment: center-left;
+}
+.lm-header-wordmark { -fx-font-size: 15px; -fx-font-weight: 600; -fx-text-fill: -lm-text-primary; }
+
+/* Company · financial year. A button, not a label. */
+.lm-context-chip {
+    -fx-background-color: -lm-surface-sunken;
+    -fx-background-radius: 999;
+    -fx-text-fill: -lm-text-secondary;
+    -fx-font-size: 13px;
+    -fx-padding: 0 12 0 12;
+    -fx-pref-height: 28px;
+    -fx-cursor: hand;
+}
+.lm-context-chip:hover { -fx-background-color: -lm-surface-hover; -fx-text-fill: -lm-text-primary; }
+
+.lm-search {
+    -fx-pref-width: 320px;
+    -fx-pref-height: 32px;
+    -fx-background-color: -lm-surface-raised;
+    -fx-background-radius: 6;
+    -fx-border-color: -lm-border-default;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+    -fx-padding: 0 12 0 12;
+    -fx-prompt-text-fill: -lm-text-muted;
+}
+.lm-search:hover   { -fx-border-color: -lm-border-strong; }
+.lm-search:focused { -fx-border-color: -lm-focus; -fx-effect: dropshadow(gaussian, -lm-focus-ring, 4, 0.6, 0, 0); }
+
+.lm-user-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 0 8 0 8;
+    -fx-pref-height: 36px;
+    -fx-font-size: 13px;
+    -fx-text-fill: -lm-text-primary;
+    -fx-cursor: hand;
+}
+.lm-user-button:hover { -fx-background-color: -lm-surface-hover; }
+.lm-avatar {
+    -fx-background-color: -lm-surface-sunken;
+    -fx-background-radius: 999;
+    -fx-min-width: 28px; -fx-min-height: 28px;
+    -fx-max-width: 28px; -fx-max-height: 28px;
+    -fx-alignment: center;
+    -fx-font-size: 11px; -fx-font-weight: 600;
+    -fx-text-fill: -lm-text-secondary;
+}
+
+/* --------------------------------------------------------------------------
+   Navigation rail — 240px / 64px collapsed
+   -------------------------------------------------------------------------- */
+
+.lm-rail {
+    -fx-pref-width: 240px;
+    -fx-min-width: 240px;
+    -fx-background-color: -lm-surface-rail;
+    -fx-border-color: transparent -lm-border-subtle transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 12 8 12 8;
+    -fx-spacing: 4;
+}
+.lm-rail.collapsed { -fx-pref-width: 64px; -fx-min-width: 64px; }
+
+.lm-rail-label {
+    -fx-font-size: 11px; -fx-font-weight: 600;
+    -fx-text-fill: -lm-text-muted;
+    -fx-padding: 16 12 8 12;
+}
+
+.lm-nav-item {
+    -fx-pref-height: 36px;
+    -fx-padding: 0 12 0 12;
+    -fx-spacing: 12;
+    -fx-alignment: center-left;
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-text-fill: -lm-text-secondary;
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-cursor: hand;
+}
+.lm-nav-item:hover { -fx-background-color: -lm-surface-hover; -fx-text-fill: -lm-text-primary; }
+.lm-nav-item .ikonli-font-icon { -fx-icon-size: 18; -fx-icon-color: -lm-text-secondary; }
+.lm-nav-item:hover .ikonli-font-icon { -fx-icon-color: -lm-text-primary; }
+
+/* The ledger spine. PseudoClass "active" is set from the controller.
+   Two background layers: brand bar on the left, brand-050 fill inset past it. */
+.lm-nav-item:active {
+    -fx-background-color: -lm-brand-600, -lm-brand-050;
+    -fx-background-insets: 6 0 6 0, 0 0 0 3;
+    -fx-background-radius: 2, 6;
+    -fx-text-fill: -lm-brand-700;
+    -fx-font-weight: 600;
+}
+.lm-nav-item:active .ikonli-font-icon { -fx-icon-color: -lm-brand-700; }
+
+/* --------------------------------------------------------------------------
+   Content and page header
+   -------------------------------------------------------------------------- */
+
+.lm-content {
+    -fx-background-color: -lm-surface-app;
+    -fx-padding: 32;
+}
+.lm-page-title    { -fx-font-size: 24px; -fx-font-weight: 600; -fx-text-fill: -lm-text-primary; }
+.lm-page-subtitle { -fx-font-size: 14px; -fx-text-fill: -lm-text-secondary; }
+.lm-page-rule     { -fx-pref-height: 1px; -fx-background-color: -lm-border-subtle; }
+/* Module dashboards: 48px of module accent at 2px, then hairline.
+   Build as an HBox of two Regions rather than a gradient. */
+.lm-page-rule-accent { -fx-pref-height: 2px; -fx-pref-width: 48px; }
+
+/* --------------------------------------------------------------------------
+   CommandBar
+   -------------------------------------------------------------------------- */
+
+.lm-commandbar {
+    -fx-pref-height: 44px;
+    -fx-min-height: 44px;
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+    -fx-background-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.lm-btn {
+    -fx-pref-height: 32px;
+    -fx-padding: 0 12 0 12;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-cursor: hand;
+}
+.lm-btn:disabled { -fx-opacity: 0.4; -fx-cursor: default; }
+.lm-btn.sm { -fx-pref-height: 28px; -fx-font-size: 13px; }
+.lm-btn.lg { -fx-pref-height: 36px; }
+
+.lm-btn-primary          { -fx-background-color: -lm-brand-600; -fx-text-fill: -lm-text-inverse; }
+.lm-btn-primary:hover    { -fx-background-color: -lm-brand-700; }
+.lm-btn-primary:pressed  { -fx-background-color: -lm-brand-800; }
+
+.lm-btn-secondary        { -fx-background-color: -lm-surface-raised; -fx-border-color: -lm-border-default; -fx-border-width: 1; -fx-text-fill: -lm-text-primary; }
+.lm-btn-secondary:hover  { -fx-background-color: -lm-surface-hover; -fx-border-color: -lm-border-strong; }
+
+.lm-btn-ghost            { -fx-background-color: transparent; -fx-text-fill: -lm-text-secondary; }
+.lm-btn-ghost:hover      { -fx-background-color: -lm-surface-hover; -fx-text-fill: -lm-text-primary; }
+
+/* Destructive actions only — never sign-out, never navigation. */
+.lm-btn-danger           { -fx-background-color: -lm-danger; -fx-text-fill: -lm-text-inverse; }
+
+.lm-btn:focused { -fx-effect: dropshadow(gaussian, -lm-focus-ring, 5, 0.7, 0, 0); }
+
+/* --------------------------------------------------------------------------
+   Cards, rows, tiles
+   -------------------------------------------------------------------------- */
+
+.lm-card {
+    -fx-background-color: -lm-surface-raised;
+    -fx-background-radius: 10;
+    -fx-border-color: -lm-border-subtle;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+}
+.lm-card:hover {
+    -fx-border-color: -lm-border-strong;
+    -fx-effect: dropshadow(gaussian, rgba(20, 24, 26, 0.06), 4, 0, 0, 1);
+}
+.lm-card-header { -fx-padding: 20; -fx-spacing: 12; }
+.lm-card-title  { -fx-font-size: 18px; -fx-font-weight: 600; }
+.lm-card-desc   { -fx-font-size: 12px; -fx-text-fill: -lm-text-muted; }
+.lm-card-link   { -fx-text-fill: -lm-brand-700; -fx-font-size: 13px; -fx-font-weight: 500; -fx-cursor: hand; -fx-background-color: transparent; }
+
+/* Module icon tile. Set background/icon colour per module from the enum. */
+.lm-tile {
+    -fx-min-width: 36px; -fx-min-height: 36px;
+    -fx-max-width: 36px; -fx-max-height: 36px;
+    -fx-background-radius: 6;
+    -fx-alignment: center;
+}
+.lm-tile.sm { -fx-min-width: 32px; -fx-min-height: 32px; -fx-max-width: 32px; -fx-max-height: 32px; }
+
+.lm-row {
+    -fx-min-height: 52px;
+    -fx-padding: 8 16 8 16;
+    -fx-spacing: 12;
+    -fx-alignment: center-left;
+    -fx-background-color: transparent;
+    -fx-border-color: -lm-border-subtle transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-cursor: hand;
+}
+.lm-row:hover { -fx-background-color: -lm-surface-hover; }
+.lm-row-title { -fx-font-size: 14px; -fx-font-weight: 500; -fx-text-fill: -lm-text-primary; }
+.lm-row-desc  { -fx-font-size: 12px; -fx-text-fill: -lm-text-muted; }
+
+/* Not yet built: full contrast text, badge carries the state, no hover. */
+.lm-row.pending { -fx-cursor: default; }
+.lm-row.pending:hover { -fx-background-color: transparent; }
+
+/* --------------------------------------------------------------------------
+   Chips and badges
+   -------------------------------------------------------------------------- */
+
+.lm-chip {
+    -fx-pref-height: 20px;
+    -fx-padding: 0 8 0 8;
+    -fx-background-radius: 999;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-alignment: center;
+}
+.lm-chip.draft, .lm-chip.open, .lm-chip.outstanding { -fx-background-color: -lm-info-tint;    -fx-text-fill: -lm-info; }
+.lm-chip.ready, .lm-chip.due                        { -fx-background-color: -lm-warning-tint; -fx-text-fill: -lm-warning; }
+.lm-chip.posted, .lm-chip.paid, .lm-chip.reconciled { -fx-background-color: -lm-success-tint; -fx-text-fill: -lm-success; }
+.lm-chip.overdue, .lm-chip.failed                   { -fx-background-color: -lm-danger-tint;  -fx-text-fill: -lm-danger; }
+.lm-chip.cancelled, .lm-chip.inactive               { -fx-background-color: -lm-surface-sunken; -fx-text-fill: -lm-text-muted; }
+
+.lm-badge {
+    -fx-pref-height: 16px;
+    -fx-padding: 0 4 0 4;
+    -fx-background-color: -lm-surface-sunken;
+    -fx-background-radius: 4;
+    -fx-text-fill: -lm-text-muted;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   TableView
+   -------------------------------------------------------------------------- */
+
+.lm-table {
+    -fx-background-color: -lm-surface-raised;
+    -fx-background-radius: 10;
+    -fx-border-color: -lm-border-subtle;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-table-cell-border-color: transparent;
+}
+.lm-table .column-header-background { -fx-background-color: -lm-surface-sunken; -fx-background-radius: 10 10 0 0; }
+.lm-table .column-header {
+    -fx-background-color: transparent;
+    -fx-pref-height: 36px;
+    -fx-border-color: transparent transparent -lm-border-default transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.lm-table .column-header .label {
+    -fx-font-size: 13px; -fx-font-weight: 600;
+    -fx-text-fill: -lm-text-secondary;
+    -fx-alignment: center-left;
+    -fx-padding: 0 16 0 16;
+}
+.lm-table .table-row-cell {
+    -fx-pref-height: 32px;
+    -fx-background-color: -lm-surface-raised;
+    -fx-border-color: transparent transparent -lm-border-subtle transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.lm-table.compact .table-row-cell { -fx-pref-height: 28px; }
+.lm-table .table-row-cell:hover    { -fx-background-color: -lm-surface-hover; }
+/* Selected row carries the spine on its left edge. */
+.lm-table .table-row-cell:selected {
+    -fx-background-color: -lm-brand-600, -lm-surface-selected;
+    -fx-background-insets: 0, 0 0 0 3;
+}
+.lm-table .table-row-cell:selected .table-cell { -fx-text-fill: -lm-text-primary; }
+.lm-table .table-cell {
+    -fx-padding: 0 16 0 16;
+    -fx-font-size: 14px;
+    -fx-text-fill: -lm-text-primary;
+    -fx-border-color: transparent;
+}
+
+/* Column classes — set from the TableColumn's style class. */
+.lm-table .col-num  { -fx-font-family: "IBM Plex Mono", Consolas, monospace; -fx-alignment: center-right; }
+.lm-table .col-code { -fx-font-family: "IBM Plex Mono", Consolas, monospace; -fx-alignment: center-left; }
+.lm-table .col-date { -fx-font-family: "IBM Plex Mono", Consolas, monospace; -fx-alignment: center-left; }
+
+/* Totals row rendered as a separate HBox beneath the table. */
+.lm-table-totals {
+    -fx-background-color: -lm-surface-sunken;
+    -fx-border-color: -lm-border-strong transparent transparent transparent;
+    -fx-border-width: 2 0 0 0;
+    -fx-pref-height: 36px;
+    -fx-padding: 0 16 0 16;
+    -fx-font-family: "IBM Plex Mono", Consolas, monospace;
+    -fx-font-weight: 600;
+}
+
+/* Ageing */
+.age-current { -fx-text-fill: -lm-ageing-current; }
+.age-30      { -fx-text-fill: -lm-ageing-30; }
+.age-60      { -fx-text-fill: -lm-ageing-60; }
+.age-90      { -fx-text-fill: -lm-ageing-90; }
+.age-90plus  { -fx-text-fill: -lm-ageing-90plus; -fx-font-weight: 600; }
+
+/* Drill-down affordance — only on cells that drill. */
+.drill:hover { -fx-text-fill: -lm-brand-700; -fx-underline: true; -fx-cursor: hand; }
+
+/* --------------------------------------------------------------------------
+   Form controls
+   -------------------------------------------------------------------------- */
+
+.lm-field-label { -fx-font-size: 13px; -fx-font-weight: 500; -fx-text-fill: -lm-text-secondary; }
+
+.text-field, .combo-box, .date-picker, .choice-box {
+    -fx-pref-height: 32px;
+    -fx-background-color: -lm-surface-raised;
+    -fx-background-radius: 6;
+    -fx-border-color: -lm-border-default;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+    -fx-padding: 0 12 0 12;
+    -fx-font-size: 14px;
+    -fx-text-fill: -lm-text-primary;
+    -fx-prompt-text-fill: -lm-text-muted;
+}
+.text-field:hover, .combo-box:hover, .date-picker:hover { -fx-border-color: -lm-border-strong; }
+.text-field:focused, .combo-box:focused, .date-picker:focused {
+    -fx-border-color: -lm-focus;
+    -fx-effect: dropshadow(gaussian, -lm-focus-ring, 5, 0.7, 0, 0);
+}
+.text-field:disabled { -fx-background-color: -lm-surface-sunken; -fx-text-fill: -lm-text-muted; }
+.text-field.num  { -fx-font-family: "IBM Plex Mono", Consolas, monospace; -fx-alignment: center-right; }
+.text-field.code { -fx-font-family: "IBM Plex Mono", Consolas, monospace; }
+.text-field.invalid { -fx-border-color: -lm-danger; }
+.lm-field-error { -fx-font-size: 12px; -fx-text-fill: -lm-danger; }
+.lm-field-help  { -fx-font-size: 12px; -fx-text-fill: -lm-text-muted; }
+
+.check-box .box, .radio-button .radio {
+    -fx-background-color: -lm-surface-raised;
+    -fx-border-color: -lm-border-default;
+    -fx-border-width: 1;
+}
+.check-box:selected .mark { -fx-background-color: -lm-text-inverse; }
+.check-box:selected .box  { -fx-background-color: -lm-brand-600; -fx-border-color: -lm-brand-600; }
+
+/* --------------------------------------------------------------------------
+   Cue tiles, empty state, menus, toasts
+   -------------------------------------------------------------------------- */
+
+.lm-cue {
+    -fx-background-color: -lm-surface-raised;
+    -fx-background-radius: 10;
+    -fx-border-color: -lm-border-subtle;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+    -fx-cursor: hand;
+}
+.lm-cue:hover { -fx-border-color: -lm-border-strong; -fx-effect: dropshadow(gaussian, rgba(20,24,26,0.06), 4, 0, 0, 1); }
+.lm-cue-value { -fx-font-family: "IBM Plex Mono", Consolas, monospace; -fx-font-size: 28px; -fx-font-weight: 600; }
+.lm-cue-label { -fx-font-size: 13px; -fx-text-fill: -lm-text-secondary; }
+
+.lm-empty       { -fx-padding: 64 24 64 24; -fx-spacing: 12; -fx-alignment: center; }
+.lm-empty-icon  { -fx-opacity: 0.4; }
+.lm-empty-text  { -fx-font-size: 14px; -fx-text-fill: -lm-text-secondary; -fx-text-alignment: center; }
+
+/* Remember to add this stylesheet to popup scenes, or looked-up colours
+   will fall back to the JavaFX defaults. */
+.context-menu, .lm-popover {
+    -fx-background-color: -lm-surface-raised;
+    -fx-background-radius: 10;
+    -fx-border-color: -lm-border-subtle;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 4;
+    -fx-effect: dropshadow(gaussian, rgba(20, 24, 26, 0.10), 12, 0, 0, 4);
+}
+.context-menu .menu-item {
+    -fx-pref-height: 32px;
+    -fx-padding: 0 12 0 12;
+    -fx-background-radius: 6;
+}
+.context-menu .menu-item:focused { -fx-background-color: -lm-surface-hover; }
+.context-menu .menu-item .label  { -fx-text-fill: -lm-text-primary; -fx-font-size: 14px; }
+.context-menu .separator .line   { -fx-border-color: -lm-border-subtle transparent transparent transparent; }
+
+.lm-toast {
+    -fx-background-color: -lm-surface-raised;
+    -fx-background-radius: 10;
+    -fx-border-color: -lm-border-subtle;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 12 16 12 16;
+    -fx-effect: dropshadow(gaussian, rgba(20, 24, 26, 0.10), 12, 0, 0, 4);
+}
+.lm-toast.success .lm-toast-bar { -fx-background-color: -lm-success; }
+.lm-toast.error   .lm-toast-bar { -fx-background-color: -lm-danger; }
+
+/* --------------------------------------------------------------------------
+   Scrollbars — keep them quiet
+   -------------------------------------------------------------------------- */
+
+.scroll-bar { -fx-background-color: transparent; }
+.scroll-bar .track { -fx-background-color: transparent; -fx-border-color: transparent; }
+.scroll-bar .thumb { -fx-background-color: -lm-border-strong; -fx-background-radius: 999; }
+.scroll-bar .thumb:hover { -fx-background-color: -lm-text-muted; }
+.scroll-bar .increment-button, .scroll-bar .decrement-button { -fx-opacity: 0; -fx-pref-height: 0; -fx-pref-width: 0; }
+.scroll-pane { -fx-background-color: transparent; }
+.scroll-pane > .viewport { -fx-background-color: transparent; }

@@ -264,7 +264,7 @@ public class AssetRegisterViewerService {
                 "</form>";
 
             return "<!DOCTYPE html><html><head><meta charset='UTF-8'>" +
-                "<title>Landmark \u2014 Fixed Asset Register</title>" +
+                "<title>Compas ERP \u2014 Fixed Asset Register</title>" +
                 "<style>" +
                 "body{font-family:-apple-system,'Segoe UI',sans-serif;background:#F2F1EC;margin:0}" +
                 "#toolbar{background:#fff;border-bottom:1px solid #E0E0D8;padding:10px 16px;" +

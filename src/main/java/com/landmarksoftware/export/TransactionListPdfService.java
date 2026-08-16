@@ -136,7 +136,7 @@ public class TransactionListPdfService {
 
         // Title bar
         fillRect(cs, MARGIN, y - 18, CONTENT_W, 18, BLUE_DARK);
-        drawText(cs, bold, 10, WHITE, "Landmark — Transaction List", MARGIN + 4, y - 12);
+        drawText(cs, bold, 10, WHITE, "Compas ERP — Transaction List", MARGIN + 4, y - 12);
         drawTextRight(cs, reg, 8, WHITE, "Page " + pageNo, MARGIN + CONTENT_W - 4, y - 12);
         y -= 18;
 

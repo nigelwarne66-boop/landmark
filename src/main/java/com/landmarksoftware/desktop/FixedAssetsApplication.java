@@ -143,7 +143,7 @@ public class FixedAssetsApplication extends Application {
     private void showMainMenu(Stage primaryStage) {
         MainMenuController menu = springContext.getBean(MainMenuController.class);
         primaryStage.setScene(menu.buildScene());
-        primaryStage.setTitle("Landmark");
+        primaryStage.setTitle(AppMode.brandName());
         primaryStage.setMinWidth(740);
         primaryStage.setMinHeight(580);
         primaryStage.setOnCloseRequest(e -> Platform.exit());
@@ -176,9 +176,9 @@ public class FixedAssetsApplication extends Application {
             scene.getStylesheets().add(
                 getClass().getResource("/css/reporting.css").toExternalForm());
             scene.getStylesheets().add(
-                getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+                getClass().getResource(AppMode.themeCssPath()).toExternalForm());
 
-            primaryStage.setTitle("Landmark Reports");
+            primaryStage.setTitle(AppMode.brandName() + " Reports");
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(900);
             primaryStage.setMinHeight(600);
