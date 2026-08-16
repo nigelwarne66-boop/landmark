@@ -21,6 +21,10 @@ import com.landmarksoftware.payroll.ui.TaxScaleLoadController;
 import com.landmarksoftware.payroll.ui.SetSuperPercentageController;
 import com.landmarksoftware.payroll.ui.UpdateAwardRateChangesController;
 import com.landmarksoftware.payroll.ui.GlobalEmployeeAwardUpdateController;
+import com.landmarksoftware.ui.gl.ChartOfAccountsController;
+import com.landmarksoftware.ui.gl.GeneralJournalController;
+import com.landmarksoftware.ui.gl.JournalInquiryController;
+import com.landmarksoftware.ui.gl.SubAccountCodesController;
 import com.landmarksoftware.ui.nav.Module;
 import com.landmarksoftware.ui.shell.AppShell;
 import com.landmarksoftware.ui.shell.PageHeader;
@@ -88,6 +92,10 @@ public class MainMenuController {
     private final CompanyMaintenanceController       companyMaintenance;
     private final PayrollMenuController              payrollMenu;
     private final PayCodeMaintenanceController       payCodeScreen;
+    private final GeneralJournalController            generalJournalScreen;
+    private final JournalInquiryController            journalInquiryScreen;
+    private final ChartOfAccountsController           chartOfAccountsScreen;
+    private final SubAccountCodesController           subAccountCodesScreen;
     private final com.landmarksoftware.ui.bas.BasGroupMaintenanceController       basGroupScreen;
     private final com.landmarksoftware.ui.bas.BasReasonCodeMaintenanceController  basReasonCodeScreen;
     private final com.landmarksoftware.ui.bas.BasTransactionMaintenanceController basTransactionScreen;
@@ -158,6 +166,10 @@ public class MainMenuController {
                                TimesheetEntryController timesheetEntryScreen,
                                PayRunProcessingController payRunProcessingScreen,
                                AbaPaymentController abaPaymentScreen,
+                               GeneralJournalController generalJournalScreen,
+                               JournalInquiryController journalInquiryScreen,
+                               ChartOfAccountsController chartOfAccountsScreen,
+                               SubAccountCodesController subAccountCodesScreen,
                                com.landmarksoftware.ui.bas.BasGroupMaintenanceController basGroupScreen,
                                com.landmarksoftware.ui.bas.BasReasonCodeMaintenanceController basReasonCodeScreen,
                                com.landmarksoftware.ui.bas.BasTransactionMaintenanceController basTransactionScreen,
@@ -195,6 +207,10 @@ public class MainMenuController {
         this.timesheetEntryScreen  = timesheetEntryScreen;
         this.payRunProcessingScreen = payRunProcessingScreen;
         this.abaPaymentScreen      = abaPaymentScreen;
+        this.generalJournalScreen  = generalJournalScreen;
+        this.journalInquiryScreen  = journalInquiryScreen;
+        this.chartOfAccountsScreen = chartOfAccountsScreen;
+        this.subAccountCodesScreen = subAccountCodesScreen;
         this.basGroupScreen        = basGroupScreen;
         this.basReasonCodeScreen   = basReasonCodeScreen;
         this.basTransactionScreen  = basTransactionScreen;
@@ -498,8 +514,8 @@ public class MainMenuController {
 
         ModuleCard maint = new ModuleCard("#185FA5", "fth-bar-chart-2",
             "Maintenance", "Chart of accounts and journal entry");
-        maint.addRow("Chart of Accounts", null, false);
-        maint.addRow("Journal Entry", null, false);
+        maint.addRows(List.of(entry("GL", "GLGN01"), entry("GL", "GLGN01S"), entry("GL", "GLGN02"),
+            entry("GL", "CPCM01"), entry("GL", "GLNM01")));
         maint.addRow("Account Enquiry", null, false);
         grid.add(maint, 0, 0);
 
@@ -988,6 +1004,21 @@ public class MainMenuController {
             "Bulk Depn Change", "Mass depreciation parameter update"));
 
         // GL
+        allEntries.add(new MenuEntry("GL", "GLGN01", "Enter General Journal",
+            "Create and edit general journals (glgnhed/glgnlin)",
+            true, this::openGeneralJournal));
+        allEntries.add(new MenuEntry("GL", "GLGN01S", "Enter Standing Journal",
+            "Create and edit standing (recurring) journal templates",
+            true, this::openStandingJournal));
+        allEntries.add(new MenuEntry("GL", "GLGN02", "Journal Inquiry",
+            "Search and review journals; reverse a committed journal",
+            true, this::openJournalInquiry));
+        allEntries.add(new MenuEntry("GL", "CPCM01", "Chart of Accounts",
+            "Maintain main and sub accounts; Duplicate, Create and Change Name utilities",
+            true, this::openChartOfAccounts));
+        allEntries.add(new MenuEntry("GL", "GLNM01", "Sub Account Codes",
+            "Maintain the company-wide sub account code list",
+            true, this::openSubAccountCodes));
         allEntries.add(MenuEntry.placeholder("GL", "GLTL01", "Trial Balance", ""));
         allEntries.add(MenuEntry.placeholder("GL", "GLTL02", "Profit & Loss", ""));
         allEntries.add(MenuEntry.placeholder("GL", "GLTL03", "Balance Sheet", ""));
@@ -1262,6 +1293,36 @@ public class MainMenuController {
         Stage s = new Stage(); s.setTitle("Global Employee Award Update");
         s.setScene(globalAwardUpdateScreen.buildScene(s));
         s.setMinWidth(720); s.setMinHeight(580); s.show();
+    }
+
+    private void openGeneralJournal() {
+        Stage s = new Stage(); s.setTitle("Enter General Journal");
+        s.setScene(generalJournalScreen.buildScene(s, "G"));
+        s.setMinWidth(780); s.setMinHeight(560); s.show();
+    }
+
+    private void openStandingJournal() {
+        Stage s = new Stage(); s.setTitle("Enter Standing Journal");
+        s.setScene(generalJournalScreen.buildScene(s, "S"));
+        s.setMinWidth(780); s.setMinHeight(560); s.show();
+    }
+
+    private void openJournalInquiry() {
+        Stage s = new Stage(); s.setTitle("Journal Inquiry");
+        s.setScene(journalInquiryScreen.buildScene(s));
+        s.setMinWidth(900); s.setMinHeight(560); s.show();
+    }
+
+    private void openChartOfAccounts() {
+        Stage s = new Stage(); s.setTitle("Chart of Accounts Maintenance");
+        s.setScene(chartOfAccountsScreen.buildScene(s));
+        s.setMinWidth(820); s.setMinHeight(560); s.show();
+    }
+
+    private void openSubAccountCodes() {
+        Stage s = new Stage(); s.setTitle("Sub Account Codes");
+        s.setScene(subAccountCodesScreen.buildScene(s));
+        s.setMinWidth(520); s.setMinHeight(480); s.show();
     }
 
     private void openBasGroupMaintenance() {
