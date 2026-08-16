@@ -30,6 +30,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Landmark — JavaFX entry point wired to Spring Boot.
@@ -205,6 +206,7 @@ public class FixedAssetsApplication extends Application {
     }
 
     public static void main(String[] args) {
+        Locale.setDefault(new Locale("en", "AU"));
         launch(args);
     }
 }

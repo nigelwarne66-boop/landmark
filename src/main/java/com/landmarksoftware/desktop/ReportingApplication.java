@@ -14,9 +14,12 @@ package com.landmarksoftware.desktop;
 
 import javafx.application.Application;
 
+import java.util.Locale;
+
 public class ReportingApplication extends FixedAssetsApplication {
 
     public static void main(String[] args) {
+        Locale.setDefault(new Locale("en", "AU"));
         AppMode.current = AppMode.Mode.REPORTING;
         Application.launch(ReportingApplication.class, args);
     }

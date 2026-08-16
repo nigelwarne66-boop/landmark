@@ -360,14 +360,17 @@
                   </target>
                 </configuration>
               </execution>
-              <!-- Copy obf JAR over thin JAR in dist-input so jpackage uses the obfuscated build -->
+              <!-- Stage the compiled JAR into dist-input for jpackage.
+                   Using the plain JAR (not ProGuard obf) because ProGuard 7.7.0
+                   with JRE 1.8 library jars strips StackMapTable frames from
+                   JDK 21 bytecode, causing VerifyError at runtime. -->
               <execution>
                 <id>stage-obf-jar</id>
                 <phase>package</phase>
                 <goals><goal>run</goal></goals>
                 <configuration>
                   <target>
-                    <copy file="${project.build.directory}/${project.build.finalName}-obf.jar"
+                    <copy file="${project.build.directory}/${project.build.finalName}.jar"
                           tofile="${project.build.directory}/dist-input/${project.build.finalName}.jar"
                           overwrite="true"/>
                   </target>
@@ -445,6 +448,12 @@
                     <argument>--runtime-image</argument>
                     <argument>${project.build.directory}/runtime</argument>
                     <argument>--java-options</argument>
+                    <argument>-Duser.language=en</argument>
+                    <argument>--java-options</argument>
+                    <argument>-Duser.country=AU</argument>
+                    <argument>--java-options</argument>
+                    <argument>-Djava.locale.providers=CLDR,SPI</argument>
+                    <argument>--java-options</argument>
                     <argument>--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</argument>
                     <argument>--java-options</argument>
                     <argument>--add-opens=java.base/java.lang=ALL-UNNAMED</argument>
@@ -468,6 +477,171 @@
             <executions>
               <execution>
                 <id>copy-dist-inputs</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-resources</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/dist-input</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/deploy</directory>
+                      <includes>
+                        <include>config/**</include>
+                      </includes>
+                      <filtering>false</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Compas ERP distribution build:  mvn package -Pdist-main
+         Packages the FULL (main) app as "Compas ERP" — the reporting profile
+         is not needed here since jpackage's main class is set directly below.
+         Requires Liberica Full JDK 21 as JAVA_HOME (bundles JavaFX jmods).
+         Produces target/installer/Compas ERP/ (app-image; add an exe type
+         plus WiX 3.x for an installer, matching the "dist" profile above). -->
+    <profile>
+      <id>dist-main</id>
+      <build>
+        <plugins>
+
+          <!-- Dist pre-work: clean stale jlink dirs; stage obf JAR after ProGuard -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>clean-runtime-dir-main</id>
+                <phase>prepare-package</phase>
+                <goals><goal>run</goal></goals>
+                <configuration>
+                  <target>
+                    <delete dir="${project.build.directory}/runtime"   failonerror="false"/>
+                    <delete dir="${project.build.directory}/installer" failonerror="false"/>
+                  </target>
+                </configuration>
+              </execution>
+              <!-- Stage the compiled JAR into dist-input for jpackage.
+                   Using the plain JAR (not ProGuard obf) because ProGuard 7.7.0
+                   with JRE 1.8 library jars strips StackMapTable frames from
+                   JDK 21 bytecode, causing VerifyError at runtime. -->
+              <execution>
+                <id>stage-obf-jar-main</id>
+                <phase>package</phase>
+                <goals><goal>run</goal></goals>
+                <configuration>
+                  <target>
+                    <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                          tofile="${project.build.directory}/dist-input/${project.build.finalName}.jar"
+                          overwrite="true"/>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Copy all runtime dependency JARs into dist-input for jpackage classpath -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-runtime-deps-main</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-dependencies</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/dist-input</outputDirectory>
+                  <includeScope>runtime</includeScope>
+                  <overWriteReleases>false</overWriteReleases>
+                  <overWriteSnapshots>false</overWriteSnapshots>
+                  <overWriteIfNewer>true</overWriteIfNewer>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.3.0</version>
+            <executions>
+
+              <!-- Step 1: jlink — create minimal bundled JRE with JavaFX -->
+              <execution>
+                <id>jlink-main</id>
+                <phase>package</phase>
+                <goals><goal>exec</goal></goals>
+                <configuration>
+                  <executable>jlink</executable>
+                  <arguments>
+                    <argument>--module-path</argument>
+                    <argument>${java.home}/jmods</argument>
+                    <argument>--add-modules</argument>
+                    <argument>java.base,java.sql,java.naming,java.management,java.logging,java.desktop,java.net.http,java.xml,java.security.jgss,java.instrument,javafx.controls,javafx.fxml,javafx.graphics,javafx.base</argument>
+                    <argument>--output</argument>
+                    <argument>${project.build.directory}/runtime</argument>
+                    <argument>--compress=2</argument>
+                    <argument>--no-header-files</argument>
+                    <argument>--no-man-pages</argument>
+                    <argument>--strip-debug</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+
+              <!-- Step 2: jpackage — wrap JAR + runtime into a Compas ERP app image -->
+              <execution>
+                <id>jpackage-main</id>
+                <phase>package</phase>
+                <goals><goal>exec</goal></goals>
+                <configuration>
+                  <executable>jpackage</executable>
+                  <arguments>
+                    <argument>--name</argument>
+                    <argument>Compas ERP</argument>
+                    <argument>--app-version</argument>
+                    <argument>1.0.0</argument>
+                    <argument>--input</argument>
+                    <argument>${project.build.directory}/dist-input</argument>
+                    <argument>--main-jar</argument>
+                    <argument>${project.build.finalName}.jar</argument>
+                    <argument>--main-class</argument>
+                    <argument>com.landmarksoftware.desktop.FixedAssetsApplication</argument>
+                    <argument>--runtime-image</argument>
+                    <argument>${project.build.directory}/runtime</argument>
+                    <argument>--java-options</argument>
+                    <argument>-Duser.language=en</argument>
+                    <argument>--java-options</argument>
+                    <argument>-Duser.country=AU</argument>
+                    <argument>--java-options</argument>
+                    <argument>-Djava.locale.providers=CLDR,SPI</argument>
+                    <argument>--java-options</argument>
+                    <argument>--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</argument>
+                    <argument>--java-options</argument>
+                    <argument>--add-opens=java.base/java.lang=ALL-UNNAMED</argument>
+                    <argument>--type</argument>
+                    <argument>app-image</argument>
+                    <argument>--icon</argument>
+                    <argument>${project.basedir}/deploy/landmark.ico</argument>
+                    <argument>--dest</argument>
+                    <argument>${project.build.directory}/installer</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+
+            </executions>
+          </plugin>
+
+          <!-- Copy per-client config template into dist-input so it lands in app/config/ -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-dist-inputs-main</id>
                 <phase>prepare-package</phase>
                 <goals><goal>copy-resources</goal></goals>
                 <configuration>
