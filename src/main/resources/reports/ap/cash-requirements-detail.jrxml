@@ -86,8 +86,8 @@
     <band height="12">
       <textField><reportElement x="4" y="1" width="34" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
       <textField><reportElement x="40" y="1" width="90" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="132" y="1" width="58" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="192" y="1" width="58" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{dueDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="132" y="1" width="58" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="192" y="1" width="58" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{dueDate}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="252" y="1" width="74" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{mustPay}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="328" y="1" width="74" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{promptPay}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="404" y="1" width="74" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{overdue}]]></textFieldExpression></textField>
@@ -100,7 +100,7 @@
 
   <pageFooter>
     <band height="16">
-      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
       <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
     </band>
   </pageFooter>

@@ -86,7 +86,7 @@
       <staticText><reportElement x="0" y="0" width="560" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Detailed Transaction Listing]]></text></staticText>
       <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
       <textField><reportElement x="0" y="38" width="600" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$P{SUPP_RANGE} + "  •  " + $P{SUB_LEDGER_DESC} + "  •  " + $P{DATE_BASIS_DESC} + "  •  " + $P{DATE_RANGE}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
@@ -111,12 +111,12 @@
       <printWhenExpression><![CDATA["T".equals($F{rowType})]]></printWhenExpression>
       <textField><reportElement x="4" y="1" width="34" height="11"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
       <textField><reportElement x="40" y="1" width="24" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentFlag}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="66" y="1" width="58" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="66" y="1" width="58" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
       <textField><reportElement x="126" y="1" width="90" height="11"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="218" y="1" width="80" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{transAmt}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="300" y="1" width="64" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentAmt}]]></textFieldExpression></textField>
       <textField><reportElement x="366" y="1" width="80" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="448" y="1" width="78" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="448" y="1" width="78" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="568" y="1" width="210" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{transRef}]]></textFieldExpression></textField>
     </band>
     <!-- distribution line row -->
@@ -136,7 +136,7 @@
 
   <pageFooter>
     <band height="16">
-      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
       <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
     </band>
   </pageFooter>

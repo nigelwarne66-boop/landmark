@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="detailed-transaction-listing-excel"
-              pageWidth="2560" pageHeight="595" orientation="Landscape"
-              columnWidth="2520" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="2520" pageHeight="595" orientation="Landscape"
+              columnWidth="2520" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -92,7 +92,7 @@
       <textField><reportElement x="0"    y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{custNo}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="70" y="0" width="170" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
       <textField><reportElement x="240"  y="0" width="50"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{status}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="290"  y="0" width="64"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="290"  y="0" width="64"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
       <textField><reportElement x="354"  y="0" width="44"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
       <textField><reportElement x="398"  y="0" width="110" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="508"  y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{termsDesc}]]></textFieldExpression></textField>

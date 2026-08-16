@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="orders-in-sequence-excel"
-              pageWidth="1500" pageHeight="595" orientation="Landscape"
-              columnWidth="1460" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1460" pageHeight="595" orientation="Landscape"
+              columnWidth="1460" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -86,14 +86,14 @@
     <band height="14">
       <textField pattern="#0"><reportElement x="0" y="0" width="60" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
       <textField pattern="#0"><reportElement x="60" y="0" width="40" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="100" y="0" width="70" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="100" y="0" width="70" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poDate}]]></textFieldExpression></textField>
       <textField><reportElement x="170" y="0" width="70" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
       <textField><reportElement x="240" y="0" width="180" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierName}]]></textFieldExpression></textField>
       <textField><reportElement x="420" y="0" width="60" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poStatus}]]></textFieldExpression></textField>
       <textField><reportElement x="480" y="0" width="110" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
       <textField><reportElement x="590" y="0" width="220" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
       <textField><reportElement x="810" y="0" width="50" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{delivLoc}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="860" y="0" width="70" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{delivDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="860" y="0" width="70" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{delivDate}]]></textFieldExpression></textField>
       <textField><reportElement x="930" y="0" width="40" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineType}]]></textFieldExpression></textField>
       <textField><reportElement x="970" y="0" width="70" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcct}]]></textFieldExpression></textField>
       <textField><reportElement x="1040" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ledger}]]></textFieldExpression></textField>

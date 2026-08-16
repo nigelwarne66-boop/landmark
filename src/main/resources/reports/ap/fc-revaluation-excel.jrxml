@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="fc-revaluation-excel"
-              pageWidth="1540" pageHeight="595" orientation="Landscape"
-              columnWidth="1500" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1500" pageHeight="595" orientation="Landscape"
+              columnWidth="1500" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -87,8 +87,8 @@
       <textField><reportElement x="360"  y="0" width="30"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentFlag}]]></textFieldExpression></textField>
       <textField><reportElement x="390"  y="0" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
       <textField><reportElement x="490"  y="0" width="40"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{seqNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="530" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="594" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="530" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="594" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
       <textField><reportElement x="658"  y="0" width="50"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reconNo}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="708"  y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docAmt}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="782"  y="0" width="64" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentAmt}]]></textFieldExpression></textField>
@@ -98,7 +98,7 @@
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1056" y="0" width="64" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{discTaken}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1120" y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{trxBal}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1194" y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{fcAmt}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="1268" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{revalDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="1268" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{revalDate}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1332" y="0" width="80" height="14"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{revalAmt}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1412" y="0" width="80" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{revalFluct}]]></textFieldExpression></textField>
     </band>

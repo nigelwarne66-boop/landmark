@@ -67,7 +67,7 @@
       <textField isStretchWithOverflow="true"><reportElement x="580"  y="0" width="130" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{surname}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="710"  y="0" width="110" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{firstName}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="820"  y="0" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{maskedTfn}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="920"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunDate}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd-MM-yyyy"><reportElement x="920"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunDate}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="1010" y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{beforeAfterTax}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="1080" y="0" width="320" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
     </band>

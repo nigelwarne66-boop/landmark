@@ -35,7 +35,7 @@
       <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Document Number Register]]></text></staticText>
       <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
       <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA["Sequence: " + $P{REPORT_SEQ_DESC} + "   Doc range: " + $P{DOC_RANGE} + "   Date range: " + $P{DATE_RANGE}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="38" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy HH:mm"><reportElement x="600" y="38" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
@@ -58,7 +58,7 @@
   <detail>
     <band height="14">
       <textField><reportElement x="2"   y="1" width="70"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="74"  y="1" width="60"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="74"  y="1" width="60"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
       <textField><reportElement x="136" y="1" width="30"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
       <textField><reportElement x="168" y="1" width="60"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{custNo}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="230" y="1" width="150" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
@@ -72,7 +72,7 @@
 
   <pageFooter>
     <band height="16">
-      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
       <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
     </band>
   </pageFooter>

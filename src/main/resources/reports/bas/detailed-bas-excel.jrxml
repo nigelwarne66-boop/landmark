@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="detailed-bas-excel"
-              pageWidth="1100" pageHeight="595" orientation="Landscape"
-              columnWidth="1060" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1060" pageHeight="595" orientation="Landscape"
+              columnWidth="1060" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -61,8 +61,8 @@
     <band height="14">
       <textField><reportElement x="0"   y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basCode}]]></textFieldExpression></textField>
       <textField><reportElement x="70"  y="0" width="200" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{codeDesc}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="270" y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{trxDate}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="350" y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postingDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="270" y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{trxDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="350" y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postingDate}]]></textFieldExpression></textField>
       <textField><reportElement x="430" y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{gstCode}]]></textFieldExpression></textField>
       <textField><reportElement x="490" y="0" width="200" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{party}]]></textFieldExpression></textField>
       <textField><reportElement x="690" y="0" width="130" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>

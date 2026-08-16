@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="salesperson-profitability-excel"
-              pageWidth="2000" pageHeight="595" orientation="Landscape"
-              columnWidth="1960" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1960" pageHeight="595" orientation="Landscape"
+              columnWidth="1960" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -81,7 +81,7 @@
       <textField isStretchWithOverflow="true"><reportElement x="370" y="0" width="200" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
       <textField><reportElement x="570"  y="0" width="45"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
       <textField><reportElement x="615"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="705" y="0" width="80" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="705" y="0" width="80" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="785"  y="0" width="120" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{saleAmt}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="905"  y="0" width="120" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{costAmt}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1025" y="0" width="120" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{grossProfit}]]></textFieldExpression></textField>

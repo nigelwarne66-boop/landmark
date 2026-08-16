@@ -62,7 +62,7 @@
         <textElement><font size="9"/></textElement>
         <textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  Active assets only"]]></textFieldExpression>
       </textField>
-      <textField pattern="dd/MM/yyyy">
+      <textField pattern="dd-MM-yyyy">
         <reportElement x="650" y="20" width="132" height="14"/>
         <textElement textAlignment="Right"><font size="9"/></textElement>
         <textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
@@ -93,7 +93,7 @@
       <textField isStretchWithOverflow="true"><reportElement x="88"  y="1" width="200" height="13"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{desc_1}]]></textFieldExpression></textField>
       <textField><reportElement x="292" y="1" width="110" height="13"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{grp_desc}]]></textFieldExpression></textField>
       <textField><reportElement x="406" y="1" width="80"  height="13"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{loc_desc}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="490" y="1" width="70"  height="13"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acqn_date}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="490" y="1" width="70"  height="13"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acqn_date}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00"><reportElement x="564" y="1" width="70"  height="13"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{actual_cost}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00"><reportElement x="638" y="1" width="70"  height="13"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{accum_book_depn}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00"><reportElement x="712" y="1" width="66"  height="13"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{net_book_value}]]></textFieldExpression></textField>

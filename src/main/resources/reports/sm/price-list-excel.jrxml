@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="price-list-excel"
-              pageWidth="1500" pageHeight="595" orientation="Landscape"
-              columnWidth="1460" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1460" pageHeight="595" orientation="Landscape"
+              columnWidth="1460" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -60,7 +60,7 @@
       <textField><reportElement x="540"  y="0" width="140" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{productType}]]></textFieldExpression></textField>
       <textField><reportElement x="680"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{locNo}]]></textFieldExpression></textField>
       <textField><reportElement x="760"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{currency}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="840"  y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{effectiveDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="840"  y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{effectiveDate}]]></textFieldExpression></textField>
       <textField pattern="#,##0.0000"><reportElement x="960"  y="0" width="250" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{recommendedPrice}]]></textFieldExpression></textField>
       <textField pattern="#,##0.0000"><reportElement x="1210" y="0" width="250" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{wholesalePrice}]]></textFieldExpression></textField>
     </band>

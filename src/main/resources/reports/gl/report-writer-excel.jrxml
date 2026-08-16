@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="report-writer-excel"
-              pageWidth="1400" pageHeight="595" orientation="Landscape"
-              columnWidth="1340" leftMargin="30" rightMargin="30"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1340" pageHeight="595" orientation="Landscape"
+              columnWidth="1340" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -94,7 +94,7 @@
   <columnHeader>
     <band height="20">
       <rectangle><reportElement x="0" y="0" width="1340" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <staticText><reportElement x="0"    y="4" width="244" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="0"    y="4" width="246" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
       <textField><reportElement x="246"  y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{COL_HEAD_01}]]></textFieldExpression></textField>
       <textField><reportElement x="328"  y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{COL_HEAD_02}]]></textFieldExpression></textField>
       <textField><reportElement x="410"  y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{COL_HEAD_03}]]></textFieldExpression></textField>
@@ -116,7 +116,7 @@
       <rectangle><reportElement x="0" y="0" width="1340" height="14" backcolor="#506680" forecolor="#506680"><printWhenExpression><![CDATA["header".equals($F{rowKind})]]></printWhenExpression></reportElement><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
       <rectangle><reportElement x="0" y="0" width="1340" height="14" backcolor="#e2ecf6" forecolor="#e2ecf6"><printWhenExpression><![CDATA["subtotal".equals($F{rowKind})]]></printWhenExpression></reportElement><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
       <rectangle><reportElement x="0" y="0" width="1340" height="14" backcolor="#1e2d45" forecolor="#1e2d45"><printWhenExpression><![CDATA["total".equals($F{rowKind})]]></printWhenExpression></reportElement><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <textField isStretchWithOverflow="true"><reportElement style="rowLabel" x="0" y="1" width="244" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$F{rowLabel}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement style="rowLabel" x="0" y="1" width="246" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$F{rowLabel}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement style="rowNum" x="246"  y="1" width="80"  height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{col_01}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement style="rowNum" x="328"  y="1" width="80"  height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{col_02}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement style="rowNum" x="410"  y="1" width="80"  height="12"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[$F{col_03}]]></textFieldExpression></textField>
@@ -139,7 +139,7 @@
 
   <summary>
     <band height="22">
-      <textField><reportElement x="0" y="6" width="246" height="12"/><textElement><font size="10" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) — " + ($P{COL_COUNT}==null?0:$P{COL_COUNT}) + " column(s)"]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="6" width="1340" height="12"/><textElement><font size="10" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) — " + ($P{COL_COUNT}==null?0:$P{COL_COUNT}) + " column(s)"]]></textFieldExpression></textField>
     </band>
   </summary>
 

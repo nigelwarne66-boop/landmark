@@ -80,7 +80,7 @@
       <textField isStretchWithOverflow="true"><reportElement x="500"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{pay_freq}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.0000"><reportElement x="580"  y="0" width="180" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{std_rate_per_hr}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="760"  y="0" width="180" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{annual_salary}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="940"  y="0" width="130" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{date_started}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd-MM-yyyy"><reportElement x="940"  y="0" width="130" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{date_started}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="1070" y="0" width="530" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{email_address}]]></textFieldExpression></textField>
     </band>
   </detail>

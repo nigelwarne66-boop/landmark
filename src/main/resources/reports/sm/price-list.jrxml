@@ -32,7 +32,7 @@
       <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Price List]]></text></staticText>
       <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{LOC_DESC} + "  •  " + $P{EFF_DESC}]]></textFieldExpression></textField>
       <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$P{ITEM_RANGE} + "  •  " + $P{PTYPE_RANGE}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
@@ -57,7 +57,7 @@
       <textField><reportElement x="314" y="1" width="60"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{productType}]]></textFieldExpression></textField>
       <textField><reportElement x="374" y="1" width="40"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{locNo}]]></textFieldExpression></textField>
       <textField><reportElement x="414" y="1" width="40"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{currency}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="454" y="1" width="70"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{effectiveDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="454" y="1" width="70"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{effectiveDate}]]></textFieldExpression></textField>
       <textField pattern="#,##0.0000"><reportElement x="524" y="1" width="128" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{recommendedPrice}]]></textFieldExpression></textField>
       <textField pattern="#,##0.0000"><reportElement x="652" y="1" width="130" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{wholesalePrice}]]></textFieldExpression></textField>
     </band>
@@ -65,7 +65,7 @@
 
   <pageFooter>
     <band height="16">
-      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
       <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
     </band>
   </pageFooter>

@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="transactions-by-customer-excel"
-              pageWidth="1600" pageHeight="595" orientation="Landscape"
-              columnWidth="1560" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1560" pageHeight="595" orientation="Landscape"
+              columnWidth="1560" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -74,7 +74,7 @@
       <textField><reportElement x="340"  y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
       <textField><reportElement x="460"  y="0" width="220" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
       <textField><reportElement x="680"  y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{locNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="740"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{moveDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="740"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{moveDate}]]></textFieldExpression></textField>
       <textField><reportElement x="830"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{kind}]]></textFieldExpression></textField>
       <textField><reportElement x="920"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
       <textField><reportElement x="1000" y="0" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>

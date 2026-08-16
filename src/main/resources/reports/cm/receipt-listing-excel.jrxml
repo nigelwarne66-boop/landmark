@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="receipt-listing-excel"
-              pageWidth="1080" pageHeight="595" orientation="Landscape"
-              columnWidth="1040" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1040" pageHeight="595" orientation="Landscape"
+              columnWidth="1040" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -53,7 +53,7 @@
   <detail>
     <band height="14">
       <textField pattern="#0"><reportElement x="0"   y="0" width="70"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="70"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="70"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
       <textField><reportElement x="150" y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{recptType}]]></textFieldExpression></textField>
       <textField><reportElement x="270" y="0" width="260" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{receivedFrom}]]></textFieldExpression></textField>
       <textField><reportElement x="530" y="0" width="200" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>

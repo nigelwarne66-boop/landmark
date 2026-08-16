@@ -78,8 +78,8 @@ import java.util.List;
 @Service
 public class DepreciationExportService {
 
-    private static final DateTimeFormatter FMT_DDMMYY   = DateTimeFormatter.ofPattern("dd/MM/yy");
-    private static final DateTimeFormatter FMT_DDMMYYYY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FMT_DDMMYY   = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    private static final DateTimeFormatter FMT_DDMMYYYY = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     // Column index constants (0-based)
     private static final int COL_ASSET_NO    = 0;

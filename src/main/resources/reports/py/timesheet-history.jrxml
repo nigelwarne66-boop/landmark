@@ -63,7 +63,7 @@
       <staticText><reportElement x="0" y="0" width="500" height="18"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Timesheet History]]></text></staticText>
       <textField isStretchWithOverflow="true"><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$P{DATE_RANGE}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd-MM-yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
@@ -85,7 +85,7 @@
   <detail>
     <band height="12">
       <textField isStretchWithOverflow="true"><reportElement x="4"   y="1" width="50"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunNo}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="58"  y="1" width="70"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunDate}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd-MM-yyyy"><reportElement x="58"  y="1" width="70"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunDate}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="132" y="1" width="60"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payCode}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="196" y="1" width="200" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{codeDesc}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="400" y="1" width="60"  height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{hours}]]></textFieldExpression></textField>
@@ -98,7 +98,7 @@
 
   <pageFooter>
     <band height="16">
-      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
     </band>
   </pageFooter>

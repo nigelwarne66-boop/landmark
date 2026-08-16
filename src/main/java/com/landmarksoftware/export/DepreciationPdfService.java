@@ -78,8 +78,8 @@ public class DepreciationPdfService {
     private static final float[] BLACK      = {0f, 0f, 0f};
     private static final float[] GREY_MED   = {0.4f, 0.4f, 0.4f};
 
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DateTimeFormatter FMT2 = DateTimeFormatter.ofPattern("dd/MM/yy");
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    private static final DateTimeFormatter FMT2 = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     // ── Entry point ───────────────────────────────────────────────────────
 

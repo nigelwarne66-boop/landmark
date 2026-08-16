@@ -63,7 +63,7 @@
     <band height="14">
       <textField isStretchWithOverflow="true"><reportElement x="0"    y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paygroup}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="80"   y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunNo}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="150"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunDate}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd-MM-yyyy"><reportElement x="150"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunDate}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="240"  y="0" width="60"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{empCount}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="300"  y="0" width="180" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{normalPay}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="480"  y="0" width="140" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{overtime}]]></textFieldExpression></textField>

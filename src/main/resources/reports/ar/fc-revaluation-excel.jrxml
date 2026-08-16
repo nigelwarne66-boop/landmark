@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="fc-revaluation-excel"
-              pageWidth="1640" pageHeight="595" orientation="Landscape"
-              columnWidth="1600" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1600" pageHeight="595" orientation="Landscape"
+              columnWidth="1600" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -78,14 +78,14 @@
       <textField><reportElement x="320"  y="0" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
       <textField><reportElement x="420"  y="0" width="44"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{seqNo}]]></textFieldExpression></textField>
       <textField><reportElement x="464"  y="0" width="44"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="508"  y="0" width="64"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="572"  y="0" width="64"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="508"  y="0" width="64"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="572"  y="0" width="64"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="636"  y="0" width="80"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtOrig}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="716"  y="0" width="74"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtPaid}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="790"  y="0" width="70"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{discTaken}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="860"  y="0" width="74"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{fluctAmt}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="934"  y="0" width="80"  height="14"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{balance}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="1014" y="0" width="64"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{revalDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="1014" y="0" width="64"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{revalDate}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1078" y="0" width="90"  height="14"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{revalAmt}]]></textFieldExpression></textField>
     </band>
   </detail>

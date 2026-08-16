@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="bas-transactions-excel"
-              pageWidth="1400" pageHeight="595" orientation="Landscape"
-              columnWidth="1360" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1360" pageHeight="595" orientation="Landscape"
+              columnWidth="1360" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -71,8 +71,8 @@
       <textField><reportElement x="0"    y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basGroup}]]></textFieldExpression></textField>
       <textField><reportElement x="60"   y="0" width="50"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basNo}]]></textFieldExpression></textField>
       <textField><reportElement x="110"  y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basCode}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="170"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{trxDate}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="250"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postingDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="170"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{trxDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="250"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postingDate}]]></textFieldExpression></textField>
       <textField><reportElement x="330"  y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{gstCode}]]></textFieldExpression></textField>
       <textField><reportElement x="390"  y="0" width="200" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{party}]]></textFieldExpression></textField>
       <textField><reportElement x="590"  y="0" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>

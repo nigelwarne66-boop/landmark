@@ -64,8 +64,8 @@ public class TransactionListPdfService {
     private static final float[] GREY_MED   = {0.4f, 0.4f, 0.4f};
     private static final float[] AMBER      = {0.95f, 0.75f, 0.1f};
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yy");
-    private static final DateTimeFormatter DATE_FMT4 = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    private static final DateTimeFormatter DATE_FMT4 = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     // ── Entry point ───────────────────────────────────────────────────
 

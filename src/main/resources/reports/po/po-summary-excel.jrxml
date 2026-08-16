@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="po-summary-excel"
-              pageWidth="1400" pageHeight="595" orientation="Landscape"
-              columnWidth="1360" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1360" pageHeight="595" orientation="Landscape"
+              columnWidth="1360" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -64,7 +64,7 @@
   <detail>
     <band height="14">
       <textField pattern="#0"><reportElement x="0" y="0" width="60" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="60" y="0" width="80" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="60" y="0" width="80" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poDate}]]></textFieldExpression></textField>
       <textField><reportElement x="140" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
       <textField><reportElement x="230" y="0" width="250" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierName}]]></textFieldExpression></textField>
       <textField><reportElement x="480" y="0" width="80" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poStatus}]]></textFieldExpression></textField>

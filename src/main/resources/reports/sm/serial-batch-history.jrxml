@@ -26,7 +26,7 @@
     <band height="42">
       <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Serial / Batch History]]></text></staticText>
       <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
@@ -48,7 +48,7 @@
       <textField><reportElement x="4"   y="1" width="100" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
       <textField><reportElement x="104" y="1" width="100" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{serialNo}]]></textFieldExpression></textField>
       <textField><reportElement x="204" y="1" width="50"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{locNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="254" y="1" width="70"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{moveDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="254" y="1" width="70"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{moveDate}]]></textFieldExpression></textField>
       <textField><reportElement x="324" y="1" width="80"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{kind}]]></textFieldExpression></textField>
       <textField><reportElement x="404" y="1" width="100" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
       <textField pattern="#,##0.000"><reportElement x="504" y="1" width="274" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qty}]]></textFieldExpression></textField>
@@ -57,7 +57,7 @@
 
   <pageFooter>
     <band height="16">
-      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
       <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
     </band>
   </pageFooter>

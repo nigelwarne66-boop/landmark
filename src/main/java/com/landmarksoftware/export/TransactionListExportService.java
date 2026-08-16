@@ -43,7 +43,7 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class TransactionListExportService {
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private static final String[] HEADERS = {
         "AssetNo", "Description", "Location", "Dept", "Group", "SubGroup",
         "TrxDate", "TrxType", "Batch",

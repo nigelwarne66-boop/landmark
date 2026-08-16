@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="sundries-reconcile-excel"
-              pageWidth="1300" pageHeight="595" orientation="Landscape"
-              columnWidth="1260" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1260" pageHeight="595" orientation="Landscape"
+              columnWidth="1260" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -60,8 +60,8 @@
       <textField><reportElement x="0" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
       <textField><reportElement x="90" y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
       <textField><reportElement x="210" y="0" width="60" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="270" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="360" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postingDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="270" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="360" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postingDate}]]></textFieldExpression></textField>
       <textField pattern="#0"><reportElement x="450" y="0" width="70" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="520" y="0" width="250" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{matchedValue}]]></textFieldExpression></textField>
       <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="770" y="0" width="250" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{adjustValue}]]></textFieldExpression></textField>

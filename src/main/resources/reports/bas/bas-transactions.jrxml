@@ -39,7 +39,7 @@
       <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[BAS Transactions]]></text></staticText>
       <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  BAS: " + ($P{BAS_DESC}==null?"":$P{BAS_DESC})]]></textFieldExpression></textField>
       <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[($P{DATE_BASIS_DESC}==null?"":$P{DATE_BASIS_DESC}) + "  —  " + ($P{DATE_RANGE}==null?"":$P{DATE_RANGE})]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
@@ -64,7 +64,7 @@
       <textField><reportElement x="4"   y="1" width="34"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basGroup}]]></textFieldExpression></textField>
       <textField><reportElement x="40"  y="1" width="30"  height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basNo}]]></textFieldExpression></textField>
       <textField><reportElement x="72"  y="1" width="46"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{basCode}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="120" y="1" width="66"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{trxDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="120" y="1" width="66"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{trxDate}]]></textFieldExpression></textField>
       <textField><reportElement x="188" y="1" width="40"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{gstCode}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="230" y="1" width="150" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{party}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="382" y="1" width="120" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>
@@ -76,7 +76,7 @@
 
   <pageFooter>
     <band height="16">
-      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
       <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
     </band>
   </pageFooter>

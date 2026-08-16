@@ -83,8 +83,8 @@
   <detail>
     <band height="14">
       <textField isStretchWithOverflow="true"><reportElement x="0"    y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrun_no}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="80"   y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrun_date}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="200"  y="0" width="130" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paymt_date}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd-MM-yyyy"><reportElement x="80"   y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrun_date}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd-MM-yyyy"><reportElement x="200"  y="0" width="130" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paymt_date}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="330"  y="0" width="80"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{no_of_employees_paid}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="410"  y="0" width="280" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{gross_pay}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="690"  y="0" width="240" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{tax_withheld}]]></textFieldExpression></textField>

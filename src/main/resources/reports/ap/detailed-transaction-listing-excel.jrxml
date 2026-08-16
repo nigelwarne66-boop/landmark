@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="detailed-transaction-listing-excel"
-              pageWidth="2440" pageHeight="595" orientation="Landscape"
-              columnWidth="2400" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="2400" pageHeight="595" orientation="Landscape"
+              columnWidth="2400" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -108,10 +108,10 @@
       <textField isStretchWithOverflow="true"><reportElement x="260" y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedgerName}]]></textFieldExpression></textField>
       <textField><reportElement x="380"  y="0" width="44"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
       <textField><reportElement x="424"  y="0" width="32"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentFlag}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="456" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="456" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
       <textField><reportElement x="520"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="610" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="674" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{dueDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="610" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="674" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{dueDate}]]></textFieldExpression></textField>
       <textField><reportElement x="738"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="818" y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{transRef}]]></textFieldExpression></textField>
       <textField><reportElement x="938"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{abn}]]></textFieldExpression></textField>

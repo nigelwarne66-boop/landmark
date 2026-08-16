@@ -56,9 +56,9 @@ public class EmployeePdfService {
     private static final float[] GREY       = {0.45f, 0.45f, 0.45f};
 
     private static final DateTimeFormatter DATE_FMT =
-        DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private static final DateTimeFormatter STAMP_FMT =
-        DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
 
     public void export(Employee emp, List<EmployeePay> splits,
                         String companyName, int companyNo,

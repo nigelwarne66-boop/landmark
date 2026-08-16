@@ -4,9 +4,9 @@
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
               http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
               name="commission-excel"
-              pageWidth="2000" pageHeight="595" orientation="Landscape"
-              columnWidth="1960" leftMargin="20" rightMargin="20"
-              topMargin="20" bottomMargin="20"
+              pageWidth="1960" pageHeight="595" orientation="Landscape"
+              columnWidth="1960" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
               whenNoDataType="AllSectionsNoDetail">
 
   <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
@@ -74,7 +74,7 @@
     <band height="14">
       <textField><reportElement x="0"    y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{salesman}]]></textFieldExpression></textField>
       <textField><reportElement x="80"   y="0" width="200" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{salesmanName}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="280" y="0" width="80" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="280" y="0" width="80" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
       <textField><reportElement x="360"  y="0" width="50"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
       <textField><reportElement x="410"  y="0" width="40"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentFlag}]]></textFieldExpression></textField>
       <textField><reportElement x="450"  y="0" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>

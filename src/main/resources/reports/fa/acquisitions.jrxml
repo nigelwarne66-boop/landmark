@@ -99,7 +99,7 @@
     <band height="50">
       <staticText><reportElement x="0" y="0" width="782" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Acquisitions & Retirements]]></text></staticText>
       <textField><reportElement x="0" y="22" width="600" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{YEAR_DESC}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="660" y="22" width="122" height="14"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="660" y="22" width="122" height="14"/><textElement textAlignment="Right"><font size="9"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
@@ -123,7 +123,7 @@
     <band height="14">
       <textField><reportElement x="4"   y="1" width="64"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{asset_no}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="72" y="1" width="150" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{desc_1}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="226" y="1" width="56" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{event_date}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="226" y="1" width="56" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{event_date}]]></textFieldExpression></textField>
       <textField><reportElement x="286" y="1" width="30"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{event_type}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="320" y="1" width="90" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{grp_desc}]]></textFieldExpression></textField>
       <textField isStretchWithOverflow="true"><reportElement x="414" y="1" width="66" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{loc_desc}]]></textFieldExpression></textField>
