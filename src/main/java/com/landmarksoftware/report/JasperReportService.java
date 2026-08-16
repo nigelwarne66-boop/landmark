@@ -99,23 +99,23 @@ public class JasperReportService {
 
     /**
      * Set Excel-exclude properties on the JasperPrint so the exporter
-     * trims out per-page repeats. Setting on JasperPrint (not just the
-     * jrxml) is the reliable path — .jrxml properties don't always
-     * carry through to the Excel exporter.
+     * trims out per-page repeats.
+     *
+     * Each Excel jrxml already declares band.1=pageFooter and band.2=title via
+     * its own &lt;property&gt; elements. We use band indices 3+ here so we do NOT
+     * override those jrxml settings (overwriting band.1/band.2 from Java would
+     * silently drop the title exclusion and show the title in every Excel output).
+     * band.3=pageHeader is a safety net for the rare report that has a page header.
      */
     private void configureExcelExclusions(JasperPrint print) {
-        // Keep column header only on the first page.
+        // Keep column header only on the first page (matches every Excel jrxml's keep.first.band.1).
         print.setProperty(
             "net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1",
             "columnHeader");
-        // Drop pageHeader / pageFooter entirely — page-boundary artefacts
-        // don't make sense in a single Excel sheet.
+        // Exclude pageHeader via a higher band index — jrxml owns band.1 (pageFooter) and band.2 (title).
         print.setProperty(
-            "net.sf.jasperreports.export.xls.exclude.origin.band.1",
+            "net.sf.jasperreports.export.xls.exclude.origin.band.3",
             "pageHeader");
-        print.setProperty(
-            "net.sf.jasperreports.export.xls.exclude.origin.band.2",
-            "pageFooter");
     }
 
     private byte[] runXlsxExport(JasperPrint print) throws Exception {
