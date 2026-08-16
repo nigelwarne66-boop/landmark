@@ -109,7 +109,6 @@
 .lm-nav-item {
     -fx-background-color: transparent;
     -fx-cursor: hand;
-    -fx-padding: 0;
 }
 .lm-nav-item:hover {
     -fx-background-color: -lm-border;
