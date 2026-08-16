@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="debtors-ageing-detail"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <!-- Row-kind styles: header = customer band, subtotal = customer total band -->
+  <style name="rowLabel" isBlankWhenNull="true">
+    <conditionalStyle>
+      <conditionExpression><![CDATA["header".equals($F{rowType})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#506680" forecolor="#ffffff" isBold="true"/>
+    </conditionalStyle>
+    <conditionalStyle>
+      <conditionExpression><![CDATA["subtotal".equals($F{rowType})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#e2ecf6" forecolor="#1e2d45" isBold="true"/>
+    </conditionalStyle>
+  </style>
+  <style name="rowNum" isBlankWhenNull="true">
+    <conditionalStyle>
+      <conditionExpression><![CDATA["header".equals($F{rowType})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#506680" forecolor="#506680"/>
+    </conditionalStyle>
+    <conditionalStyle>
+      <conditionExpression><![CDATA["subtotal".equals($F{rowType})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#e2ecf6" forecolor="#1e2d45" isBold="true"/>
+    </conditionalStyle>
+  </style>
+
+  <parameter name="COMPANY_NO"      class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME"    class="java.lang.String"/>
+  <parameter name="AS_AT_DATE"      class="java.lang.String" isForPrompting="false"/>
+  <parameter name="DATE_BASIS"      class="java.lang.String" isForPrompting="false"/>
+  <parameter name="AMT_BASIS"       class="java.lang.String" isForPrompting="false"/>
+  <parameter name="DATES_TYPE_DESC" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="PERIOD_1" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="PERIOD_2" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="PERIOD_3" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="PERIOD_4" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="CUST_COUNT"  class="java.lang.Integer"    isForPrompting="false"/>
+  <parameter name="GRAND_P1"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GRAND_P2"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GRAND_P3"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GRAND_P4"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GRAND_TOTAL" class="java.math.BigDecimal" isForPrompting="false"/>
+
+  <field name="rowType"     class="java.lang.String"/>
+  <field name="custNo"      class="java.lang.String"/>
+  <field name="name"        class="java.lang.String"/>
+  <field name="docDate"     class="java.sql.Date"/>
+  <field name="docTypeDesc" class="java.lang.String"/>
+  <field name="docNo"       class="java.lang.String"/>
+  <field name="ref"         class="java.lang.String"/>
+  <field name="p1"          class="java.math.BigDecimal"/>
+  <field name="p2"          class="java.math.BigDecimal"/>
+  <field name="p3"          class="java.math.BigDecimal"/>
+  <field name="p4"          class="java.math.BigDecimal"/>
+  <field name="total"       class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="58">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Debtors Ageing — Detail]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA["Aged by " + $P{DATE_BASIS} + " — " + $P{AMT_BASIS} + " — periods: " + $P{DATES_TYPE_DESC}]]></textFieldExpression></textField>
+      <staticText><reportElement x="600" y="22" width="80"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><text><![CDATA[As at:]]></text></staticText>
+      <textField><reportElement x="682" y="22" width="100" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{AS_AT_DATE}]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy HH:mm"><reportElement x="600" y="38" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="2"   y="4" width="62"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="66"  y="4" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="128" y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Document No]]></text></staticText>
+      <staticText><reportElement x="220" y="4" width="116" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Reference]]></text></staticText>
+      <textField><reportElement x="338" y="4" width="86"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{PERIOD_1}]]></textFieldExpression></textField>
+      <textField><reportElement x="426" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{PERIOD_2}]]></textFieldExpression></textField>
+      <textField><reportElement x="508" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{PERIOD_3}]]></textFieldExpression></textField>
+      <textField><reportElement x="590" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{PERIOD_4}]]></textFieldExpression></textField>
+      <staticText><reportElement x="672" y="4" width="110" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Total]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <!-- Single detail band — injected-rows pattern (header / txn / subtotal).
+       Background rectangles use element-level printWhenExpression; all textFields
+       carry isStretchWithOverflow="true" to dodge the Jasper 6.21 stretch bug. -->
+  <detail>
+    <band height="14">
+      <!-- Backgrounds -->
+      <rectangle>
+        <reportElement x="0" y="0" width="782" height="14" backcolor="#506680" forecolor="#506680">
+          <printWhenExpression><![CDATA["header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <graphicElement><pen lineWidth="0"/></graphicElement>
+      </rectangle>
+      <rectangle>
+        <reportElement x="0" y="0" width="782" height="14" backcolor="#e2ecf6" forecolor="#e2ecf6">
+          <printWhenExpression><![CDATA["subtotal".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <graphicElement><pen lineWidth="0"/></graphicElement>
+      </rectangle>
+
+      <!-- Customer header: "1234 — Customer Name" (header rows only) -->
+      <textField isStretchWithOverflow="true">
+        <reportElement style="rowLabel" x="2" y="1" width="334" height="12">
+          <printWhenExpression><![CDATA["header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{custNo} + "   —   " + $F{name}]]></textFieldExpression>
+      </textField>
+
+      <!-- Subtotal label (subtotal rows only) -->
+      <textField isStretchWithOverflow="true">
+        <reportElement style="rowLabel" x="2" y="1" width="334" height="12">
+          <printWhenExpression><![CDATA["subtotal".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement textAlignment="Right"><font size="8"/></textElement>
+        <textFieldExpression><![CDATA["Total for " + $F{custNo} + " :"]]></textFieldExpression>
+      </textField>
+
+      <!-- Transaction columns (txn rows only) -->
+      <textField pattern="dd-MM-yyyy" isStretchWithOverflow="true">
+        <reportElement x="2" y="1" width="62" height="12">
+          <printWhenExpression><![CDATA["txn".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression>
+      </textField>
+      <textField isStretchWithOverflow="true">
+        <reportElement x="66" y="1" width="60" height="12">
+          <printWhenExpression><![CDATA["txn".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{docTypeDesc}]]></textFieldExpression>
+      </textField>
+      <textField isStretchWithOverflow="true">
+        <reportElement x="128" y="1" width="90" height="12">
+          <printWhenExpression><![CDATA["txn".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression>
+      </textField>
+      <textField isStretchWithOverflow="true">
+        <reportElement x="220" y="1" width="116" height="12">
+          <printWhenExpression><![CDATA["txn".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{ref}]]></textFieldExpression>
+      </textField>
+
+      <!-- Ageing buckets — show for txn and subtotal rows (blank/zero suppressed by isBlankWhenNull on null) -->
+      <textField pattern="#,##0.00;(#,##0.00)" isStretchWithOverflow="true" isBlankWhenNull="true">
+        <reportElement style="rowNum" x="338" y="1" width="86" height="12">
+          <printWhenExpression><![CDATA[!"header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement textAlignment="Right"><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{p1}.signum()==0 ? null : $F{p1}]]></textFieldExpression>
+      </textField>
+      <textField pattern="#,##0.00;(#,##0.00)" isStretchWithOverflow="true" isBlankWhenNull="true">
+        <reportElement style="rowNum" x="426" y="1" width="80" height="12">
+          <printWhenExpression><![CDATA[!"header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement textAlignment="Right"><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{p2}.signum()==0 ? null : $F{p2}]]></textFieldExpression>
+      </textField>
+      <textField pattern="#,##0.00;(#,##0.00)" isStretchWithOverflow="true" isBlankWhenNull="true">
+        <reportElement style="rowNum" x="508" y="1" width="80" height="12">
+          <printWhenExpression><![CDATA[!"header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement textAlignment="Right"><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{p3}.signum()==0 ? null : $F{p3}]]></textFieldExpression>
+      </textField>
+      <textField pattern="#,##0.00;(#,##0.00)" isStretchWithOverflow="true" isBlankWhenNull="true">
+        <reportElement style="rowNum" x="590" y="1" width="80" height="12">
+          <printWhenExpression><![CDATA[!"header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement textAlignment="Right"><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{p4}.signum()==0 ? null : $F{p4}]]></textFieldExpression>
+      </textField>
+      <textField pattern="#,##0.00;(#,##0.00)" isStretchWithOverflow="true">
+        <reportElement style="rowNum" x="672" y="1" width="110" height="12">
+          <printWhenExpression><![CDATA[!"header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement textAlignment="Right"><font size="8" isBold="true"/></textElement>
+        <textFieldExpression><![CDATA[$F{total}]]></textFieldExpression>
+      </textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="30">
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="2" y="6" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{CUST_COUNT}==null?0:$P{CUST_COUNT}) + " customer(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="206" y="6" width="128" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total outstanding:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="338" y="6" width="86" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_P1}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="426" y="6" width="80" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_P2}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="508" y="6" width="80" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_P3}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="590" y="6" width="80" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_P4}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="672" y="6" width="110" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

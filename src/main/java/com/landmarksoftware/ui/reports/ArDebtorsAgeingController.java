@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ar.ArDataService;
 import com.landmarksoftware.service.ar.ArDataService.DebtorsAgeingParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -36,8 +37,10 @@ import java.util.ResourceBundle;
 @Scope("prototype")
 public class ArDebtorsAgeingController implements Initializable {
 
-    private static final String PDF_PATH   = "ar/debtors-ageing";
-    private static final String EXCEL_PATH = "ar/debtors-ageing-excel";
+    private static final String PDF_PATH          = "ar/debtors-ageing";
+    private static final String EXCEL_PATH        = "ar/debtors-ageing-excel";
+    private static final String PDF_DETAIL_PATH   = "ar/debtors-ageing-detail";
+    private static final String EXCEL_DETAIL_PATH = "ar/debtors-ageing-detail-excel";
 
     @Autowired private ReportsHubController hub;
     @Autowired private AppSession           session;
@@ -46,6 +49,7 @@ public class ArDebtorsAgeingController implements Initializable {
     @FXML private ComboBox<ArDataService.CodeName> subLedgerStart;
     @FXML private ComboBox<ArDataService.CodeName> subLedgerEnd;
     @FXML private ComboBox<LabelValue> printSeq;
+    @FXML private ComboBox<LabelValue> reportType;
     @FXML private ComboBox<ArDataService.CodeName> customerStart;
     @FXML private ComboBox<ArDataService.CodeName> customerEnd;
     @FXML private CheckBox sortDescBalance;
@@ -73,10 +77,16 @@ public class ArDebtorsAgeingController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(anchorDate, manual1, manual2, manual3, manual4);
         printSeq.setConverter(conv());
         printSeq.setItems(FXCollections.observableArrayList(
             new LabelValue("Customer number", "N"), new LabelValue("Alpha key", "A")));
         printSeq.getSelectionModel().selectFirst();
+
+        reportType.setConverter(conv());
+        reportType.setItems(FXCollections.observableArrayList(
+            new LabelValue("Summary", "S"), new LabelValue("Detail", "D")));
+        reportType.getSelectionModel().selectFirst();
 
         dateInd.setConverter(conv());
         dateInd.setItems(FXCollections.observableArrayList(
@@ -134,13 +144,15 @@ public class ArDebtorsAgeingController implements Initializable {
         List<LocalDate> manual = new ArrayList<>();
         for (DatePicker dp : List.of(manual1, manual2, manual3, manual4)) if (dp.getValue() != null) manual.add(dp.getValue());
 
+        boolean detail = "D".equals(val(reportType));
         DebtorsAgeingParams params = new DebtorsAgeingParams(
             code(subLedgerStart), code(subLedgerEnd),
             val(printSeq),
             code(customerStart), code(customerEnd),
             sortDescBalance.isSelected(), includeZeroBalance.isSelected(),
             val(dateInd), val(ageUnallocCr), val(grossNet),
-            val(datesType), anchorDate.getValue(), manual);
+            val(datesType), anchorDate.getValue(), manual,
+            detail ? "D" : "S");
 
         Map<String, Object> data = arData.getDebtorsAgeingData(session, params);
         if (data.get("warning") != null) {
@@ -153,7 +165,9 @@ public class ArDebtorsAgeingController implements Initializable {
             return;
         }
         Map<String, Object> jasperParams = new HashMap<>((Map<String, Object>) data.get("params"));
-        String reportPath = "excel".equals(format) ? EXCEL_PATH : PDF_PATH;
+        String reportPath = "excel".equals(format)
+            ? (detail ? EXCEL_DETAIL_PATH : EXCEL_PATH)
+            : (detail ? PDF_DETAIL_PATH   : PDF_PATH);
         Window owner = ((Node) e.getSource()).getScene().getWindow();
         hub.runJasperReportWithDataSource(reportPath, jasperParams,
             mapDataSource(rows), format, owner);

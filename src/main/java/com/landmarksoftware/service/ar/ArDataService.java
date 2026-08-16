@@ -173,7 +173,8 @@ public class ArDataService {
             String grossNet,                 // "G" gross | "N" net
             String datesType,                // "C" calendar | "P" acct periods | "W" weeks | "N" manual
             LocalDate anchorDate,            // latest/as-at date for C/P/W
-            List<LocalDate> manualPeriods) {} // 1–4 ascending dates for N
+            List<LocalDate> manualPeriods,   // 1–4 ascending dates for N
+            String reportType) {}            // "S" summary (one row/customer) | "D" detail (one row/transaction)
 
     /**
      * Debtors Ageing — port of COBOL ARTL32 (Aging Summary; one row per customer).
@@ -194,6 +195,7 @@ public class ArDataService {
         final List<LocalDate> bounds;
         try { bounds = computeAgeingBounds(s, p); }
         catch (IllegalArgumentException ex) { return warn(ex.getMessage()); }
+        if ("D".equalsIgnoreCase(p.reportType())) return getDebtorsAgeingDetail(s, p, bounds);
         final int nb = bounds.size();
         final LocalDate latest = bounds.get(nb - 1);
 
@@ -317,7 +319,7 @@ public class ArDataService {
             return ka.compareTo(kb);
         });
 
-        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         Map<String, Object> params = new LinkedHashMap<>();
         for (int i = 0; i < 4; i++) params.put("PERIOD_" + (i + 1), i < nb ? bounds.get(i).format(f) : "");
         params.put("AS_AT_DATE", latest.format(f));
@@ -325,6 +327,166 @@ public class ArDataService {
                                : "D".equalsIgnoreCase(p.dateInd()) ? "Due date" : "Document date");
         params.put("AMT_BASIS", isGross ? "Gross" : "Net outstanding");
         params.put("DATES_TYPE_DESC", agesTypeDesc(p.datesType()));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rows", rows);
+        result.put("params", params);
+        result.put("rowCount", rows.size());
+        return result;
+    }
+
+    /**
+     * Detail ageing (CMPASS-AGING-TYPE = "L") — one row per transaction, with injected
+     * customer header and subtotal rows, following the injected-rows Jasper pattern.
+     * rowType: "header" = customer name band, "txn" = transaction line, "subtotal" = customer totals.
+     */
+    private Map<String, Object> getDebtorsAgeingDetail(AppSession s, DebtorsAgeingParams p, List<LocalDate> bounds) {
+        final int nb = bounds.size();
+        final LocalDate latest = bounds.get(nb - 1);
+        boolean isGross = "G".equalsIgnoreCase(p.grossNet());
+        boolean alpha   = "A".equalsIgnoreCase(p.printSeq());
+
+        StringBuilder sql = new StringBuilder(
+            "SELECT c.cust_no, c.name_1, c.alpha_key, c.sub_ledger, " +
+            "       t.doc_date, t.posting_date, t.due_date, t.doc_type, t.doc_no, t.ref, " +
+            "       t.trx_status, t.fully_paid_flag, t.recon_no, " +
+            "       t.amt, t.retent_amt, t.amt_paid, t.disc_taken, t.for_curr_fluct_amt, " +
+            "       r.gross_bal, r.outstanding_bal, r.recon_no AS recon_found " +
+            "FROM arcusts c " +
+            "JOIN artrans t ON t.company_no=c.company_no AND t.cust_no=c.cust_no " +
+            "LEFT JOIN arrecon r ON r.company_no=t.company_no AND r.cust_no=t.cust_no AND r.recon_no=t.recon_no " +
+            "WHERE c.company_no=? AND t.trx_status<>'U' AND TRIM(t.archive_flag)='' ");
+        List<Object> args = new ArrayList<>();
+        args.add(s.getCompanyNo());
+        if (notBlank(p.subLedgerStart())) {
+            sql.append(" AND c.sub_ledger BETWEEN ? AND ? ");
+            args.add(p.subLedgerStart());
+            args.add(notBlank(p.subLedgerEnd()) ? p.subLedgerEnd() : "zzzz");
+        }
+        if (notBlank(p.customerStart())) {
+            sql.append(alpha ? " AND c.alpha_key BETWEEN ? AND ? " : " AND c.cust_no BETWEEN ? AND ? ");
+            args.add(p.customerStart());
+            args.add(notBlank(p.customerEnd()) ? p.customerEnd() : "zzzzzzzzzz");
+        }
+        sql.append(alpha ? " ORDER BY c.alpha_key, c.cust_no, t.doc_date, t.doc_type, t.doc_no "
+                         : " ORDER BY c.cust_no, t.doc_date, t.doc_type, t.doc_no ");
+
+        // Collect per-customer transaction lists in order.
+        Map<String, String[]>              custMeta  = new LinkedHashMap<>();  // custNo → [name, alphaKey, subLedger]
+        Map<String, List<Map<String,Object>>> custTxns = new LinkedHashMap<>();
+        String err = null;
+        try {
+            jdbc.query(sql.toString(), rs -> {
+                String docType = trim(rs.getString("doc_type"));
+                boolean fullyPaid = "Y".equalsIgnoreCase(trim(rs.getString("fully_paid_flag")));
+                if (!isGross && fullyPaid) return;
+
+                LocalDate ageDate;
+                if ("P".equalsIgnoreCase(p.dateInd()))      ageDate = ld(rs.getDate("posting_date"));
+                else if ("D".equalsIgnoreCase(p.dateInd())) ageDate = "P".equals(docType) ? ld(rs.getDate("doc_date")) : ld(rs.getDate("due_date"));
+                else                                         ageDate = ld(rs.getDate("doc_date"));
+                if (ageDate == null || ageDate.isAfter(latest)) return;
+
+                BigDecimal amt  = z(rs.getBigDecimal("amt")),  ret  = z(rs.getBigDecimal("retent_amt")),
+                           paid = z(rs.getBigDecimal("amt_paid")), disc = z(rs.getBigDecimal("disc_taken")),
+                           fcf  = z(rs.getBigDecimal("for_curr_fluct_amt"));
+                BigDecimal bal;
+                if ("P".equals(docType)) { bal = amt.add(disc); if (!isGross) bal = bal.subtract(paid); }
+                else { bal = amt.subtract(ret).subtract(fcf); if (!isGross) bal = bal.subtract(paid).subtract(disc); }
+                if (!isGross && rs.getObject("recon_found") != null
+                        && z(rs.getBigDecimal("gross_bal")).signum() == 0
+                        && z(rs.getBigDecimal("outstanding_bal")).signum() == 0) bal = BigDecimal.ZERO;
+                if (bal.signum() == 0) return;
+
+                String custNo = rs.getString("cust_no");
+                custMeta.putIfAbsent(custNo, new String[]{
+                    trim(rs.getString("name_1")), trim(rs.getString("alpha_key")), trim(rs.getString("sub_ledger"))});
+                custTxns.computeIfAbsent(custNo, k -> new ArrayList<>());
+
+                // Classify into bucket by the transaction's own ageing date. (The summary
+                // "age unallocated credits against oldest" roll-up isn't meaningful at the
+                // per-transaction line level, so every line ages by its own date here.)
+                int idx = nb - 1;
+                for (int i = 0; i < nb; i++) { if (!ageDate.isAfter(bounds.get(i))) { idx = i; break; } }
+                BigDecimal[] bkAmts = new BigDecimal[4];
+                Arrays.fill(bkAmts, BigDecimal.ZERO);
+                if (idx < 4) bkAmts[idx] = bal;
+
+                String docTypeDesc = switch (docType) {
+                    case "I" -> "Invoice"; case "D" -> "Dr Note"; case "C" -> "Cr Note";
+                    case "P" -> "Payment"; case "V" -> "Void"; default -> docType; };
+                LocalDate docDate = ld(rs.getDate("doc_date"));
+                Map<String, Object> txn = new LinkedHashMap<>();
+                txn.put("rowType", "txn");
+                txn.put("custNo", custNo);
+                txn.put("name", custMeta.get(custNo)[0]);
+                txn.put("docDate", docDate != null ? java.sql.Date.valueOf(docDate) : null);
+                txn.put("docTypeDesc", docTypeDesc);
+                txn.put("docNo", trim(rs.getString("doc_no")));
+                txn.put("ref",   trim(rs.getString("ref")));
+                txn.put("p1", bkAmts[0]); txn.put("p2", bkAmts[1]);
+                txn.put("p3", bkAmts[2]); txn.put("p4", bkAmts[3]);
+                txn.put("total", bal);
+                custTxns.get(custNo).add(txn);
+            }, args.toArray());
+        } catch (Exception e) {
+            log.error("getDebtorsAgeingDetail: {}", e.getMessage(), e);
+            err = e.getMessage();
+        }
+        if (err != null) return warn("Query failed: " + err);
+        if (custTxns.isEmpty()) return warn("No customers matched the selection.");
+
+        // Assemble output: header + txn rows + subtotal per customer.
+        List<Map<String, Object>> rows = new ArrayList<>();
+        BigDecimal[] grand = new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
+        int custCount = 0;
+        for (var entry : custTxns.entrySet()) {
+            String custNo = entry.getKey();
+            String[] meta = custMeta.get(custNo);
+            List<Map<String, Object>> txns = entry.getValue();
+
+            BigDecimal[] sub = {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
+            for (Map<String, Object> txn : txns) {
+                sub[0] = sub[0].add(z((BigDecimal) txn.get("p1")));
+                sub[1] = sub[1].add(z((BigDecimal) txn.get("p2")));
+                sub[2] = sub[2].add(z((BigDecimal) txn.get("p3")));
+                sub[3] = sub[3].add(z((BigDecimal) txn.get("p4")));
+            }
+            BigDecimal subTotal = sub[0].add(sub[1]).add(sub[2]).add(sub[3]);
+            if (!p.includeZeroBalance() && subTotal.signum() == 0) continue;
+            custCount++;
+            for (int i = 0; i < 4; i++) grand[i] = grand[i].add(sub[i]);
+            grand[4] = grand[4].add(subTotal);
+
+            Map<String, Object> hdr = new LinkedHashMap<>();
+            hdr.put("rowType", "header"); hdr.put("custNo", custNo); hdr.put("name", meta[0]);
+            hdr.put("docDate", null); hdr.put("docTypeDesc", ""); hdr.put("docNo", ""); hdr.put("ref", "");
+            hdr.put("p1", BigDecimal.ZERO); hdr.put("p2", BigDecimal.ZERO);
+            hdr.put("p3", BigDecimal.ZERO); hdr.put("p4", BigDecimal.ZERO); hdr.put("total", BigDecimal.ZERO);
+            rows.add(hdr);
+            rows.addAll(txns);
+
+            Map<String, Object> st = new LinkedHashMap<>();
+            st.put("rowType", "subtotal"); st.put("custNo", custNo); st.put("name", meta[0]);
+            st.put("docDate", null); st.put("docTypeDesc", ""); st.put("docNo", ""); st.put("ref", "");
+            st.put("p1", sub[0]); st.put("p2", sub[1]); st.put("p3", sub[2]); st.put("p4", sub[3]);
+            st.put("total", subTotal);
+            rows.add(st);
+        }
+        if (rows.isEmpty()) return warn("No customers matched the selection.");
+
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        Map<String, Object> params = new LinkedHashMap<>();
+        for (int i = 0; i < 4; i++) params.put("PERIOD_" + (i + 1), i < nb ? bounds.get(i).format(f) : "");
+        params.put("AS_AT_DATE", latest.format(f));
+        params.put("DATE_BASIS", "P".equalsIgnoreCase(p.dateInd()) ? "Posting date"
+                               : "D".equalsIgnoreCase(p.dateInd()) ? "Due date" : "Document date");
+        params.put("AMT_BASIS", isGross ? "Gross" : "Net outstanding");
+        params.put("DATES_TYPE_DESC", agesTypeDesc(p.datesType()));
+        params.put("CUST_COUNT", custCount);
+        params.put("GRAND_P1", grand[0]); params.put("GRAND_P2", grand[1]);
+        params.put("GRAND_P3", grand[2]); params.put("GRAND_P4", grand[3]);
+        params.put("GRAND_TOTAL", grand[4]);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("rows", rows);

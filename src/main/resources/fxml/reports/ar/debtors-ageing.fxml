@@ -32,6 +32,8 @@
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
                     <Label text="Print sequence" styleClass="sel-label" minWidth="140"/>
                     <ComboBox fx:id="printSeq" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Label text="Report type" styleClass="sel-label" minWidth="90"/>
+                    <ComboBox fx:id="reportType" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                 </HBox>
                 <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
                     <Label text="Customer from / to" styleClass="sel-label" minWidth="140"/>

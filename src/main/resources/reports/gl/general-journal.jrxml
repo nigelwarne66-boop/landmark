@@ -11,6 +11,28 @@
 
   <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
+  <!-- Row-kind styles: header = blue journal divider, total = navy journal total -->
+  <style name="jnlLabel" isBlankWhenNull="true">
+    <conditionalStyle>
+      <conditionExpression><![CDATA["header".equals($F{rowType})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#506680" forecolor="#ffffff" isBold="true"/>
+    </conditionalStyle>
+    <conditionalStyle>
+      <conditionExpression><![CDATA["total".equals($F{rowType})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#1e2d45" forecolor="#ffffff" isBold="true"/>
+    </conditionalStyle>
+  </style>
+  <style name="jnlNum" isBlankWhenNull="true">
+    <conditionalStyle>
+      <conditionExpression><![CDATA["header".equals($F{rowType})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#506680" forecolor="#506680"/>
+    </conditionalStyle>
+    <conditionalStyle>
+      <conditionExpression><![CDATA["total".equals($F{rowType})]]></conditionExpression>
+      <style mode="Opaque" backcolor="#1e2d45" forecolor="#ffffff" isBold="true"/>
+    </conditionalStyle>
+  </style>
+
   <parameter name="COMPANY_NAME"  class="java.lang.String"/>
   <parameter name="YEAR_DESC"     class="java.lang.String"     isForPrompting="false"/>
   <parameter name="SOURCE_DESC"   class="java.lang.String"     isForPrompting="false"/>
@@ -21,6 +43,7 @@
   <parameter name="SUM_CREDIT"    class="java.math.BigDecimal" isForPrompting="false"/>
   <parameter name="ROW_COUNT"     class="java.lang.Integer"    isForPrompting="false"/>
 
+  <field name="rowType"     class="java.lang.String"/>
   <field name="source"      class="java.lang.String"/>
   <field name="journal"     class="java.lang.String"/>
   <field name="jnlDate"     class="java.sql.Date"/>
@@ -32,49 +55,11 @@
   <field name="credit"      class="java.math.BigDecimal"/>
   <field name="user"        class="java.lang.String"/>
 
-  <variable name="JNL_DEBIT" class="java.math.BigDecimal"
-            resetType="Group" resetGroup="JournalGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{debit} == null ? java.math.BigDecimal.ZERO : $F{debit}]]></variableExpression>
-    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
-  </variable>
-  <variable name="JNL_CREDIT" class="java.math.BigDecimal"
-            resetType="Group" resetGroup="JournalGroup" calculation="Sum">
-    <variableExpression><![CDATA[$F{credit} == null ? java.math.BigDecimal.ZERO : $F{credit}]]></variableExpression>
-    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
-  </variable>
-
-  <group name="JournalGroup">
-    <groupExpression><![CDATA[$F{journal}]]></groupExpression>
-    <groupHeader>
-      <band height="16">
-        <rectangle><reportElement x="0" y="0" width="782" height="16" backcolor="#506680"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-        <textField>
-          <reportElement x="4" y="2" width="350" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#506680"/>
-          <textElement><font size="8" isBold="true"/></textElement>
-          <textFieldExpression><![CDATA[$F{journal}]]></textFieldExpression>
-        </textField>
-        <textField pattern="dd/MM/yyyy">
-          <reportElement x="358" y="2" width="70" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#506680"/>
-          <textElement><font size="8"/></textElement>
-          <textFieldExpression><![CDATA[$F{jnlDate}]]></textFieldExpression>
-        </textField>
-      </band>
-    </groupHeader>
-    <groupFooter>
-      <band height="16">
-        <rectangle><reportElement x="0" y="2" width="782" height="13" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-        <staticText><reportElement x="430" y="4" width="112" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Journal Total:]]></text></staticText>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="546" y="4" width="100" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{JNL_DEBIT}]]></textFieldExpression></textField>
-        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="650" y="4" width="100" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{JNL_CREDIT}]]></textFieldExpression></textField>
-      </band>
-    </groupFooter>
-  </group>
-
   <title>
     <band height="40">
       <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[General Journal]]></text></staticText>
       <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{YEAR_DESC}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
@@ -94,24 +79,121 @@
     </band>
   </columnHeader>
 
+  <!-- Single detail band — same pattern as report-writer.jrxml.
+       All three row types (header / data / total) are handled here with element-level
+       printWhenExpression on rectangles (background fill) and conditional styles on
+       textFields. No native Jasper groups; no band-level printWhenExpression.
+       ALL textFields carry isStretchWithOverflow="true" (avoids the Jasper 6.21
+       stretch-rendering bug where non-stretch textFields are silently skipped). -->
   <detail>
-    <band height="13">
-      <textField><reportElement x="4"   y="1" width="54"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{source}]]></textFieldExpression></textField>
-      <textField><reportElement x="62"  y="1" width="64"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{journal}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="130" y="1" width="60" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{jnlDate}]]></textFieldExpression></textField>
-      <textField><reportElement x="194" y="1" width="40"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acctMain}]]></textFieldExpression></textField>
-      <textField><reportElement x="234" y="1" width="24"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acctSub}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true"><reportElement x="258" y="1" width="180" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
-      <textField><reportElement x="442" y="1" width="100" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="546" y="1" width="100" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{debit}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="650" y="1" width="100" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{credit}]]></textFieldExpression></textField>
-      <textField><reportElement x="754" y="1" width="24"  height="11"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[$F{user}]]></textFieldExpression></textField>
+    <band height="16">
+      <!-- Background rectangles (only one renders per row) -->
+      <rectangle>
+        <reportElement x="0" y="0" width="782" height="16" backcolor="#506680" forecolor="#506680">
+          <printWhenExpression><![CDATA["header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <graphicElement><pen lineWidth="0"/></graphicElement>
+      </rectangle>
+      <rectangle>
+        <reportElement x="0" y="0" width="782" height="16" backcolor="#1e2d45" forecolor="#1e2d45">
+          <printWhenExpression><![CDATA["total".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <graphicElement><pen lineWidth="0"/></graphicElement>
+      </rectangle>
+
+      <!-- Source (data rows only) -->
+      <textField isStretchWithOverflow="true">
+        <reportElement x="4" y="2" width="54" height="12">
+          <printWhenExpression><![CDATA["data".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{source}]]></textFieldExpression>
+      </textField>
+
+      <!-- Journal — shows for all row types but with different styles -->
+      <textField isStretchWithOverflow="true">
+        <reportElement style="jnlLabel" x="62" y="2" width="400" height="12"/>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA["total".equals($F{rowType}) ? ("Journal Total:  " + $F{journal}) : $F{journal}]]></textFieldExpression>
+      </textField>
+
+      <!-- Date (data + header rows) -->
+      <textField pattern="dd-MM-yyyy" isStretchWithOverflow="true">
+        <reportElement x="130" y="2" width="60" height="12">
+          <printWhenExpression><![CDATA[!"total".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{jnlDate}]]></textFieldExpression>
+      </textField>
+
+      <!-- Account main (data rows only) -->
+      <textField isStretchWithOverflow="true">
+        <reportElement x="194" y="2" width="40" height="12">
+          <printWhenExpression><![CDATA["data".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{acctMain}]]></textFieldExpression>
+      </textField>
+
+      <!-- Account sub (data rows only) -->
+      <textField isStretchWithOverflow="true">
+        <reportElement x="234" y="2" width="24" height="12">
+          <printWhenExpression><![CDATA["data".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{acctSub}]]></textFieldExpression>
+      </textField>
+
+      <!-- Description (data rows only) -->
+      <textField isStretchWithOverflow="true">
+        <reportElement x="258" y="2" width="180" height="12">
+          <printWhenExpression><![CDATA["data".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{description}]]></textFieldExpression>
+      </textField>
+
+      <!-- Reference (data rows only) -->
+      <textField isStretchWithOverflow="true">
+        <reportElement x="442" y="2" width="100" height="12">
+          <printWhenExpression><![CDATA["data".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression>
+      </textField>
+
+      <!-- Debit — shows for data and total rows -->
+      <textField pattern="#,##0.00;(#,##0.00)" isStretchWithOverflow="true">
+        <reportElement style="jnlNum" x="546" y="2" width="100" height="12">
+          <printWhenExpression><![CDATA[!"header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement textAlignment="Right"><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{debit}]]></textFieldExpression>
+      </textField>
+
+      <!-- Credit — shows for data and total rows -->
+      <textField pattern="#,##0.00;(#,##0.00)" isStretchWithOverflow="true">
+        <reportElement style="jnlNum" x="650" y="2" width="100" height="12">
+          <printWhenExpression><![CDATA[!"header".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement textAlignment="Right"><font size="8"/></textElement>
+        <textFieldExpression><![CDATA[$F{credit}]]></textFieldExpression>
+      </textField>
+
+      <!-- User (data rows only) -->
+      <textField isStretchWithOverflow="true">
+        <reportElement x="754" y="2" width="24" height="12">
+          <printWhenExpression><![CDATA["data".equals($F{rowType})]]></printWhenExpression>
+        </reportElement>
+        <textElement><font size="7"/></textElement>
+        <textFieldExpression><![CDATA[$F{user}]]></textFieldExpression>
+      </textField>
     </band>
   </detail>
 
   <pageFooter>
     <band height="16">
-      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField pattern="dd-MM-yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
       <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
     </band>
   </pageFooter>
