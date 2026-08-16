@@ -22,7 +22,7 @@ import java.util.List;
 @Component
 public class ApSupplierAnalysisExcelExporter {
 
-    private static final DateTimeFormatter MONTH = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter MONTH = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     public byte[] build(SupplierAnalysisResult r, String companyName, String basedOnDesc) {
         try (XSSFWorkbook wb = new XSSFWorkbook()) {

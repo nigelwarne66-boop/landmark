@@ -62,7 +62,7 @@ public class ArDebtorsControlController implements Initializable {
         };
     }
 
-    private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private StringConverter<LocalDate> dateConv() {
         return new StringConverter<>() {

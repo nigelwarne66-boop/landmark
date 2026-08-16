@@ -207,7 +207,7 @@ public class PyDataService {
                    row.put("hourlyRate",  r.get(PASTAFF.STD_RATE_PER_HR));
                    row.put("salary",      r.get(PASTAFF.ANNUAL_SALARY));
                    LocalDate ds = r.get(PASTAFF.DATE_STARTED);
-                   row.put("startDate",   ds != null ? ds.toString() : "");
+                   row.put("startDate",   dmy(ds));
                    row.put("email",       r.get(PASTAFF.EMAIL_ADDRESS));
                    rows.add(row);
                });
@@ -258,7 +258,7 @@ public class PyDataService {
                    Map<String, Object> row = new LinkedHashMap<>();
                    row.put("payrunNo",  r.get(PAEHIST.PAYRUN_NO));
                    LocalDate pd = r.get(PAEHIST.PAYRUN_DATE);
-                   row.put("payDate",   pd != null ? pd.toString() : "");
+                   row.put("payDate",   dmy(pd));
                    row.put("pmtDate",   "");
                    row.put("employees", r.get("employees", Integer.class));
                    BigDecimal gp = r.get("gross_pay", BigDecimal.class);
@@ -326,5 +326,10 @@ public class PyDataService {
     }
     private Map<String, Object> errorResult(String msg) {
         return Map.of("error", msg, "columns", List.of(), "rows", List.of(), "title", "Error");
+    }
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
 }

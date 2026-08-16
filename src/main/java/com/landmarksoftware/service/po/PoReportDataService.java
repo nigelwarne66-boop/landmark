@@ -609,7 +609,7 @@ public class PoReportDataService {
         if (rows.isEmpty()) return warn("No uninvoiced " + (p.sundriesOnly() ? "sundry" : "goods") + " lines for this selection.");
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("LOC_DESC",      notBlank(p.locNo()) ? p.locNo() : "All locations");
-        params.put("AS_AT",         p.asAtDate() != null ? p.asAtDate().toString() : "");
+        params.put("AS_AT",         dmy(p.asAtDate()));
         params.put("SUPP_RANGE",    notBlank(p.startSupplier()) ? p.startSupplier() + " to " + (notBlank(p.endSupplier()) ? p.endSupplier() : "end") : "All suppliers");
         params.put("KIND_DESC",     p.sundriesOnly() ? "Sundries" : "Goods");
         params.put("SUM_DELIVERED", tot[0]); params.put("SUM_INVOICED", tot[1]); params.put("SUM_OUTSTANDING", tot[2]);
@@ -664,7 +664,7 @@ public class PoReportDataService {
         }
         if (rows.isEmpty()) return warn("No purchase documents for this selection.");
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("AS_AT",       p.asAtDate() != null ? p.asAtDate().toString() : "");
+        params.put("AS_AT",       dmy(p.asAtDate()));
         params.put("SUPP_RANGE",  notBlank(p.startSupplier()) ? p.startSupplier() + " to " + (notBlank(p.endSupplier()) ? p.endSupplier() : "end") : "All suppliers");
         params.put("SUM_MATCHED", tot[0]); params.put("SUM_ADJUST", tot[1]); params.put("ROW_COUNT", rows.size());
         return result(rows, params);
@@ -851,5 +851,10 @@ public class PoReportDataService {
         m.put("rows", new ArrayList<>()); m.put("params", new LinkedHashMap<>());
         m.put("rowCount", 0); m.put("warning", msg);
         return m;
+    }
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
 }

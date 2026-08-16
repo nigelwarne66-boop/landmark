@@ -44,7 +44,7 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class AcquiredRetiredExportService {
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private static final String[] HEADERS = {
         "Location", "Dept", "Group", "SubGrp",

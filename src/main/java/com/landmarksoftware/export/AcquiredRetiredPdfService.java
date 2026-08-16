@@ -71,8 +71,8 @@ public class AcquiredRetiredPdfService {
     private static final float[] GREY       = {0.45f, 0.45f, 0.45f};
     private static final float[] AMBER      = {0.95f, 0.75f, 0.1f};
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yy");
-    private static final DateTimeFormatter DATE_FMT4 = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    private static final DateTimeFormatter DATE_FMT4 = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     // ── Column x-positions (relative to MARGIN) ───────────────────────
     // Mirrors COBOL column layout across 132 cols mapped to ~790 pts

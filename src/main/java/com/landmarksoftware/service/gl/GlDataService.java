@@ -332,7 +332,7 @@ public class GlDataService {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("period",      rs.getInt("period_no"));
                     row.put("journal",     rs.getString("source") + "-" + rs.getInt("jnl_no"));
-                    row.put("date",        rs.getDate("jnl_date") != null ? rs.getDate("jnl_date").toString() : "");
+                    row.put("date",        rs.getDate("jnl_date") != null ? dmy(rs.getDate("jnl_date").toLocalDate()) : "");
                     row.put("account",     sub == 0 ? String.valueOf(main) : main + "." + sub);
                     row.put("accountDesc", rs.getString("acct_desc"));
                     row.put("reference",   rs.getString("ref"));
@@ -464,7 +464,7 @@ public class GlDataService {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("period",      rs.getInt("period_no"));
                 row.put("journal",     rs.getString("source") + "-" + rs.getInt("jnl_no"));
-                row.put("date",        rs.getDate("jnl_date") != null ? rs.getDate("jnl_date").toString() : "");
+                row.put("date",        rs.getDate("jnl_date") != null ? dmy(rs.getDate("jnl_date").toLocalDate()) : "");
                 row.put("account",     sub == 0 ? String.valueOf(main) : main + "." + sub);
                 row.put("accountDesc", rs.getString("acct_desc"));
                 row.put("reference",   rs.getString("ref"));
@@ -494,5 +494,10 @@ public class GlDataService {
         result.put("title", "Account Transactions — Periods " + fromPeriod + " to " + toPeriod +
                             (acctNo != null && !acctNo.isBlank() && !"%".equals(acctNo) ? " — Acct " + acctNo : ""));
         return result;
+    }
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
 }

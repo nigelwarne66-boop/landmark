@@ -652,8 +652,8 @@ public class CmReportDataService {
                          .fetchOne();
             if (rec != null) {
                 LocalDate od = ld(rec.get(CMRCHED.STMNT_OPEN_DATE)), cd = ld(rec.get(CMRCHED.STMNT_CLOSE_DATE));
-                params.put("STMNT_OPEN_DATE",  od != null ? od.toString() : "");
-                params.put("STMNT_CLOSE_DATE", cd != null ? cd.toString() : "");
+                params.put("STMNT_OPEN_DATE",  dmy(od));
+                params.put("STMNT_CLOSE_DATE", dmy(cd));
                 params.put("CSHBK_OPEN_BAL",   z(rec.get(CMRCHED.CSHBK_OPEN_BAL)));
                 params.put("STMNT_OPEN_BAL",   z(rec.get(CMRCHED.STMNT_OPEN_BAL)));
                 params.put("STMNT_CLOSE_BAL",  z(rec.get(CMRCHED.STMNT_CLOSE_BAL)));
@@ -817,5 +817,10 @@ public class CmReportDataService {
         m.put("rows", new ArrayList<>()); m.put("params", new LinkedHashMap<>());
         m.put("rowCount", 0); m.put("warning", msg);
         return m;
+    }
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
 }

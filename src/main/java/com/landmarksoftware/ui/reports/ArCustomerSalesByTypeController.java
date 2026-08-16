@@ -47,7 +47,7 @@ public class ArCustomerSalesByTypeController implements Initializable {
     @FXML private ComboBox<LocalDate>                    periodEndDate;
     @FXML private CheckBox                               includeLastYear;
 
-    private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private StringConverter<LocalDate> dateConv() {
         return new StringConverter<>() {

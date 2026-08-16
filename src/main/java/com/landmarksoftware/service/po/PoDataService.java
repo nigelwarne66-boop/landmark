@@ -59,7 +59,7 @@ public class PoDataService {
                 rs -> {
                     Map<String,Object> row=new LinkedHashMap<>();
                     row.put("poNo",rs.getInt("po_no")); row.put("location",rs.getString("loc_no"));
-                    row.put("date",rs.getDate("po_date")!=null?rs.getDate("po_date").toString():"");
+                    row.put("date",rs.getDate("po_date")!=null?dmy(rs.getDate("po_date").toLocalDate()):"");
                     row.put("supplier",rs.getString("supplier_name_1")); row.put("status",rs.getString("po_status"));
                     row.put("poValue",rs.getBigDecimal("po_value")); row.put("received",rs.getBigDecimal("recvd_value"));
                     row.put("invoiced",rs.getBigDecimal("inv_value")); row.put("outstanding",rs.getBigDecimal("outstanding"));
@@ -74,4 +74,9 @@ public class PoDataService {
     private BigDecimal z(BigDecimal v){return v!=null?v:BigDecimal.ZERO;}
     private Map<String,Object> col(String l,String f,String t){return Map.of("label",l,"field",f,"type",t);}
     private Map<String,Object> err(String m){return Map.of("error",m,"columns",List.of(),"rows",List.of(),"title","Error");}
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+    }
 }

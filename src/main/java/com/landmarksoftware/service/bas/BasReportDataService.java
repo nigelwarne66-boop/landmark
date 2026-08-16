@@ -161,9 +161,9 @@ public class BasReportDataService {
             params.put("ABN", trim(record.get(CPBASHD.A2_ABN)));
             LocalDate f = ld(record.get(CPBASHD.A3_FROM_DATE)), t = ld(record.get(CPBASHD.A4_TO_DATE));
             LocalDate due = ld(record.get(CPBASHD.A5_DUE_DATE)), pay = ld(record.get(CPBASHD.A6_PAY_DATE));
-            params.put("PERIOD", (f != null ? f.toString() : "") + " to " + (t != null ? t.toString() : ""));
-            params.put("DUE_DATE", due != null ? due.toString() : "");
-            params.put("PAY_DATE", pay != null ? pay.toString() : "");
+            params.put("PERIOD", dmy(f) + " to " + dmy(t));
+            params.put("DUE_DATE", dmy(due));
+            params.put("PAY_DATE", dmy(pay));
             for (String[] l : BAS_LABELS) {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("section", l[0]); row.put("label", l[1]); row.put("description", l[2]);
@@ -398,5 +398,10 @@ public class BasReportDataService {
         m.put("rows", new ArrayList<>()); m.put("params", new LinkedHashMap<>());
         m.put("rowCount", 0); m.put("warning", msg);
         return m;
+    }
+
+    /** Format a date as dd-MM-yyyy for report display (blank when null). */
+    private static String dmy(java.time.LocalDate d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
 }
