@@ -21,6 +21,7 @@ import com.landmarksoftware.payroll.service.EmployeeService;
 import com.landmarksoftware.payroll.service.MvrService;
 import com.landmarksoftware.payroll.service.PayCodeService;
 import com.landmarksoftware.service.CodeLookupService;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.LookupDialog;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -273,6 +274,7 @@ public class EmployeeMaintenanceController {
             return;
         }
         DatePicker dp = new DatePicker(LocalDate.now());
+        dp.setConverter(FxUtil.AU_DATE_CONVERTER);
         Dialog<LocalDate> dlg = new Dialog<>();
         dlg.setTitle("Terminate Employee");
         dlg.setHeaderText("Terminate " + emp.fullName() + " (" + emp.employeeNo + ")?");
@@ -478,8 +480,10 @@ public class EmployeeMaintenanceController {
 
         DatePicker dpStarted = new DatePicker(
             Employee.isValidDate(e.dateStarted) ? e.dateStarted : LocalDate.now());
+        dpStarted.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpTerm    = new DatePicker(
             Employee.isValidDate(e.dateTerminated) ? e.dateTerminated : null);
+        dpTerm.setConverter(FxUtil.AU_DATE_CONVERTER);
 
         ChoiceBox<String> cbFreq = new ChoiceBox<>();
         cbFreq.getItems().addAll("W — Weekly", "F — Fortnightly", "M — Monthly");
@@ -590,12 +594,15 @@ public class EmployeeMaintenanceController {
         TextField fPsBType    = tf(e.paymentSummaryBType, 1);
         DatePicker dpGrpCert  = new DatePicker(
             Employee.isValidDate(e.lastGrpCertDate) ? e.lastGrpCertDate : null);
+        dpGrpCert.setConverter(FxUtil.AU_DATE_CONVERTER);
 
         // Tax variation from ATO — date window + rate %.
         DatePicker dpTaxVarStart = new DatePicker(
             Employee.isValidDate(e.taxVarStartDate) ? e.taxVarStartDate : null);
+        dpTaxVarStart.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpTaxVarEnd   = new DatePicker(
             Employee.isValidDate(e.taxVarEndDate) ? e.taxVarEndDate : null);
+        dpTaxVarEnd.setConverter(FxUtil.AU_DATE_CONVERTER);
         TextField  fTaxVarRate   = tf(decStr(e.taxVarRatePerc), 6);
 
         // S1F — STP Phase 2 block.
@@ -654,6 +661,7 @@ public class EmployeeMaintenanceController {
         TextField fSuperMember  = tf(e.superMemberNo, 20);
         DatePicker dpSuperComm  = new DatePicker(
             Employee.isValidDate(e.superCommDate) ? e.superCommDate : null);
+        dpSuperComm.setConverter(FxUtil.AU_DATE_CONVERTER);
         TextField fQualifyDays  = tf(e.qualifyDays == 0 ? "" : String.valueOf(e.qualifyDays), 6);
         CheckBox cbForcePay     = new CheckBox("Force payment");
         cbForcePay.setSelected("Y".equalsIgnoreCase(e.forcePayFlag));
@@ -669,6 +677,7 @@ public class EmployeeMaintenanceController {
         cbSex.setPrefWidth(180);
         DatePicker dpDob = new DatePicker(
             Employee.isValidDate(e.dateOfBirth) ? e.dateOfBirth : null);
+        dpDob.setConverter(FxUtil.AU_DATE_CONVERTER);
 
         Label lblLastPayrun = new Label(
             e.lastSuperPayrun == 0 ? "—" : String.valueOf(e.lastSuperPayrun));

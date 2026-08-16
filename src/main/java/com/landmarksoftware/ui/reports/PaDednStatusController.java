@@ -4,6 +4,7 @@ import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.pa.PayReportDataService;
 import com.landmarksoftware.service.pa.PayReportDataService.CodeName;
 import com.landmarksoftware.service.pa.PayReportDataService.DednStatusParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -44,6 +45,7 @@ public class PaDednStatusController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         List<CodeName> codes = paReports.getPayCodes(session);
         startCode.setItems(FXCollections.observableArrayList(codes));
         endCode.setItems(FXCollections.observableArrayList(codes));

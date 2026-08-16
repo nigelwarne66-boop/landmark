@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.sm.SmReportDataService;
 import com.landmarksoftware.service.sm.SmReportDataService.MovementParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -50,6 +51,7 @@ public class SmMovementsDetailController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         locNo.setItems(FXCollections.observableArrayList(smReports.getLocations(session)));
         locNo.getSelectionModel().selectFirst();
 

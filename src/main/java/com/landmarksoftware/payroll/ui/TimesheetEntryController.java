@@ -26,6 +26,7 @@ import com.landmarksoftware.payroll.service.PayrunGroupService;
 import com.landmarksoftware.payroll.service.PayrunService;
 import com.landmarksoftware.payroll.service.TimesheetHeaderService;
 import com.landmarksoftware.payroll.service.TimesheetLineService;
+import com.landmarksoftware.ui.FxUtil;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -182,7 +183,9 @@ public class TimesheetEntryController {
         dlg.initOwner(stage);
 
         DatePicker dpStart = new DatePicker(s0Start);
+        dpStart.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpEnd   = new DatePicker(s0End);
+        dpEnd.setConverter(FxUtil.AU_DATE_CONVERTER);
         CheckBox   cbFP    = new CheckBox("Include fully posted (status F)");
         cbFP.setSelected(s0IncludeFullyPosted);
         CheckBox   cbCanc  = new CheckBox("Include cancelled (status D)");
@@ -348,13 +351,17 @@ public class TimesheetEntryController {
         dlg.initModality(Modality.WINDOW_MODAL);
 
         DatePicker dpDate    = new DatePicker(p.payrunDate);
+        dpDate.setConverter(FxUtil.AU_DATE_CONVERTER);
         ComboBox<String> cbType = new ComboBox<>(FXCollections.observableArrayList(
             "Primary (P)", "Termination (T)", "Backpay (B)", "Supplementary (S)"));
         cbType.getSelectionModel().select(Math.max(0, typeIndex(p.payrunType) - 1));
         TextField tfRef       = new TextField(p.ref);
         DatePicker dpStart    = new DatePicker(p.startDate);
+        dpStart.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpEnd      = new DatePicker(p.endDate);
+        dpEnd.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpPaymt    = new DatePicker(p.paymtDate);
+        dpPaymt.setConverter(FxUtil.AU_DATE_CONVERTER);
         TextField  tfPayrunNo = new TextField(String.valueOf(p.payrunNo));
         tfPayrunNo.setDisable(true);
 
@@ -1212,10 +1219,15 @@ public class TimesheetEntryController {
         TextField tfPaygroup = new TextField(g.paygroup);
         tfPaygroup.setDisable(!isAdd);
         DatePicker dpWeek    = new DatePicker(g.payThruToWeek);
+        dpWeek.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpFort    = new DatePicker(g.payThruToFort);
+        dpFort.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpBimth   = new DatePicker(g.payThruToBimth);
+        dpBimth.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dp4Wk     = new DatePicker(g.payThruTo4Wk);
+        dp4Wk.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpMth     = new DatePicker(g.payThruToMth);
+        dpMth.setConverter(FxUtil.AU_DATE_CONVERTER);
         ComboBox<String> cbStatus = new ComboBox<>(FXCollections.observableArrayList(
             "Open (O)", "Closed (C)", "Full (F)"));
         cbStatus.getSelectionModel().select(statusIndex(g.paygroupStatus));
@@ -1447,7 +1459,9 @@ public class TimesheetEntryController {
         dlg.initModality(Modality.WINDOW_MODAL);
 
         DatePicker dpStart   = new DatePicker(h.payThruStartDate);
+        dpStart.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker dpEnd     = new DatePicker(h.payThruToDate);
+        dpEnd.setConverter(FxUtil.AU_DATE_CONVERTER);
         TextField  tfPaygrp  = new TextField(h.altPaygroup);
         TextField  tfDept    = new TextField(h.altDept);
         CheckBox   cbDefault = new CheckBox("Default timesheet (seed from paecode)");
@@ -1636,6 +1650,7 @@ public class TimesheetEntryController {
         TextField tfRate     = new TextField(money(l.ratePerc));
         TextField tfExt      = new TextField(money(l.extAmt));
         DatePicker dpDate    = new DatePicker(l.timesheetDate);
+        dpDate.setConverter(FxUtil.AU_DATE_CONVERTER);
         TextField tfRef      = new TextField(l.ref);
 
         GridPane g = new GridPane();
@@ -1865,7 +1880,9 @@ public class TimesheetEntryController {
         TextField   tfRate       = new TextField(money(p.ratePerc));
         TextField   tfExt        = new TextField(money(p.extAmt));
         DatePicker  dpStart      = new DatePicker(p.startDate);
+        dpStart.setConverter(FxUtil.AU_DATE_CONVERTER);
         DatePicker  dpEnd        = new DatePicker(p.endDate);
+        dpEnd.setConverter(FxUtil.AU_DATE_CONVERTER);
         TextField   tfRef        = new TextField(p.ref);
 
         GridPane g = new GridPane();

@@ -4,6 +4,7 @@ import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ap.ApDataService;
 import com.landmarksoftware.service.ap.ApDataService.CreditorsAgeingParams;
 import com.landmarksoftware.service.ap.ApReportDataService;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -87,6 +88,7 @@ public class ApCreditorsAgeingController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(anchorDate, manual1, manual2, manual3, manual4, manual5, manual6);
         printSeq.setConverter(conv());
         printSeq.setItems(FXCollections.observableArrayList(
             new LabelValue("Supplier number", "N"), new LabelValue("Alpha key", "A")));

@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ap.ApReportDataService;
 import com.landmarksoftware.service.ap.ApReportDataService.UnbalReconParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -50,6 +51,7 @@ public class ApUnbalancedReconController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         StringConverter<LabelValue> conv = new StringConverter<>() {
             @Override public String toString(LabelValue o) { return o == null ? "" : o.label(); }
             @Override public LabelValue fromString(String s) { return null; }

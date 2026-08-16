@@ -19,6 +19,7 @@ import com.landmarksoftware.payroll.model.Employee;
 import com.landmarksoftware.payroll.service.AwardJobClassService;
 import com.landmarksoftware.payroll.service.AwardService;
 import com.landmarksoftware.payroll.service.AwardWcompService;
+import com.landmarksoftware.ui.FxUtil;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -620,6 +621,7 @@ public class AwardMaintenanceController {
         // ─── Super ────────────────────────────────────────────────────
         DatePicker dpSupComm   = new DatePicker(
             Employee.isValidDate(j.superCommenceDate) ? j.superCommenceDate : null);
+        dpSupComm.setConverter(FxUtil.AU_DATE_CONVERTER);
         TextField  fQualifyDay = intField(j.qualifyDays);
         TextField  fMinHrs     = intField(j.minHrs);
         TextField  fMinAmt     = tf(decStr(j.minAmt), 10);

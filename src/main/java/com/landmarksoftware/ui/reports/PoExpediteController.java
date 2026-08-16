@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.po.PoReportDataService;
 import com.landmarksoftware.service.po.PoReportDataService.ExpediteParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -47,6 +48,7 @@ public class PoExpediteController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         locNo.setItems(FXCollections.observableArrayList(poReports.getLocations(session)));
         locNo.getSelectionModel().selectFirst();
 

@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.sm.SmReportDataService;
 import com.landmarksoftware.service.sm.SmReportDataService.ItemStatusParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -62,6 +63,7 @@ public class SmItemStatusController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(reportDate);
         sequence.setConverter(conv());
         sequence.setItems(FXCollections.observableArrayList(
             new LabelValue("Item", "ITEM"),

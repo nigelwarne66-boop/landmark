@@ -14,6 +14,7 @@ package com.landmarksoftware.ui;
 import com.landmarksoftware.model.ProjectionRequest;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.CodeLookupService;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.repository.CompanyRepository;
 import com.landmarksoftware.repository.GlDateRepository;
 import com.landmarksoftware.service.DepreciationProjectionService;
@@ -218,6 +219,7 @@ public class ProjectionScreenController {
 
         // Projected-to date - restrict to valid GL period-end dates
         dpProjDate = new DatePicker();
+        dpProjDate.setConverter(FxUtil.AU_DATE_CONVERTER);
         dpProjDate.setMaxWidth(Double.MAX_VALUE);
         dpProjDate.setPromptText("Select a GL period-end date");
         dpProjDate.setConverter(new javafx.util.StringConverter<LocalDate>() {

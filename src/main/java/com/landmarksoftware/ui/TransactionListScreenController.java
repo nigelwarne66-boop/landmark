@@ -16,6 +16,7 @@ import com.landmarksoftware.export.TransactionListPdfService;
 import com.landmarksoftware.model.TransactionListRequest;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.CodeLookupService;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.repository.CompanyRepository;
 import com.landmarksoftware.service.TransactionListService;
 import com.landmarksoftware.service.TransactionListService.TransactionListOutput;
@@ -144,7 +145,7 @@ public class TransactionListScreenController {
     // ── Header ────────────────────────────────────────────────────────
 
     private VBox buildHeader() {
-        Label title = new Label("Landmark — Transaction List");
+        Label title = new Label("Compas ERP — Transaction List");
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1F4E79;");
         Label sub = new Label("FATL02  \u2014  Select parameters then click Run");
         sub.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748B;");
@@ -230,10 +231,12 @@ public class TransactionListScreenController {
 
     private VBox buildDateCard() {
         dpStart = new DatePicker();
+        dpStart.setConverter(FxUtil.AU_DATE_CONVERTER);
         dpStart.setPromptText("Leave blank for all dates");
         dpStart.setPrefWidth(160);
 
         dpEnd = new DatePicker();
+        dpEnd.setConverter(FxUtil.AU_DATE_CONVERTER);
         dpEnd.setPromptText("Leave blank for all dates");
         dpEnd.setPrefWidth(160);
 

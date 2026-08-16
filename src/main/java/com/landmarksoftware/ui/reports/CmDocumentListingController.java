@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.cm.CmReportDataService;
 import com.landmarksoftware.service.cm.CmReportDataService.DocumentListingParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -51,6 +52,7 @@ public class CmDocumentListingController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         bankCode.setItems(FXCollections.observableArrayList(cmReports.getBanks(session)));
         bankCode.getSelectionModel().selectFirst();
 

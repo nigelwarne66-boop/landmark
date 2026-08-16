@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.gl.GlReportDataService;
 import com.landmarksoftware.service.gl.GlReportDataService.AccountTxnParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -49,6 +50,7 @@ public class GlAccountTransactionsController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         List<GlReportDataService.CodeName> accounts = glReports.getAccounts(session);
         startAcct.setItems(FXCollections.observableArrayList(accounts));
         endAcct.setItems(FXCollections.observableArrayList(accounts));

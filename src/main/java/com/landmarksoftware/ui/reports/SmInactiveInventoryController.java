@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.sm.SmReportDataService;
 import com.landmarksoftware.service.sm.SmReportDataService.InactiveParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -51,6 +52,7 @@ public class SmInactiveInventoryController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(inactiveSince);
         locNo.setItems(FXCollections.observableArrayList(smReports.getLocations(session)));
         locNo.getSelectionModel().selectFirst();
 

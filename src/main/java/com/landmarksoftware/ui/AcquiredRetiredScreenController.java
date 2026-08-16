@@ -16,6 +16,7 @@ import com.landmarksoftware.export.AcquiredRetiredPdfService;
 import com.landmarksoftware.model.AcquiredRetiredRequest;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.CodeLookupService;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.repository.CompanyRepository;
 import com.landmarksoftware.service.AcquiredRetiredService;
 import com.landmarksoftware.service.AcquiredRetiredService.AcquiredRetiredOutput;
@@ -172,10 +173,12 @@ public class AcquiredRetiredScreenController {
 
     private VBox buildDateCard() {
         dpStart = new DatePicker();
+        dpStart.setConverter(FxUtil.AU_DATE_CONVERTER);
         dpStart.setPromptText("blank = all dates");
         dpStart.setPrefWidth(150);
 
         dpEnd = new DatePicker();
+        dpEnd.setConverter(FxUtil.AU_DATE_CONVERTER);
         dpEnd.setPromptText("blank = all dates");
         dpEnd.setPrefWidth(150);
 

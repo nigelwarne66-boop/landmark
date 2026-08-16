@@ -17,6 +17,7 @@ import com.landmarksoftware.model.BatchInfo;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.AcquisitionService;
 import com.landmarksoftware.service.CodeLookupService;
+import com.landmarksoftware.ui.FxUtil;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -166,6 +167,7 @@ public class AcquisitionEntryController {
         lBatchStatus.setStyle("-fx-font-size:11px; -fx-text-fill:#888780;");
 
         DatePicker dpDate = new DatePicker(LocalDate.now());
+        dpDate.setConverter(FxUtil.AU_DATE_CONVERTER);
         dpDate.setPrefWidth(140);
 
         String uid = appSession.getUserId();
@@ -1350,7 +1352,7 @@ public class AcquisitionEntryController {
                 // ── Info + header rows ────────────────────────────────────
                 org.apache.poi.xssf.usermodel.XSSFRow infoRow = sh.createRow(0);
                 infoRow.createCell(0).setCellValue(
-                    "Landmark FA — Batch " + batchNo +
+                    "Compas ERP FA — Batch " + batchNo +
                     "   Company: " + companyNo +
                     "   (* = required)   Dates: DD/MM/YYYY");
 
@@ -1819,7 +1821,7 @@ public class AcquisitionEntryController {
         return f;
     }
 
-    private DatePicker dp(LocalDate v) { DatePicker p = new DatePicker(v); p.setPrefWidth(140); return p; }
+    private DatePicker dp(LocalDate v) { DatePicker p = new DatePicker(v); p.setPrefWidth(140); p.setConverter(FxUtil.AU_DATE_CONVERTER); return p; }
 
     private Button lookupBtn() {
         Button b = new Button("…");

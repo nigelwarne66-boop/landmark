@@ -17,6 +17,7 @@ import com.landmarksoftware.model.AssetMaintenanceRecord;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.CodeLookupService;
 import com.landmarksoftware.ui.AssetRegisterParamsController;
+import com.landmarksoftware.ui.FxUtil;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import com.landmarksoftware.repository.CompanyRepository;
@@ -884,7 +885,8 @@ public class AssetMaintenanceController {
         TextField fFromBookMethod = tf("", 1); TextField fToBookMethod = tf("", 1);
         TextField fFromBookCode   = tf("", 6); TextField fToBookCode   = tf("", 6);
         TextField fFromBookFreq   = tf("", 2); TextField fToBookFreq   = tf("", 2);
-        DatePicker dpFromWD = new DatePicker(); DatePicker dpToWD = new DatePicker();
+        DatePicker dpFromWD = new DatePicker(); dpFromWD.setConverter(FxUtil.AU_DATE_CONVERTER);
+        DatePicker dpToWD = new DatePicker(); dpToWD.setConverter(FxUtil.AU_DATE_CONVERTER);
 
         // Wire checkboxes to enable/disable from-to fields
         wireCheckToFields(chkTaxMethod,  fFromTaxMethod, fToTaxMethod);
@@ -1058,6 +1060,7 @@ public class AssetMaintenanceController {
 
     private DatePicker datePicker(LocalDate val) {
         DatePicker dp = new DatePicker(val);
+        dp.setConverter(FxUtil.AU_DATE_CONVERTER);
         dp.setPrefWidth(140);
         return dp;
     }

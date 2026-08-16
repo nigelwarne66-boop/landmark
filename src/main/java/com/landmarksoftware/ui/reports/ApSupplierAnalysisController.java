@@ -5,6 +5,7 @@ import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ap.ApReportDataService;
 import com.landmarksoftware.service.ap.ApReportDataService.SupplierAnalysisParams;
 import com.landmarksoftware.service.ap.ApReportDataService.SupplierAnalysisResult;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -48,6 +49,7 @@ public class ApSupplierAnalysisController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(endDate);
         basedOn.setConverter(new StringConverter<>() {
             @Override public String toString(LabelValue o) { return o == null ? "" : o.label(); }
             @Override public LabelValue fromString(String s) { return null; }

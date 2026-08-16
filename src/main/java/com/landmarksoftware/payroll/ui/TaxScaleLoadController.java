@@ -15,6 +15,7 @@ import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.payroll.model.TaxBracket;
 import com.landmarksoftware.payroll.service.TaxBracketLoader;
 import com.landmarksoftware.payroll.service.TaxBracketService;
+import com.landmarksoftware.ui.FxUtil;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
@@ -75,6 +76,7 @@ public class TaxScaleLoadController {
         sourceCombo.setValue("NAT_1004");
 
         DatePicker effDate = new DatePicker(defaultEffectiveFrom());
+        effDate.setConverter(FxUtil.AU_DATE_CONVERTER);
         effDate.setShowWeekNumbers(false);
         effDate.setPrefWidth(160);
 

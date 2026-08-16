@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ar.ArReportDataService;
 import com.landmarksoftware.service.ar.ArReportDataService.DocNumberParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -65,6 +66,7 @@ public class ArDocumentNumberController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         source.setConverter(conv());
         source.setItems(FXCollections.observableArrayList(
             new LabelValue("All", ""),

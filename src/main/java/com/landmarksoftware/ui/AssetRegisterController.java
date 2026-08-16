@@ -14,6 +14,7 @@ package com.landmarksoftware.ui;
 import com.landmarksoftware.model.AssetRegisterParams;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.CodeLookupService;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.model.AssetRegisterRow;
 import com.landmarksoftware.model.CompanyRow;
 import com.landmarksoftware.service.AssetRegisterService;
@@ -238,7 +239,9 @@ public class AssetRegisterController {
         // Dates
         addSectionHeader(grid, row++, "Date range");
         dpAsAt = new DatePicker(LocalDate.now());
+        dpAsAt.setConverter(FxUtil.AU_DATE_CONVERTER);
         dpStart = new DatePicker(LocalDate.of(1900, 1, 1));
+        dpStart.setConverter(FxUtil.AU_DATE_CONVERTER);
         addRow(grid, row++, "Accumulated depn as at",       dpAsAt);
         addRow(grid, row++, "Exclude if retired prior to",  dpStart);
 

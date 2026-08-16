@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ar.ArReportDataService;
 import com.landmarksoftware.service.ar.ArReportDataService.SalespersonProfitParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -60,6 +61,7 @@ public class ArSalespersonProfitabilityController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         List<ArReportDataService.CodeName> salesmen = arReports.getSalesmen(session);
         startSalesman.setItems(FXCollections.observableArrayList(salesmen));
         endSalesman.setItems(FXCollections.observableArrayList(salesmen));

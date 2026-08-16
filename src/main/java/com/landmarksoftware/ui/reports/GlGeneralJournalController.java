@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.gl.GlReportDataService;
 import com.landmarksoftware.service.gl.GlReportDataService.JournalParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -48,6 +49,7 @@ public class GlGeneralJournalController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         List<GlReportDataService.CodeName> sources = glReports.getSources(session);
         source.setItems(FXCollections.observableArrayList(sources));
         source.getSelectionModel().selectFirst();

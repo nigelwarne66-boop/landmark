@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ar.ArReportDataService;
 import com.landmarksoftware.service.ar.ArReportDataService.FcRevalParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -59,6 +60,7 @@ public class ArFcRevaluationController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         printSeq.setConverter(conv());
         printSeq.setItems(FXCollections.observableArrayList(
             new LabelValue("Customer number", "N"), new LabelValue("Alpha key", "A")));

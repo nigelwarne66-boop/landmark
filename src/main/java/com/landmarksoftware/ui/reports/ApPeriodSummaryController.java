@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ap.ApReportDataService;
 import com.landmarksoftware.service.ap.ApReportDataService.PeriodSummaryParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -42,6 +43,7 @@ public class ApPeriodSummaryController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(periodEndDate);
         startSubLedger.setItems(FXCollections.observableArrayList(apReports.getSubLedgers(session)));
         startSubLedger.getSelectionModel().selectFirst();
         endSubLedger.setItems(FXCollections.observableArrayList(apReports.getSubLedgers(session)));

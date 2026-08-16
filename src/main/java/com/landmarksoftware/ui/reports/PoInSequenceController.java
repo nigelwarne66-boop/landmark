@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.po.PoReportDataService;
 import com.landmarksoftware.service.po.PoReportDataService.PoInSequenceParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -65,6 +66,7 @@ public class PoInSequenceController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         sequence.setConverter(conv());
         sequence.setItems(FXCollections.observableArrayList(
             new LabelValue("Order Number", "ORDER_NO"),

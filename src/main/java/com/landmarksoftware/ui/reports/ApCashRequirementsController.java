@@ -3,6 +3,7 @@ package com.landmarksoftware.ui.reports;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.ap.ApReportDataService;
 import com.landmarksoftware.service.ap.ApReportDataService.CashReqParams;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -55,6 +56,7 @@ public class ApCashRequirementsController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(paymentDate, nextPaymentDate);
         detailSummary.setConverter(new StringConverter<>() {
             @Override public String toString(LabelValue o) { return o == null ? "" : o.label(); }
             @Override public LabelValue fromString(String s) { return null; }
