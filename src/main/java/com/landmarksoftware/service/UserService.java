@@ -13,6 +13,7 @@ package com.landmarksoftware.service;
 
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.model.UserRecord;
+import jakarta.annotation.PostConstruct;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,73 @@ public class UserService {
     public UserService(JdbcTemplate jdbc, AppSession appSession) {
         this.jdbc       = jdbc;
         this.appSession = appSession;
+    }
+
+    /**
+     * {@code mepass} is a Java replacement for the ACUCOBOL MEPASS Vision
+     * file (terminal-session tracking) — it has no ACU/COBOL source, so it
+     * is created here rather than via the extract pipeline. Same precedent
+     * as {@code tax_brackets} ({@link com.landmarksoftware.payroll.service.TaxBracketService})
+     * and {@code pa_audit} ({@link com.landmarksoftware.payroll.service.BatchAuditService}).
+     */
+    @PostConstruct
+    void ensureMepassTable() {
+        jdbc.execute(
+            "CREATE TABLE IF NOT EXISTS mepass (" +
+            "    terminal_no            INT          NOT NULL," +
+            "    current_menu_name      VARCHAR(10)  NOT NULL DEFAULT ''," +
+            "    previous_menu_name     VARCHAR(10)  NOT NULL DEFAULT ''," +
+            "    main_menu_name         VARCHAR(10)  NOT NULL DEFAULT ''," +
+            "    company_no             INT          NOT NULL DEFAULT 0," +
+            "    company_name           VARCHAR(35)  NOT NULL DEFAULT ''," +
+            "    terminal_inactive      VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    user_id                VARCHAR(15)  NOT NULL DEFAULT ''," +
+            "    password               VARCHAR(10)  NOT NULL DEFAULT ''," +
+            "    auth_no                INT          NOT NULL DEFAULT 0," +
+            "    skip_menu_flag         VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    call_prog_flag         VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    f4_key_flag            VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    log_flag               VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    company_select_flag    VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    log_off_coy_no_flag    VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    auto_log_off_flag      VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    auto_log_off_time      INT          NOT NULL DEFAULT 0," +
+            "    print_only_log_on_coy  VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    delete_pass_files_flag VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    print_pa_from_pass     VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    curr_program_name      VARCHAR(10)  NOT NULL DEFAULT ''," +
+            "    curr_program_switch    VARCHAR(1)   NOT NULL DEFAULT ' '," +
+            "    curr_program_date      DATE         NULL," +
+            "    curr_program_time_hr   INT          NOT NULL DEFAULT 0," +
+            "    curr_program_time_min  INT          NOT NULL DEFAULT 0," +
+            "    reserve_sessions_flag  VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    pid_no                 BIGINT       NOT NULL DEFAULT 0," +
+            "    remote_session_flag    VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    remove_session_flag    VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    send_a_message         VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    menu_log_date          DATE         NULL," +
+            "    menu_log_hr            INT          NOT NULL DEFAULT 0," +
+            "    menu_log_min           INT          NOT NULL DEFAULT 0," +
+            "    log_date               DATE         NULL," +
+            "    log_hr                 INT          NOT NULL DEFAULT 0," +
+            "    log_min                INT          NOT NULL DEFAULT 0," +
+            "    log_hun                INT          NOT NULL DEFAULT 0," +
+            "    log_thou               INT          NOT NULL DEFAULT 0," +
+            "    activate_flag          VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    site_no                INT          NOT NULL DEFAULT 0," +
+            "    start_date             DATE         NULL," +
+            "    no_of_days             INT          NOT NULL DEFAULT 0," +
+            "    expired_flag           VARCHAR(1)   NOT NULL DEFAULT 'N'," +
+            "    machine_type           VARCHAR(1)   NOT NULL DEFAULT ' '," +
+            "    day_month_format       VARCHAR(1)   NOT NULL DEFAULT 'D'," +
+            "    rev_no                 INT          NOT NULL DEFAULT 0," +
+            "    created_at             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+            "    updated_at             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+            "    PRIMARY KEY (terminal_no)," +
+            "    INDEX idx_mepass_company (company_no)," +
+            "    INDEX idx_mepass_log_flag (log_flag)," +
+            "    INDEX idx_mepass_user_id (user_id)" +
+            ")");
     }
 
     // ── User lookup ───────────────────────────────────────────────────────
