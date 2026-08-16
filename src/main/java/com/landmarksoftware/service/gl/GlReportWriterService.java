@@ -2,10 +2,8 @@ package com.landmarksoftware.service.gl;
 
 import com.landmarksoftware.model.AppSession;
 import jakarta.annotation.PostConstruct;
-import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record;
-import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,8 +14,9 @@ import java.util.*;
 
 import static com.landmarksoftware.db.tables.Glchart.GLCHART;
 import static com.landmarksoftware.db.tables.Gldates.GLDATES;
+import static com.landmarksoftware.db.tables.Glrphof.GLRPHOF;
+import static com.landmarksoftware.db.tables.Glrphoh.GLRPHOH;
 import static com.landmarksoftware.db.tables.Glrpsel.GLRPSEL;
-import static com.landmarksoftware.db.tables.Glrptah.GLRPTAH;
 import static com.landmarksoftware.db.tables.Glrpveh.GLRPVEH;
 import static com.landmarksoftware.db.tables.Glrpvel.GLRPVEL;
 import static com.landmarksoftware.db.tables.Glrpwkc.GLRPWKC;
@@ -33,28 +32,21 @@ import static com.landmarksoftware.db.tables.Gltrx.GLTRX;
  *       {@code glrpvel} (one row per output line). Each line declares an
  *       account-range, a dr/cr sign indicator, optional sub-total reference,
  *       optional constant, group / type filters and a target column index.</li>
- *   <li><b>Columns</b> come from a "horizontal table" — {@code glrptah} (header)
- *       + {@code glrptab} (one body row per fiscal year). The body row carries
- *       up to 366 {@code report_date_NNN} slots that bracket the column
- *       periods (odd slot = period start, even slot = period end).</li>
+ *   <li><b>Columns</b> come from a "horizontal format" — {@code glrphoh} (header,
+ *       layout description) + {@code glrphof} (one row per output column). Each
+ *       {@code glrphof} row defines the date range via {@code data_period_select}
+ *       (0=PTD, 1=YTD, 2=Prior YTD, 4=As-at cumulative, 6=Specific period).</li>
  *   <li>A <b>"selection"</b> ({@code glrpsel}) ties a vertical format to a
- *       horizontal table plus print options (zero-balance suppression,
+ *       horizontal format plus print options (zero-balance suppression,
  *       rounding, year, before / after year-end indicator, account mask).</li>
  * </ul>
  *
  * <p><b>Phase 1 scope</b> — load definitions, return the matrix shape (one
- * row per {@code glrpvel} line, up to 13 columns derived from {@code glrptab})
+ * row per {@code glrpvel} line, up to 13 columns derived from {@code glrphof})
  * with <b>empty cells</b>. Phase 2 fills the cells by aggregating
  * {@code glbal} (period movements) and {@code gltrx} for each row's
  * account range over each column's date range, applying the {@code dr_cr_ind}
  * sign and {@code total_type} sub-total operators.
- *
- * <p><b>Inline-SQL note:</b> {@code loadHorizontalTable} keeps a plain-SQL
- * SELECT for the {@code glrptab} body row because the 366 dynamic column names
- * ({@code report_date_001..report_date_366}) cannot be expressed with typed
- * jOOQ fields — they are a COBOL OCCURS expansion stored as individual columns
- * and there is no generated field array for them in the Glrptab table class.
- * All other queries use fully typed jOOQ DSLContext calls.
  */
 @Service
 public class GlReportWriterService {
@@ -98,7 +90,7 @@ public class GlReportWriterService {
     /** One row in the saved-selection picker ({@code glrpsel}). */
     public record SelectionRow(
             int selectionNo, String desc1, String rptTitle,
-            int vertFormatNo, String horizFormatKey, int yrNo,
+            String vertFormatNo, String horizFormatKey, int yrNo,
             boolean zeroBalSuppress, String roundingFlag, String acctMask) {
         @Override public String toString() {
             String t = notBlank(rptTitle) ? rptTitle : (notBlank(desc1) ? desc1 : "Selection " + selectionNo);
@@ -108,17 +100,17 @@ public class GlReportWriterService {
 
     /** A vertical format header from {@code glrpveh} (used for the manual picker). */
     public record VerticalFormatRow(
-            int vertFormatNo, String desc1, String desc2, String vertFormatType) {
+            String vertFormatNo, String desc1, String desc2, String vertFormatType) {
         @Override public String toString() {
             return vertFormatNo + " — " + (notBlank(desc1) ? desc1 : "(unnamed)");
         }
     }
 
-    /** A horizontal table from {@code glrptah} (used for the manual picker). */
+    /** A horizontal format from {@code glrphoh} (used for the manual picker). */
     public record HorizontalTableRow(
-            String dateTableCode, String desc1) {
+            String layoutNo, String desc1) {
         @Override public String toString() {
-            return dateTableCode + " — " + (notBlank(desc1) ? desc1 : "(unnamed)");
+            return layoutNo + " — " + (notBlank(desc1) ? desc1 : "(unnamed)");
         }
     }
 
@@ -146,8 +138,7 @@ public class GlReportWriterService {
                    r.get(GLRPSEL.SELECTION_NO),
                    trim(r.get(GLRPSEL.DESC_1)),
                    trim(r.get(GLRPSEL.RPT_TITLE)),
-                   // vert_format_no is VARCHAR(4) in the schema — parse to int
-                   parseIntSafe(trim(r.get(GLRPSEL.VERT_FORMAT_NO))),
+                   trim(r.get(GLRPSEL.VERT_FORMAT_NO)),
                    trim(r.get(GLRPSEL.HORIZ_FORMAT_NO)),
                    r.get(GLRPSEL.YR_NO),
                    "Y".equalsIgnoreCase(trim(r.get(GLRPSEL.ZERO_BAL_FLAG))),
@@ -171,8 +162,7 @@ public class GlReportWriterService {
                .orderBy(GLRPVEH.VERT_FORMAT_NO)
                .fetch()
                .forEach(r -> list.add(new VerticalFormatRow(
-                   // vert_format_no is VARCHAR(4) in the schema — parse to int
-                   parseIntSafe(trim(r.get(GLRPVEH.VERT_FORMAT_NO))),
+                   trim(r.get(GLRPVEH.VERT_FORMAT_NO)),
                    trim(r.get(GLRPVEH.DESC_1)),
                    trim(r.get(GLRPVEH.DESC_2)),
                    trim(r.get(GLRPVEH.VERT_FORMAT_TYPE)))));
@@ -180,18 +170,18 @@ public class GlReportWriterService {
         return list;
     }
 
-    /** Horizontal tables for the manual picker, ordered by code. */
+    /** Horizontal formats for the manual picker, ordered by layout_no. */
     public List<HorizontalTableRow> getHorizontalTables(AppSession s) {
         List<HorizontalTableRow> list = new ArrayList<>();
         try {
-            dsl.select(GLRPTAH.DATE_TABLE, GLRPTAH.DESC1)
-               .from(GLRPTAH)
-               .where(GLRPTAH.COMPANY_NO.eq(s.getCompanyNo()))
-               .orderBy(GLRPTAH.DATE_TABLE)
+            dsl.select(GLRPHOH.LAYOUT_NO, GLRPHOH.DESC_1)
+               .from(GLRPHOH)
+               .where(GLRPHOH.COMPANY_NO.eq(s.getCompanyNo()))
+               .orderBy(GLRPHOH.LAYOUT_NO)
                .fetch()
                .forEach(r -> list.add(new HorizontalTableRow(
-                   trim(r.get(GLRPTAH.DATE_TABLE)),
-                   trim(r.get(GLRPTAH.DESC1)))));
+                   trim(r.get(GLRPHOH.LAYOUT_NO)),
+                   trim(r.get(GLRPHOH.DESC_1)))));
         } catch (Exception e) { log.warn("getHorizontalTables: {}", e.getMessage()); }
         return list;
     }
@@ -205,7 +195,7 @@ public class GlReportWriterService {
      * {@code selectionNo} is the glrpsel key when running a saved selection
      * (drives persistence to the glrpwkc rundates work table); 0 in manual mode.
      */
-    public record RunParams(int selectionNo, int vertFormatNo, String horizFormatKey,
+    public record RunParams(int selectionNo, String vertFormatNo, String horizFormatKey,
                             LocalDate startDate, LocalDate endDate,
                             boolean zeroBalSuppress, String roundingFlag) {}
 
@@ -226,15 +216,13 @@ public class GlReportWriterService {
             return warn("Enter a start and end date — the engine builds the columns from these.");
         }
 
-        // Three-tier column resolution (mirrors how COBOL populates
-        // GLRPSEL-REPORT-DATES-TABLE at run time): persisted rundates first,
-        // then synthesise from horiz_format_no using the entered date range
-        // (PTD / YTD / Prior YTD for "1", year as-at for "2", etc.), finally
-        // fall through to the glrptah/glrptab template tables for bespoke keys.
+        // Resolve columns from glrphof (horizontal format column definitions).
+        // Each printable D row with data_select<=9 yields one date range.
+        // data_select: 1=this yr, 2=last yr, 3-9=budget/cost. data_select>9 = label column, skipped.
         List<ColumnDef> columns = resolveColumns(s, p);
         if (columns.isEmpty()) {
             return warn("Could not resolve any columns for horizontal '" + p.horizFormatKey()
-                + "'. The engine knows '1' (PTD/YTD/Prior YTD), '2' (single range), and falls back to glrptah/glrptab for bespoke keys.");
+                + "'. Check that glrphof has printable data rows for this layout_no.");
         }
         String horizDesc = describeHoriz(s.getCompanyNo(), p.horizFormatKey());
         int colCount = Math.min(columns.size(), MAX_COLUMNS);
@@ -281,6 +269,7 @@ public class GlReportWriterService {
 
                     if (expand && !(p.zeroBalSuppress() && allZero(display))) {
                         String desc = acctDescs.getOrDefault(en.getKey(), en.getKey());
+                        fillCalcColumns(display, colCount, columns, !credit);
                         emit(outRows, desc, "account", display, colCount);
                     }
                     for (int c = 0; c < colCount; c++) sum[c] = sum[c].add(value[c]);
@@ -288,6 +277,7 @@ public class GlReportWriterService {
                 if (!expand) {
                     BigDecimal[] sumDisplay = credit ? sum.clone() : negate(sum);
                     if (!(p.zeroBalSuppress() && allZero(sumDisplay))) {
+                        fillCalcColumns(sumDisplay, colCount, columns, !credit);
                         emit(outRows, labelOf(r), "account", sumDisplay, colCount);
                     }
                 }
@@ -313,6 +303,7 @@ public class GlReportWriterService {
                 BigDecimal[] display = credit ? value.clone() : negate(value);
                 if (isCurrentYearEarnings(r.lineDesc())) display = negate(display);
                 if (hasLabel) {
+                    fillCalcColumns(display, colCount, columns, !credit);
                     emit(outRows, labelOf(r), "subtotal", display, colCount);
                 }
                 applyOperator(buckets, r.totalNo(), tt, value, colCount, lastBucketNo);
@@ -329,6 +320,7 @@ public class GlReportWriterService {
                 boolean credit = "C".equalsIgnoreCase(r.drCrInd());
                 BigDecimal[] display = credit ? value.clone() : negate(value);
                 if (isCurrentYearEarnings(r.lineDesc())) display = negate(display);
+                fillCalcColumns(display, colCount, columns, !credit);
                 emit(outRows, labelOf(r), "total", display, colCount);
                 continue;
             }
@@ -352,7 +344,7 @@ public class GlReportWriterService {
 
     /** A loaded vertical format — header + ordered row list. */
     public record VerticalFormat(
-            int vertFormatNo, String desc1, String desc2, String vertFormatType,
+            String vertFormatNo, String desc1, String desc2, String vertFormatType,
             int roundingMain, int roundingSub, List<RowDef> rows) {}
 
     /**
@@ -369,9 +361,7 @@ public class GlReportWriterService {
             String startReportGroup, String endReportGroup) {}
 
     /** Loads {@code glrpveh} + {@code glrpvel} for a (company, vert_format_no). */
-    public VerticalFormat loadVerticalFormat(int companyNo, int vertFormatNo) {
-        // vert_format_no is stored as VARCHAR(4) in the schema; use string comparison
-        String vertFormatNoStr = String.valueOf(vertFormatNo);
+    public VerticalFormat loadVerticalFormat(int companyNo, String vertFormatNo) {
         VerticalFormat[] head = { null };
         try {
             dsl.select(
@@ -382,7 +372,7 @@ public class GlReportWriterService {
                     GLRPVEH.ROUNDING_SUB_NO)
                .from(GLRPVEH)
                .where(GLRPVEH.COMPANY_NO.eq(companyNo)
-                   .and(GLRPVEH.VERT_FORMAT_NO.eq(vertFormatNoStr)))
+                   .and(GLRPVEH.VERT_FORMAT_NO.eq(vertFormatNo)))
                .fetch()
                .forEach(r -> head[0] = new VerticalFormat(
                    vertFormatNo,
@@ -416,7 +406,7 @@ public class GlReportWriterService {
                     GLRPVEL.END_REPORT_GROUP)
                .from(GLRPVEL)
                .where(GLRPVEL.COMPANY_NO.eq(companyNo)
-                   .and(GLRPVEL.VERT_FORMAT_NO.eq(vertFormatNoStr)))
+                   .and(GLRPVEL.VERT_FORMAT_NO.eq(vertFormatNo)))
                .orderBy(GLRPVEL.SEQ_NO)
                .fetch()
                .forEach(r -> rows.add(new RowDef(
@@ -438,175 +428,176 @@ public class GlReportWriterService {
         return head[0];
     }
 
-    /** A loaded horizontal table — header + ordered column list (period start/end pairs). */
-    public record HorizontalTable(
-            String dateTableCode, String desc1, int yearNo, List<ColumnDef> columns) {}
-
-    /** One column's period bounds and (optional) explicit display label. */
-    public record ColumnDef(int idx, LocalDate periodStart, LocalDate periodEnd, String label) {
-        public ColumnDef(int idx, LocalDate s, LocalDate e) { this(idx, s, e, null); }
-    }
-
     /**
-     * Loads {@code glrptah} header + the {@code glrptab} body row for the given
-     * fiscal year, then unpivots the 366 {@code report_date_NNN} slots into
-     * (start, end) column pairs — odd slot = period start, even slot = period end.
-     * Stops at the first sentinel ({@value SENTINEL}).
-     *
-     * <p><b>Inline-SQL note:</b> The {@code glrptab} body-row query builds a
-     * plain-SQL column list of all 366 {@code report_date_NNN} fields. These are
-     * a COBOL OCCURS expansion stored as individual VARCHAR columns; jOOQ's
-     * generated {@code Glrptab} table class does not expose them as typed
-     * {@code TableField} references. Using {@code DSL.field("report_date_NNN",
-     * LocalDate.class)} for each is the only type-safe alternative but would
-     * require 366 individual field declarations with no practical benefit over the
-     * single-string column list approach.
+     * One column definition. Data columns carry {@code periodStart}/{@code periodEnd} and fetch
+     * from {@code gltrx}. Calc columns ({@code isCalcPct()==true}) have null dates and are
+     * computed post-aggregation as {@code cells[calcNumeratorIdx] / cells[calcDenominatorIdx] * 100},
+     * truncated, then sign-flipped for DR-side rows.
      */
-    public HorizontalTable loadHorizontalTable(int companyNo, String dateTableCode, int yearNo) {
-        String[] desc = { null };
-        try {
-            Record r = dsl.select(GLRPTAH.DESC1)
-                          .from(GLRPTAH)
-                          .where(GLRPTAH.COMPANY_NO.eq(companyNo)
-                              .and(GLRPTAH.DATE_TABLE.eq(dateTableCode)))
-                          .fetchOne();
-            if (r != null) desc[0] = trim(r.get(GLRPTAH.DESC1));
-        } catch (Exception e) { log.warn("loadHorizontalTable header: {}", e.getMessage()); }
-        if (desc[0] == null) return null;
-
-        // Pull all 366 date slots in one row, then unpivot.
-        // Inline SQL required: report_date_001..report_date_366 are COBOL OCCURS
-        // columns not representable as typed jOOQ fields in the generated Glrptab class.
-        StringBuilder cols = new StringBuilder("year_no");
-        for (int i = 1; i <= 366; i++) cols.append(String.format(", report_date_%03d", i));
-        Map<String, Object>[] bodyRow = new Map[]{ null };
-        try {
-            dsl.resultQuery(
-                    "SELECT " + cols + " FROM glrptab WHERE company_no=? AND date_table=? AND year_no=?",
-                    companyNo, dateTableCode, yearNo)
-               .fetch()
-               .forEach(r -> {
-                   Map<String, Object> row = new LinkedHashMap<>();
-                   row.put("year_no", r.get("year_no", Integer.class));
-                   for (int i = 1; i <= 366; i++) {
-                       String colName = String.format("report_date_%03d", i);
-                       LocalDate d = r.get(colName, LocalDate.class);
-                       row.put(colName, d);
-                   }
-                   bodyRow[0] = row;
-               });
-        } catch (Exception e) { log.warn("loadHorizontalTable body: {}", e.getMessage()); }
-        if (bodyRow[0] == null) {
-            return new HorizontalTable(dateTableCode, desc[0], yearNo, List.of());
+    public record ColumnDef(int idx, LocalDate periodStart, LocalDate periodEnd, String label,
+                            int calcNumeratorIdx, int calcDenominatorIdx) {
+        public ColumnDef(int idx, LocalDate s, LocalDate e, String label) {
+            this(idx, s, e, label, -1, -1);
         }
-
-        List<ColumnDef> columns = new ArrayList<>();
-        int colIdx = 0;
-        for (int i = 1; i <= 365 && columns.size() < MAX_COLUMNS; i += 2) {
-            LocalDate start = (LocalDate) bodyRow[0].get(String.format("report_date_%03d", i));
-            LocalDate end   = (LocalDate) bodyRow[0].get(String.format("report_date_%03d", i + 1));
-            if (start == null || SENTINEL.equals(start)) break;
-            if (end == null || SENTINEL.equals(end)) end = start;
-            columns.add(new ColumnDef(++colIdx, start, end));
-        }
-        return new HorizontalTable(dateTableCode, desc[0], yearNo, columns);
+        public ColumnDef(int idx, LocalDate s, LocalDate e) { this(idx, s, e, null, -1, -1); }
+        public boolean isCalcPct() { return calcNumeratorIdx >= 0; }
     }
 
-    // ── Column resolution (rundates → synth → glrptah) ───────────────────────
+    // ── Column resolution (glrphof) ──────────────────────────────────────────
 
     /**
-     * Column resolver. Always synthesises from the user's start/end date range
-     * + {@code horiz_format_no} (so a date change in the screen takes effect
-     * immediately, no stale cache). Persists the resolved columns into
-     * {@code glrpwkc} as an audit snapshot — equivalent to COBOL writing
-     * {@code GLRPSEL-REPORT-DATES-TABLE} at run time. Falls through to
-     * {@code glrptah}/{@code glrptab} only when synthesis returns empty
-     * (bespoke keys like {@code "Q"}).
+     * Column resolver — reads column definitions from {@code glrphof} and persists
+     * the resolved date ranges to {@code glrpwkc} for saved selections.
      */
     private List<ColumnDef> resolveColumns(AppSession s, RunParams p) {
-        List<ColumnDef> synth = synthesizeColumns(s.getCompanyNo(), p);
-        if (!synth.isEmpty()) {
-            if (p.selectionNo() > 0) persistRunDates(s, p.selectionNo(), p.horizFormatKey(), synth);
-            return synth;
-        }
-        int yr = p.endDate() != null ? p.endDate().getYear() : s.getYearNo();
-        HorizontalTable horiz = loadHorizontalTable(s.getCompanyNo(), p.horizFormatKey(), yr);
-        return horiz != null ? horiz.columns() : List.of();
-    }
-
-    /**
-     * Synthesises columns from {@code horiz_format_no} given the user's date
-     * range. The conventional Landmark codes verified against COBOL glrp output:
-     * <ul>
-     *   <li><b>"1"</b> — three columns: <b>Actual PTD</b> (start→end), <b>Actual YTD</b>
-     *       (fiscal year start of the end-date's year → end), <b>Prior YTD</b>
-     *       (same shape one fiscal year earlier).</li>
-     *   <li><b>"2"</b> — single column over the start→end range (Balance Sheet
-     *       "as at" — pass year-start / end-date pair).</li>
-     * </ul>
-     * Unknown codes return empty so the resolver falls through to {@code glrptah}.
-     */
-    private List<ColumnDef> synthesizeColumns(int companyNo, RunParams p) {
-        String key = p.horizFormatKey() == null ? "" : p.horizFormatKey().trim().toUpperCase(Locale.ROOT);
-        LocalDate start = p.startDate(), end = p.endDate();
-        if (start == null || end == null) return List.of();
-
-        return switch (key) {
-            case "1", "1A", "1B" -> ptdYtdPriorYtd(companyNo, start, end);
-            case "2", "2A", "2B" -> currentYearVsPriorAsAt(end);
-            default -> List.of();
-        };
-    }
-
-    /**
-     * Balance-sheet horizontal layout: <b>Current Year</b> + <b>Prior Year</b>,
-     * each a cumulative as-at column with no lower date bound. Using a 1900-01-01
-     * sentinel start picks up open_bal-rolled history naturally, so the cell
-     * value = {@code SUM(dr_amt − cr_amt) WHERE jnl_date ≤ end} — exactly the
-     * cumulative balance the COBOL BS expects.
-     */
-    private List<ColumnDef> currentYearVsPriorAsAt(LocalDate end) {
-        LocalDate sentinel = LocalDate.of(1900, 1, 1);
-        return List.of(
-            new ColumnDef(1, sentinel, end,                "Current Year"),
-            new ColumnDef(2, sentinel, end.minusYears(1),  "Prior Year"));
-    }
-
-    /**
-     * Builds the COBOL P&amp;L horizontal layout: Actual PTD, Actual YTD, Prior YTD.
-     * YTD = fiscal-year start of the end-date's year → end. Prior YTD = same
-     * window one fiscal year earlier. Falls back to a single PTD column if
-     * gldates can't be resolved for the relevant year.
-     */
-    private List<ColumnDef> ptdYtdPriorYtd(int companyNo, LocalDate start, LocalDate end) {
-        Integer fyYearNo = pickFiscalYearForDate(companyNo, end);
-        LocalDate yrStart = null;
-        if (fyYearNo != null) {
-            Map<String, Object> row = loadGlDatesRow(companyNo, fyYearNo);
-            if (row != null) yrStart = (LocalDate) row.get("yr_start_date");
-        }
-        // Prior fiscal year — for the "Prior YTD" column we want the same shape
-        // one fiscal year earlier; row picked by year_no = fyYearNo - 1.
-        LocalDate priorYrStart = null;
-        LocalDate priorEnd = end.minusYears(1);
-        if (fyYearNo != null) {
-            Map<String, Object> prior = loadGlDatesRow(companyNo, fyYearNo - 1);
-            if (prior != null) priorYrStart = (LocalDate) prior.get("yr_start_date");
-        }
-
-        List<ColumnDef> cols = new ArrayList<>();
-        cols.add(new ColumnDef(1, start, end, "Actual PTD"));
-        if (yrStart != null) {
-            cols.add(new ColumnDef(2, yrStart, end, "Actual YTD"));
-        }
-        if (priorYrStart != null) {
-            cols.add(new ColumnDef(3, priorYrStart, priorEnd, "Prior YTD"));
-        } else if (yrStart != null) {
-            // No prior gldates row — fabricate a same-shape window one year back
-            // so the column still renders (likely all zeros, matching glrp output).
-            cols.add(new ColumnDef(3, yrStart.minusYears(1), priorEnd, "Prior YTD"));
+        if (p.startDate() == null || p.endDate() == null) return List.of();
+        List<ColumnDef> cols = resolveColumnsFromGlrphof(
+            s.getCompanyNo(), p.horizFormatKey(), p.startDate(), p.endDate());
+        if (!cols.isEmpty() && p.selectionNo() > 0) {
+            persistRunDates(s, p.selectionNo(), p.horizFormatKey(), cols);
         }
         return cols;
+    }
+
+    /**
+     * Resolves column date ranges from {@code glrphof} for the given horizontal layout.
+     * Uses <b>both</b> {@code data_select} and {@code data_period_select} (the two
+     * dimensions of a column definition in COBOL {@code glrp60}):
+     * <ul>
+     *   <li>{@code data_select} — which year's data: 1=this year, 2=last year, 3-8=budgets, 9=costs.
+     *       Values &gt; 9 (10=Account No, 11=Description, 12=Ratio) are skipped — they are
+     *       row-label columns, not numeric data columns.</li>
+     *   <li>{@code data_period_select} — which period within that year:
+     *       1=PTD, 2=YTD, 3=Opening balance, 4=Closing balance,
+     *       5=Full year, 6=Specific period (uses {@code data_period_no} 1-13), 7=Period prior.</li>
+     * </ul>
+     */
+    private List<ColumnDef> resolveColumnsFromGlrphof(int companyNo, String layoutNo,
+                                                       LocalDate startDate, LocalDate endDate) {
+        Integer fyYearNo = pickFiscalYearForDate(companyNo, endDate);
+        Map<String, Object> curGlDates = fyYearNo != null ? loadGlDatesRow(companyNo, fyYearNo) : null;
+        LocalDate yrStart = curGlDates != null ? (LocalDate) curGlDates.get("yr_start_date") : null;
+        LocalDate yrEnd   = curGlDates != null ? (LocalDate) curGlDates.get("yr_end_date")   : null;
+
+        // Prior year gldates — needed for data_select = 2/4/7 (last year)
+        Integer priorFyNo = yrStart != null
+                ? pickFiscalYearForDate(companyNo, yrStart.minusDays(1)) : null;
+        Map<String, Object> priorGlDates = priorFyNo != null ? loadGlDatesRow(companyNo, priorFyNo) : null;
+        LocalDate priorYrStart = priorGlDates != null
+                ? (LocalDate) priorGlDates.get("yr_start_date")
+                : (yrStart != null ? yrStart.minusYears(1) : startDate.minusYears(1));
+        LocalDate priorYrEnd = priorGlDates != null
+                ? (LocalDate) priorGlDates.get("yr_end_date")
+                : (yrEnd != null ? yrEnd.minusYears(1) : endDate.minusYears(1));
+
+        LocalDate sentinel = LocalDate.of(1900, 1, 1);
+        List<ColumnDef> columns = new ArrayList<>();
+        // Track 0-based indices of "Actual YTD" and "Prior YTD" for the % Dif calc column.
+        int[] lastThisYrYtdIdx  = { -1 };
+        int[] lastPriorYrYtdIdx = { -1 };
+        try {
+            dsl.select(
+                    GLRPHOF.FIELD_NO,
+                    GLRPHOF.DATA_OR_CALC_IND,
+                    GLRPHOF.PRINT_FLAG,
+                    GLRPHOF.DATA_SELECT,
+                    GLRPHOF.DATA_PERIOD_SELECT,
+                    GLRPHOF.DATA_PERIOD_NO)
+               .from(GLRPHOF)
+               .where(GLRPHOF.COMPANY_NO.eq(companyNo)
+                   .and(GLRPHOF.LAYOUT_NO.eq(layoutNo)))
+               .orderBy(GLRPHOF.FIELD_NO)
+               .fetch()
+               .forEach(r -> {
+                   if (!"Y".equalsIgnoreCase(trim(r.get(GLRPHOF.PRINT_FLAG)))) return;
+                   int dataSelect   = r.get(GLRPHOF.DATA_SELECT);
+                   int periodSelect = r.get(GLRPHOF.DATA_PERIOD_SELECT);
+                   int periodNo     = r.get(GLRPHOF.DATA_PERIOD_NO);
+                   boolean isCalc   = "C".equalsIgnoreCase(trim(r.get(GLRPHOF.DATA_OR_CALC_IND)));
+
+                   // Calc column (data_or_calc_ind='C'): emit a % Dif derived column.
+                   // Formula: cells[numerator] / cells[denominator] * 100, truncated.
+                   // Sign flipped for DR-side (expense) rows. Requires both YTD columns seen first.
+                   if (isCalc) {
+                       if (lastThisYrYtdIdx[0] >= 0 && lastPriorYrYtdIdx[0] >= 0) {
+                           int idx = columns.size() + 1;
+                           columns.add(new ColumnDef(idx, null, null, "% Dif",
+                                                     lastThisYrYtdIdx[0], lastPriorYrYtdIdx[0]));
+                       }
+                       return;
+                   }
+
+                   // Skip non-numeric label columns: Description(11), Account No(10), Ratio(12)
+                   if (dataSelect > 9) return;
+
+                   // Year dimension: 2/4/7 = last year, else this year (5/8 next-year not yet handled)
+                   boolean isLastYear = (dataSelect == 2 || dataSelect == 4 || dataSelect == 7);
+
+                   LocalDate colYrStart   = isLastYear ? priorYrStart : (yrStart != null ? yrStart : startDate);
+                   LocalDate colYrEnd     = isLastYear ? priorYrEnd   : yrEnd;
+                   LocalDate colStartDate = isLastYear ? startDate.minusYears(1) : startDate;
+                   LocalDate colEndDate   = isLastYear ? endDate.minusYears(1)   : endDate;
+                   Map<String, Object> colDates = isLastYear ? priorGlDates : curGlDates;
+
+                   int zeroIdx = columns.size(); // 0-based index this column will occupy
+                   int idx     = zeroIdx + 1;    // 1-based for ColumnDef.idx
+                   ColumnDef col = null;
+                   switch (periodSelect) {
+                       case 1 -> col = new ColumnDef(idx, colStartDate, colEndDate,
+                                                      isLastYear ? "Prior Period" : "Actual PTD");
+                       case 2 -> {
+                           col = new ColumnDef(idx, colYrStart, colEndDate,
+                                               isLastYear ? "Prior YTD" : "Actual YTD");
+                           // Track for % Dif calc
+                           if (!isLastYear) lastThisYrYtdIdx[0]  = zeroIdx;
+                           else             lastPriorYrYtdIdx[0] = zeroIdx;
+                       }
+                       case 3 -> {
+                           LocalDate obEnd = colYrStart != null
+                               ? colYrStart.minusDays(1) : colStartDate.minusDays(1);
+                           col = new ColumnDef(idx, sentinel, obEnd,
+                                               isLastYear ? "Prior Opening" : "Opening Bal");
+                       }
+                       case 4 -> col = new ColumnDef(idx, sentinel, colEndDate,
+                                                      isLastYear ? "Prior Year" : "Current Year");
+                       case 5 -> {
+                           if (colYrEnd != null)
+                               col = new ColumnDef(idx, colYrStart, colYrEnd,
+                                                   isLastYear ? "Prior Full Yr" : "Full Year");
+                       }
+                       case 6 -> {
+                           if (periodNo >= 1 && periodNo <= 13 && colDates != null) {
+                               LocalDate pe = (LocalDate) colDates.get(
+                                   String.format("period_end_%02d", periodNo));
+                               if (pe != null && !SENTINEL.equals(pe)) {
+                                   LocalDate ps;
+                                   if (periodNo == 1) {
+                                       ps = colYrStart;
+                                   } else {
+                                       LocalDate prev = (LocalDate) colDates.get(
+                                           String.format("period_end_%02d", periodNo - 1));
+                                       ps = (prev != null && !SENTINEL.equals(prev))
+                                           ? prev.plusDays(1) : colYrStart;
+                                   }
+                                   col = new ColumnDef(idx, ps, pe,
+                                       pe.format(java.time.format.DateTimeFormatter.ofPattern("MMM yy")));
+                               }
+                           }
+                       }
+                       case 7 -> {
+                           // Period prior — approximate as N calendar months before PTD
+                           int shift = periodNo > 0 ? periodNo : 1;
+                           col = new ColumnDef(idx, colStartDate.minusMonths(shift),
+                                               colEndDate.minusMonths(shift),
+                                               isLastYear ? "Budget Prior" : "Prior Period");
+                       }
+                   }
+                   if (col != null) columns.add(col);
+               });
+        } catch (Exception e) {
+            log.warn("resolveColumnsFromGlrphof layout={}: {}", layoutNo, e.getMessage());
+        }
+        return columns;
     }
 
     /**
@@ -665,27 +656,6 @@ public class GlReportWriterService {
         } catch (Exception e) { return null; }
     }
 
-    /** Loads persisted rundates for one selection from {@code glrpwkc}. */
-    private List<ColumnDef> loadRunDates(int companyNo, int selectionNo) {
-        List<ColumnDef> out = new ArrayList<>();
-        try {
-            dsl.select(GLRPWKC.SEQ_NO, GLRPWKC.START_DATE, GLRPWKC.END_DATE)
-               .from(GLRPWKC)
-               .where(GLRPWKC.COMPANY_NO.eq(companyNo)
-                   .and(GLRPWKC.SELECTION_NO.eq(selectionNo)))
-               .orderBy(GLRPWKC.SEQ_NO)
-               .fetch()
-               .forEach(r -> {
-                   LocalDate sd = r.get(GLRPWKC.START_DATE);
-                   LocalDate ed = r.get(GLRPWKC.END_DATE);
-                   if (sd != null && ed != null) {
-                       out.add(new ColumnDef(r.get(GLRPWKC.SEQ_NO), sd, ed));
-                   }
-               });
-        } catch (Exception e) { log.warn("loadRunDates: {}", e.getMessage()); }
-        return out;
-    }
-
     /** Replaces persisted rundates for a selection (delete + insert in one tx). */
     private void persistRunDates(AppSession s, int selectionNo, String dateTable, List<ColumnDef> cols) {
         try {
@@ -706,43 +676,17 @@ public class GlReportWriterService {
         } catch (Exception e) { log.warn("persistRunDates: {}", e.getMessage()); }
     }
 
-    /** Title-bar caption for the horizontal — glrptah desc if known, else the key. */
+    /** Title-bar caption for the horizontal — glrphoh desc_1 if known, else the key. */
     private String describeHoriz(int companyNo, String key) {
         try {
-            String d = dsl.select(GLRPTAH.DESC1)
-                          .from(GLRPTAH)
-                          .where(GLRPTAH.COMPANY_NO.eq(companyNo)
-                              .and(GLRPTAH.DATE_TABLE.eq(key)))
-                          .fetchOne(GLRPTAH.DESC1);
-            if (notBlank(d)) return d;
+            String d = dsl.select(GLRPHOH.DESC_1)
+                          .from(GLRPHOH)
+                          .where(GLRPHOH.COMPANY_NO.eq(companyNo)
+                              .and(GLRPHOH.LAYOUT_NO.eq(key)))
+                          .fetchOne(GLRPHOH.DESC_1);
+            if (notBlank(d)) return trim(d);
         } catch (Exception ignored) {}
-        // Friendly descriptions for the synthesised conventions.
-        String c = key == null ? "" : key.trim().toUpperCase(Locale.ROOT);
-        return switch (c) {
-            case "1"  -> "Actual PTD / Actual YTD / Prior YTD";
-            case "1A" -> "Actual PTD / Actual YTD / Prior YTD";
-            case "1B" -> "Actual PTD / Actual YTD / Prior YTD (prior year)";
-            case "2", "2A" -> "Current Year / Prior Year (as at)";
-            case "2B"      -> "Current Year / Prior Year (as at — prior year)";
-            default -> notBlank(key) ? key : "(no horizontal)";
-        };
-    }
-
-    /**
-     * Translates a COBOL fiscal-year sequence ({@code gldates.yr_no}) to its
-     * 4-digit calendar {@code year_no}. Returns {@code null} when the year
-     * doesn't exist for the company so callers can fall back to a session default.
-     */
-    private Integer lookupCalendarYear(int companyNo, int yrNoSeq) {
-        try {
-            return dsl.select(GLDATES.YEAR_NO)
-                      .from(GLDATES)
-                      .where(GLDATES.COMPANY_NO.eq(companyNo)
-                          .and(GLDATES.YR_NO.eq(yrNoSeq)))
-                      .fetchOne(GLDATES.YEAR_NO);
-        } catch (Exception e) {
-            return null;
-        }
+        return notBlank(key) ? key : "(no horizontal)";
     }
 
     // ── Interpreter: aggregate one row's account range over the columns ──────
@@ -766,21 +710,27 @@ public class GlReportWriterService {
         Map<String, BigDecimal[]> perAcct = new LinkedHashMap<>();
         if (colCount == 0) return perAcct;
 
-        LocalDate spanStart = columns.get(0).periodStart();
-        LocalDate spanEnd   = columns.get(0).periodEnd();
-        for (int i = 1; i < colCount; i++) {
-            if (columns.get(i).periodStart().isBefore(spanStart)) spanStart = columns.get(i).periodStart();
-            if (columns.get(i).periodEnd().isAfter(spanEnd))     spanEnd   = columns.get(i).periodEnd();
+        // Calc columns have null dates — find initial span from the first data column.
+        LocalDate spanStart = null, spanEnd = null;
+        for (int i = 0; i < colCount; i++) {
+            ColumnDef ci = columns.get(i);
+            if (ci.isCalcPct()) continue;
+            if (spanStart == null) { spanStart = ci.periodStart(); spanEnd = ci.periodEnd(); continue; }
+            if (ci.periodStart().isBefore(spanStart)) spanStart = ci.periodStart();
+            if (ci.periodEnd().isAfter(spanEnd))      spanEnd   = ci.periodEnd();
         }
+        if (spanStart == null) return perAcct; // all columns are calc — nothing to query
 
         int endMain = r.endMain() > 0 ? r.endMain() : r.startMain();
         int endSub  = r.endSub()  > 0 ? r.endSub()  : 9999;
 
+        // Calc columns have null dates; their cells stay zero (filled by fillCalcColumns).
         final LocalDate[] cols0 = new LocalDate[colCount];
         final LocalDate[] cols1 = new LocalDate[colCount];
         for (int i = 0; i < colCount; i++) {
-            cols0[i] = columns.get(i).periodStart();
-            cols1[i] = columns.get(i).periodEnd();
+            ColumnDef ci = columns.get(i);
+            cols0[i] = ci.isCalcPct() ? LocalDate.MIN : ci.periodStart();
+            cols1[i] = ci.isCalcPct() ? LocalDate.MIN : ci.periodEnd();
         }
 
         try {
@@ -884,6 +834,30 @@ public class GlReportWriterService {
             && lineDesc.toUpperCase(java.util.Locale.ROOT).contains("CURRENT YEAR EARNINGS");
     }
 
+    /**
+     * Fills calc columns (isCalcPct) in {@code cells}: ratio = cells[numeratorIdx] / cells[denominatorIdx] * 100,
+     * truncated to integer. For DR-side rows ({@code drRow=true}) the ratio is negated so that
+     * expenses show as (72) when Actual YTD is 72% of Prior YTD — matching COBOL convention.
+     * Zero denominator → zero (div-guard). Called after all data-column values are known.
+     */
+    private static void fillCalcColumns(BigDecimal[] cells, int colCount,
+                                        List<ColumnDef> columns, boolean drRow) {
+        for (int c = 0; c < colCount; c++) {
+            ColumnDef col = columns.get(c);
+            if (!col.isCalcPct()) continue;
+            int n = col.calcNumeratorIdx(), d = col.calcDenominatorIdx();
+            if (n < 0 || d < 0 || n >= colCount || d >= colCount
+                    || cells[d] == null || cells[d].signum() == 0) {
+                cells[c] = BigDecimal.ZERO;
+                continue;
+            }
+            BigDecimal ratio = cells[n].divide(cells[d], 4, java.math.RoundingMode.DOWN)
+                                       .multiply(BigDecimal.valueOf(100))
+                                       .setScale(0, java.math.RoundingMode.DOWN);
+            cells[c] = drRow ? ratio.negate() : ratio;
+        }
+    }
+
     private static BigDecimal[] negate(BigDecimal[] a) {
         BigDecimal[] out = new BigDecimal[a.length];
         for (int i = 0; i < a.length; i++) out[i] = a[i].negate();
@@ -907,12 +881,6 @@ public class GlReportWriterService {
         return a;
     }
 
-    private static BigDecimal[] copyOrZero(BigDecimal[] src, int n) {
-        BigDecimal[] dst = zeroes(n);
-        if (src != null) System.arraycopy(src, 0, dst, 0, Math.min(src.length, n));
-        return dst;
-    }
-
     private static boolean allZero(BigDecimal[] a) {
         for (BigDecimal v : a) if (v != null && v.signum() != 0) return false;
         return true;
@@ -929,29 +897,20 @@ public class GlReportWriterService {
         return r.startMain() + "–" + r.endMain();
     }
 
-    /** Coarse classification for the jrxml grouping / styling. */
-    private static String kindOf(RowDef r) {
-        String t = trim(r.totalType()).toUpperCase();
-        if (t.isEmpty() || "+".equals(t) || "-".equals(t)) return "account";
-        if ("U".equals(t)) return "subtotal";   // common COBOL convention
-        if ("T".equals(t)) return "total";
-        if ("C".equals(t)) return "constant";
-        return "other";
-    }
-
     /**
      * Column heading. An explicit {@link ColumnDef#label} wins (set by the
      * PTD/YTD/Prior YTD synth); otherwise a compact date label fitting the
      * 46-px PDF column — "MMM yy" for ~one-month spans, "FY yy" for full year,
-     * "dd/MM/yy" end-date for anything else.
+     * "dd-MM-yyyy" end-date for anything else.
      */
     private static String headingOf(ColumnDef c) {
+        if (c.isCalcPct()) return c.label() != null ? c.label() : "% Dif";
         if (c.label() != null && !c.label().isBlank()) return c.label();
         LocalDate s = c.periodStart(), e = c.periodEnd();
         long days = java.time.temporal.ChronoUnit.DAYS.between(s, e);
         if (days >= 27 && days <= 32)  return e.format(java.time.format.DateTimeFormatter.ofPattern("MMM yy"));
         if (days >= 360 && days <= 370) return "FY " + String.format("%02d", e.getYear() % 100);
-        return e.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy"));
+        return e.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
     }
 
     private Map<String, Object> result(List<Map<String, Object>> rows, Map<String, Object> params) {
@@ -971,9 +930,4 @@ public class GlReportWriterService {
     static String  trim(String s)     { return s == null ? "" : s.trim(); }
     static BigDecimal z(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
 
-    /** Safely parses a VARCHAR vert_format_no / selection_no to int; returns 0 on failure. */
-    private static int parseIntSafe(String s) {
-        if (s == null || s.isBlank()) return 0;
-        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 0; }
-    }
 }

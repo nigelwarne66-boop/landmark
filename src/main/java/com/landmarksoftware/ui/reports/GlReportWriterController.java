@@ -4,6 +4,7 @@ import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.service.gl.GlReportWriterService;
 import com.landmarksoftware.service.gl.GlReportWriterService.RunParams;
 import com.landmarksoftware.service.gl.GlReportWriterService.SelectionRow;
+import com.landmarksoftware.ui.FxUtil;
 import com.landmarksoftware.ui.ReportsHubController;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -68,6 +69,7 @@ public class GlReportWriterController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FxUtil.setAuDate(startDate, endDate);
         // ── Period defaults: end-of-current-month and the fiscal year-start before it ──
         LocalDate today = LocalDate.now();
         LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
@@ -164,25 +166,20 @@ public class GlReportWriterController implements Initializable {
             else                errors.add(sel.selectionNo() + " — " + safeTitle(sel) + ": " + status);
         }
 
-        StringBuilder msg = new StringBuilder();
-        if (!okSelections.isEmpty()) {
-            msg.append("Generated ").append(okSelections.size()).append(" report(s):\n");
-            for (String r : okSelections) msg.append("  • ").append(r).append('\n');
-        }
         if (!errors.isEmpty()) {
-            if (msg.length() > 0) msg.append('\n');
-            msg.append(errors.size()).append(" skipped / failed:\n");
+            StringBuilder msg = new StringBuilder(errors.size() + " report(s) skipped / failed:\n");
             for (String r : errors) msg.append("  • ").append(r).append('\n');
+            alert(Alert.AlertType.WARNING, "Some reports failed", msg.toString().trim());
+        } else {
+            close(e);
         }
-        Alert.AlertType type = errors.isEmpty() ? Alert.AlertType.INFORMATION : Alert.AlertType.WARNING;
-        alert(type, "Bulk run complete", msg.toString().trim());
     }
 
     /** Runs one selection; returns {@code null} on success or a short reason string. */
     @SuppressWarnings("unchecked")
     private String runOne(SelectionRow sel, String format, LocalDate s, LocalDate t, Window owner) {
-        int vertFormatNo = sel.vertFormatNo();
-        if (vertFormatNo <= 0) return "no vert_format_no";
+        String vertFormatNo = sel.vertFormatNo();
+        if (vertFormatNo == null || vertFormatNo.isBlank()) return "no vert_format_no";
 
         String horizKey = (sel.horizFormatKey() == null || sel.horizFormatKey().isBlank())
             ? "1" : sel.horizFormatKey();
