@@ -313,15 +313,31 @@ public class MainMenuController {
         appSession.setYearNo(sessionYearNo);
         appSession.setYearDesc(sessionYearDesc);
 
-        // Load FA config + year dates from CPCOYCO and GLDATES via SessionService
+        // Load FA config, year dates and module install flags from CPCOYCO/GLDATES
         SessionData sd = sessionService.loadSessionData(sessionCompanyNo, sessionYearNo);
         appSession.setFaTaxYrEndMth(sd.faTaxYrEndMth());
         if (sd.yrStartDate() != null) appSession.setYrStartDate(sd.yrStartDate());
         if (sd.yrEndDate()   != null) appSession.setYrEndDate(sd.yrEndDate());
         appSession.setBatchControlFlag(sd.batchControlFlag());
+        // Module install flags
+        appSession.setGlInstalFlag(sd.glInstalFlag());
+        appSession.setArInstalFlag(sd.arInstalFlag());
+        appSession.setApInstalFlag(sd.apInstalFlag());
+        appSession.setCmInstalFlag(sd.cmInstalFlag());
+        appSession.setSmInstalFlag(sd.smInstalFlag());
+        appSession.setPoInstalFlag(sd.poInstalFlag());
+        appSession.setFaInstalFlag(sd.faInstalFlag());
+        appSession.setGstInstalFlag(sd.gstInstalFlag());
+        appSession.setPaInstalFlag(sd.paInstalFlag());
 
         // Note: userId already set by LoginController — do not overwrite
         System.out.println("AppSession: " + appSession);
+
+        // Refresh rail visibility for the new company's installed modules.
+        // Guard: shellRail is null on the very first call (rail not yet built).
+        if (shellRail != null) {
+            shellRail.refreshVisibility(m -> appSession.isModuleInstalled(m.getRouteId()));
+        }
     }
 
     /** Convert GLDATES day-number (days since some epoch) to LocalDate.
@@ -374,9 +390,7 @@ public class MainMenuController {
     /** Config shared by {@link #buildHeaderBar()} and {@link #buildSidebar()}
      *  — see {@link ShellContext}. The Favourites row is left as the shared
      *  shell's default static placeholder: there is no favourites-in-nav
-     *  feature in the desktop app today (see {@code AppShell} javadoc).
-     *  {@code moduleVisible} defaults to always-visible here — install-flag
-     *  gating lands separately alongside the module-visibility feature work. */
+     *  feature in the desktop app today (see {@code AppShell} javadoc). */
     private ShellContext buildShellContext() {
         String userName = appSession.getUserName();
         if (userName == null || userName.isBlank()) userName = appSession.getUserId();
@@ -394,7 +408,7 @@ public class MainMenuController {
             .onOpenInReports(() -> reportsHandoffService.openInReports("gl"))
             .onSignOut(() -> javafx.application.Platform.exit())
             .activeModule(Module.FIXED_ASSETS)
-            .moduleVisible(m -> true)
+            .moduleVisible(m -> appSession.isModuleInstalled(m.getRouteId()))
             .onModuleSelected(m -> selectSidebarModule(m.getRouteId()));
     }
 

@@ -33,6 +33,17 @@ public final class SessionSql {
     public static final String FIND_FA_BATCH_CONTROL_FLAG =
         "SELECT fa_batch_control_flag FROM CPCOYCO WHERE company_no=?";
 
+    /**
+     * All module install flags in one round-trip.
+     * 'Y' = installed, 'N' = not installed, absent row = default to installed.
+     * Params: companyNo.
+     */
+    public static final String FIND_MODULE_FLAGS =
+        "SELECT gl_instal_flag, ar_instal_flag, ap_instal_flag, cm_instal_flag, " +
+        "       sm_instal_flag, po_instal_flag, fa_instal_flag, gst_instal_flag, " +
+        "       pa_instal_flag " +
+        "FROM cpcoyco WHERE company_no=? LIMIT 1";
+
     // ─── GLDATES (Fiscal year boundaries) ───────────────────────────────
 
     /** Year start/end dates for a (company, year). Params: companyNo, yearNo. */

@@ -1,5 +1,6 @@
 package com.landmarksoftware.ui;
 
+import com.landmarksoftware.desktop.AppMode;
 import com.landmarksoftware.model.AppSession;
 import com.landmarksoftware.report.JasperReportService;
 import com.landmarksoftware.report.ModuleDef;
@@ -107,10 +108,7 @@ public class ReportsHubController implements Initializable {
     /** Config shared by the header + rail — DESIGN_SYSTEM.md §5. Unlike
      *  MainMenuController, this app already has a working per-report
      *  favourites feature (ReportFavouritesStore), so the shared shell's
-     *  Favourites row is wired up here instead of left as a placeholder.
-     *  {@code moduleVisible} hides "sys" (no System module in this app's
-     *  report registry) — install-flag gating lands separately alongside
-     *  the module-visibility feature work. */
+     *  Favourites row is wired up here instead of left as a placeholder. */
     private ShellContext buildShellContext() {
         String displayName = session.getUserName();
         if (displayName == null || displayName.isBlank()) displayName = session.getUserId();
@@ -128,7 +126,7 @@ public class ReportsHubController implements Initializable {
             .onPreferences(() -> comingSoon("Preferences"))
             .onSignOut(this::onSignOut)
             .activeModule(null)
-            .moduleVisible(m -> !"sys".equals(m.getRouteId()))
+            .moduleVisible(m -> !"sys".equals(m.getRouteId()) && session.isModuleInstalled(m.getRouteId()))
             .onModuleSelected(this::selectModuleByRoute)
             .onFavouritesClick(() -> selectModule(null))
             .favouritesCount(favStore::count);
@@ -300,6 +298,11 @@ public class ReportsHubController implements Initializable {
         glReportWriter.setRunner(fmt -> comingSoon("Report Writer Output"));
 
         /* Accounts Receivable */
+        ReportDef arTransactionInquiry = ReportDef.withParams(
+            "transaction-inquiry", "Transaction Inquiry",
+            "AR customer transaction inquiry — browse transactions with drill-down to distributions",
+            "fth-search");
+
         ReportDef debtorsAgeing = ReportDef.withParams(
             "debtors-ageing", "Debtors Ageing",
             "Customer balances aged across 4 configurable periods (ARTL32)",
@@ -427,6 +430,11 @@ public class ReportsHubController implements Initializable {
         arCustomerSalesByYear.setRunner(fmt -> comingSoon("Customer Sales by Year"));
 
         /* Accounts Payable */
+        ReportDef transactionInquiry = ReportDef.withParams(
+            "transaction-inquiry", "Transaction Inquiry",
+            "AP supplier transaction inquiry — browse transactions with drill-down to distributions",
+            "fth-search");
+
         ReportDef creditorsAgeing = ReportDef.withParams(
             "creditors-ageing", "Creditors Ageing",
             "Supplier balances aged across 6 monthly buckets",
@@ -593,6 +601,15 @@ public class ReportsHubController implements Initializable {
             "fth-clock");
 
         /* SM — Inventory Management */
+        ReportDef smStockItemInquiry = ReportDef.withParams(
+            "stock-item-inquiry", "Stock Item Inquiry",
+            "Item across all locations — quantity and value on hand, with movement drill-down",
+            "fth-search");
+        ReportDef smStockAvailability = ReportDef.withParams(
+            "stock-availability", "Stock Availability Inquiry",
+            "Item quantity position across locations — on hand, allocated, available, on order",
+            "fth-layers");
+
         ReportDef smMovementsDetail = ReportDef.withParams(
             "inventory-movements-detail", "Inventory Movements Detail",
             "Every stock movement — receipts, sales, adjustments, transfers (SMTL01)",
@@ -669,46 +686,55 @@ public class ReportsHubController implements Initializable {
             "fth-bar-chart-2");
 
         // Sidebar order: GL, AR, AP, CM, PO, SM, FA, Payroll, BAS.
-        // Payroll module only visible to users with MEUSERS.print_pa_from_pass='Y'.
+        // Each module is gated on cpcoyco install flag via session.isModuleInstalled().
+        // Payroll additionally requires MEUSERS.print_pa_from_pass='Y' (isPayrollAccess).
         java.util.List<ModuleDef> mods = new java.util.ArrayList<>();
-        mods.add(new ModuleDef("gl", "General Ledger",
-            List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns,
-                    glReportWriter)));
-        mods.add(new ModuleDef("ar", "Accounts Receivable",
-            List.of(debtorsAgeing, arTransactionListing, arAccountRecon, arUnbalancedRecon,
-                    arDetailedTxn, arFcReval, arGlDistribution, arPeriodSummary,
-                    arDocumentNumber, arAdjustmentNote, salesDistribution, salesByGl,
-                    arDebtorsControl, arCustomerAcctStatus, arCustomerSalesByType,
-                    arCustomerSalesBySubLedger, arSalesBySalesperson, arSalespersonProfit,
-                    arSalesJournal, arCommission, arCustomerSalesByYear)));
-        mods.add(new ModuleDef("ap", "Accounts Payable",
-            List.of(creditorsAgeing, transactionListing, detailedTxnListing,
-                    periodSummary, glDistributions, purchaseHistory,
-                    unbalancedRecon, accountRecon, cashRequirements,
-                    supplierAnalysis, fcRevaluation)));
-        mods.add(new ModuleDef("cm", "Cash Management",
-            List.of(cmCashbookTransactions, cmCashbookListing, cmCashbookByType,
-                    cmCashbookDistributions, cmCashbookLedger, cmDocumentListing,
-                    cmBankReconciliation, cmReceiptListing, cmFcMatch)));
-        mods.add(new ModuleDef("po", "Purchasing",
-            List.of(poInSequence, poSummary, poDetail, purchaseIndex, poVariance,
-                    poUninvoicedGoods, poUninvoicedSundries, poSundriesRecon, poExpedite)));
-        mods.add(new ModuleDef("sm", "Inventory Management",
-            List.of(smMovementsDetail, smMovementsSummary, smValuation, smAvailability,
-                    smReorder, smInactive, smItemStatus, smSerialBatch, smConsignGl,
-                    smConsignStock, smSalesHistory, smTxnByCustomer, smPurchaseAnalysis,
-                    smPriceList)));
-        mods.add(new ModuleDef("fa", "Fixed Assets",
-            List.of(assetRegister, depreciation, acquiredRetired, txnList)));
-        if (session.isPayrollAccess()) {
+        if (session.isModuleInstalled("gl"))
+            mods.add(new ModuleDef("gl", "General Ledger",
+                List.of(trialBalance, profitLoss, balanceSheet, generalJournal, acctTxns,
+                        glReportWriter)));
+        if (session.isModuleInstalled("ar"))
+            mods.add(new ModuleDef("ar", "Accounts Receivable",
+                List.of(arTransactionInquiry, debtorsAgeing, arTransactionListing, arAccountRecon, arUnbalancedRecon,
+                        arDetailedTxn, arFcReval, arGlDistribution, arPeriodSummary,
+                        arDocumentNumber, arAdjustmentNote, salesDistribution, salesByGl,
+                        arDebtorsControl, arCustomerAcctStatus, arCustomerSalesByType,
+                        arCustomerSalesBySubLedger, arSalesBySalesperson, arSalespersonProfit,
+                        arSalesJournal, arCommission, arCustomerSalesByYear)));
+        if (session.isModuleInstalled("ap"))
+            mods.add(new ModuleDef("ap", "Accounts Payable",
+                List.of(transactionInquiry, creditorsAgeing, transactionListing, detailedTxnListing,
+                        periodSummary, glDistributions, purchaseHistory,
+                        unbalancedRecon, accountRecon, cashRequirements,
+                        supplierAnalysis, fcRevaluation)));
+        if (session.isModuleInstalled("cm"))
+            mods.add(new ModuleDef("cm", "Cash Management",
+                List.of(cmCashbookTransactions, cmCashbookListing, cmCashbookByType,
+                        cmCashbookDistributions, cmCashbookLedger, cmDocumentListing,
+                        cmBankReconciliation, cmReceiptListing, cmFcMatch)));
+        if (session.isModuleInstalled("po"))
+            mods.add(new ModuleDef("po", "Purchasing",
+                List.of(poInSequence, poSummary, poDetail, purchaseIndex, poVariance,
+                        poUninvoicedGoods, poUninvoicedSundries, poSundriesRecon, poExpedite)));
+        if (session.isModuleInstalled("sm"))
+            mods.add(new ModuleDef("sm", "Inventory Management",
+                List.of(smStockItemInquiry, smStockAvailability,
+                        smMovementsDetail, smMovementsSummary, smValuation, smAvailability,
+                        smReorder, smInactive, smItemStatus, smSerialBatch, smConsignGl,
+                        smConsignStock, smSalesHistory, smTxnByCustomer, smPurchaseAnalysis,
+                        smPriceList)));
+        if (session.isModuleInstalled("fa"))
+            mods.add(new ModuleDef("fa", "Fixed Assets",
+                List.of(assetRegister, depreciation, acquiredRetired, txnList)));
+        if (session.isModuleInstalled("py"))
             mods.add(new ModuleDef("py", "Payroll",
                 List.of(payrollSummary, employeeList, ytdPayments,
                         histDetail, histSummary, dednSuper, deptExpenses,
                         payPeriodSummary, payrunGlDetail, timesheetHist,
                         dednStatus, superByFund, extendedSuper)));
-        }
-        mods.add(new ModuleDef("bas", "Business Activity Statement",
-            List.of(basStatement, detailedBas, basTransactions, basByGl)));
+        if (session.isModuleInstalled("bas"))
+            mods.add(new ModuleDef("bas", "Business Activity Statement",
+                List.of(basStatement, detailedBas, basTransactions, basByGl)));
         modules = mods;
     }
 
@@ -841,7 +867,7 @@ public class ReportsHubController implements Initializable {
             scene.getStylesheets().add(
                 getClass().getResource("/css/reporting.css").toExternalForm());
             scene.getStylesheets().add(
-                getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+                getClass().getResource(AppMode.themeCssPath()).toExternalForm());
             dialog.setScene(scene);
             dialog.setTitle(report.getLabel());
             dialog.setResizable(false);
@@ -872,9 +898,14 @@ public class ReportsHubController implements Initializable {
     private void openCompanyYearSwitcher() {
         Window owner = headerSlot.getScene() != null ? headerSlot.getScene().getWindow() : null;
         mainMenu.showCompanyYearDialog(owner);
-        // AppSession is now updated — refresh the shared shell's chip/user
-        // name so the user sees the new company/year selection immediately.
+        // AppSession is now updated — rebuild the module registry and refresh
+        // the shared shell so modules not installed for the previous company
+        // appear/disappear and the header chip/user name reflect the switch.
         refreshHeader();
+        buildModuleRegistry();
+        if (shellRail != null) {
+            shellRail.refreshVisibility(m -> !"sys".equals(m.getRouteId()) && session.isModuleInstalled(m.getRouteId()));
+        }
         if (!modules.isEmpty()) selectModule(modules.get(0));
     }
 

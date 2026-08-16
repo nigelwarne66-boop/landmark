@@ -19,8 +19,18 @@ import java.time.LocalDate;
  * and applied to AppSession by MainMenuController.pushToAppSession().
  */
 public record SessionData(
-    int       faTaxYrEndMth,       // from CPCOYCO.fa_tax_yr_end_mth (default 6)
-    LocalDate yrStartDate,          // from GLDATES.yr_start_date
-    LocalDate yrEndDate,            // from GLDATES.yr_end_date
-    String    batchControlFlag      // from CPCOYCO.fa_batch_control_flag (default "Y")
+    int       faTaxYrEndMth,    // from CPCOYCO.fa_tax_yr_end_mth (default 6)
+    LocalDate yrStartDate,       // from GLDATES.yr_start_date
+    LocalDate yrEndDate,         // from GLDATES.yr_end_date
+    String    batchControlFlag,  // from CPCOYCO.fa_batch_control_flag (default "Y")
+    // Module install flags — from CPCOYCO (null/"Y" = installed, "N" = not installed)
+    String    glInstalFlag,
+    String    arInstalFlag,
+    String    apInstalFlag,
+    String    cmInstalFlag,
+    String    smInstalFlag,
+    String    poInstalFlag,
+    String    faInstalFlag,
+    String    gstInstalFlag,
+    String    paInstalFlag
 ) {}

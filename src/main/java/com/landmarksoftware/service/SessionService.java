@@ -67,8 +67,29 @@ public class SessionService {
             log("GLDATES date lookup failed (non-fatal): " + e.getMessage());
         }
 
-        return new SessionData(faTaxYrEndMth, yrStartDate, yrEndDate, batchCtrlFlag);
+        // Module install flags — one round-trip; absent row defaults everything to installed
+        String gl = "Y", ar = "Y", ap = "Y", cm = "Y", sm = "Y", po = "Y",
+               fa = "Y", gst = "Y", pa = "Y";
+        try {
+            Map<String, Object> f = jdbc.queryForMap(SessionSql.FIND_MODULE_FLAGS, companyNo);
+            gl  = str(f.get("gl_instal_flag"));
+            ar  = str(f.get("ar_instal_flag"));
+            ap  = str(f.get("ap_instal_flag"));
+            cm  = str(f.get("cm_instal_flag"));
+            sm  = str(f.get("sm_instal_flag"));
+            po  = str(f.get("po_instal_flag"));
+            fa  = str(f.get("fa_instal_flag"));
+            gst = str(f.get("gst_instal_flag"));
+            pa  = str(f.get("pa_instal_flag"));
+        } catch (Exception e) {
+            log("Module flags lookup failed (non-fatal): " + e.getMessage());
+        }
+
+        return new SessionData(faTaxYrEndMth, yrStartDate, yrEndDate, batchCtrlFlag,
+                               gl, ar, ap, cm, sm, po, fa, gst, pa);
     }
+
+    private static String str(Object v) { return v == null ? "Y" : v.toString().trim(); }
 
     private int loadFaTaxYrEndMth(int companyNo) {
         try {

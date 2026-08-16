@@ -101,7 +101,16 @@ public class AppSession {
     /** GLPASS-BATCH-CONTROL-FLAG — 'Y' or 'N' */
     private String batchControlFlag = "Y";
 
-    // ── Module install flags ───────────────────────────────────────────────
+    // ── Module install flags (from CPCOYCO via SessionService) ───────────
+    /** GL module */  private String glInstalFlag  = "Y";
+    /** AR module */  private String arInstalFlag  = "Y";
+    /** AP module */  private String apInstalFlag  = "Y";
+    /** CM module */  private String cmInstalFlag  = "Y";
+    /** SM module */  private String smInstalFlag  = "Y";
+    /** PO module */  private String poInstalFlag  = "Y";
+    /** FA module */  private String faInstalFlag  = "Y";
+    /** BAS/GST */    private String gstInstalFlag = "Y";
+
     /** GLPASS-BA-INSTAL-FLAG — Business Analysis installed */
     private String baInstalFlag   = "N";
 
@@ -177,8 +186,49 @@ public class AppSession {
     public String  getJlInstalFlag()            { return jlInstalFlag; }
     public void    setJlInstalFlag(String v)    { this.jlInstalFlag = v; }
 
+    public String  getGlInstalFlag()   { return glInstalFlag; }
+    public void    setGlInstalFlag(String v)  { this.glInstalFlag = v; }
+    public String  getArInstalFlag()   { return arInstalFlag; }
+    public void    setArInstalFlag(String v)  { this.arInstalFlag = v; }
+    public String  getApInstalFlag()   { return apInstalFlag; }
+    public void    setApInstalFlag(String v)  { this.apInstalFlag = v; }
+    public String  getCmInstalFlag()   { return cmInstalFlag; }
+    public void    setCmInstalFlag(String v)  { this.cmInstalFlag = v; }
+    public String  getSmInstalFlag()   { return smInstalFlag; }
+    public void    setSmInstalFlag(String v)  { this.smInstalFlag = v; }
+    public String  getPoInstalFlag()   { return poInstalFlag; }
+    public void    setPoInstalFlag(String v)  { this.poInstalFlag = v; }
+    public String  getFaInstalFlag()   { return faInstalFlag; }
+    public void    setFaInstalFlag(String v)  { this.faInstalFlag = v; }
+    public String  getGstInstalFlag()  { return gstInstalFlag; }
+    public void    setGstInstalFlag(String v) { this.gstInstalFlag = v; }
+
     public String  getOverseasParentFlag()            { return overseasParentFlag; }
     public void    setOverseasParentFlag(String v)    { this.overseasParentFlag = v; }
+
+    /**
+     * True when the module with the given hub/sidebar ID is installed for this company.
+     * Maps module IDs used in ReportsHubController and MainMenuController to
+     * cpcoyco install flags.  Absent or 'Y' → installed; 'N' → hidden.
+     */
+    public boolean isModuleInstalled(String moduleId) {
+        return switch (moduleId) {
+            case "gl"  -> installed(glInstalFlag);
+            case "ar"  -> installed(arInstalFlag);
+            case "ap"  -> installed(apInstalFlag);
+            case "cm"  -> installed(cmInstalFlag);
+            case "sm"  -> installed(smInstalFlag);
+            case "po"  -> installed(poInstalFlag);
+            case "fa"  -> installed(faInstalFlag);
+            case "bas" -> installed(gstInstalFlag);
+            case "py"  -> installed(paInstalFlag) && payrollAccess;
+            default    -> true;   // sys, fav — always shown
+        };
+    }
+
+    private static boolean installed(String flag) {
+        return flag == null || !"N".equals(flag.trim());
+    }
 
 
     // ── Payroll session ───────────────────────────────────────────────────
