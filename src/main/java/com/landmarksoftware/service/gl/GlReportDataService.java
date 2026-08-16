@@ -177,7 +177,7 @@ public class GlReportDataService {
         if (rows.isEmpty()) return warn("No account balances matched the selection.");
         Map<String, Object> params = new LinkedHashMap<>();
         LocalDate ped = periodEndDate(s.getCompanyNo(), s.getYearNo(), n);
-        String pedStr = ped != null ? ped.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : ("Period " + n);
+        String pedStr = ped != null ? ped.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy")) : ("Period " + n);
         params.put("AS_AT_DESC", "As at " + pedStr);
         params.put("ACCT_RANGE", acctRangeDesc(p.startAcct(), p.endAcct()));
         params.put("ZERO_DESC", p.includeZero() ? "Including zero balances" : "Non-zero balances only");
@@ -240,7 +240,7 @@ public class GlReportDataService {
         Map<String, Object> params = new LinkedHashMap<>();
         LocalDate d1 = periodEndDate(s.getCompanyNo(), s.getYearNo(), from);
         LocalDate d2 = periodEndDate(s.getCompanyNo(), s.getYearNo(), to);
-        java.time.format.DateTimeFormatter df = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        java.time.format.DateTimeFormatter df = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy");
         String p1 = d1 != null ? d1.format(df) : ("period " + from);
         String p2 = d2 != null ? d2.format(df) : ("period " + to);
         params.put("PERIOD_RANGE", p1 + " to " + p2);
@@ -303,7 +303,7 @@ public class GlReportDataService {
         if (rows.isEmpty()) return warn("No balance-sheet account balances matched the selection.");
         Map<String, Object> params = new LinkedHashMap<>();
         LocalDate ped2 = periodEndDate(s.getCompanyNo(), s.getYearNo(), n);
-        String pedStr2 = ped2 != null ? ped2.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : ("Period " + n);
+        String pedStr2 = ped2 != null ? ped2.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy")) : ("Period " + n);
         params.put("AS_AT_DESC", "As at " + pedStr2);
         params.put("ACCT_RANGE", acctRangeDesc(p.startAcct(), p.endAcct()));
         params.put("SUM_ASSETS", tot[0]); params.put("SUM_LIAB_EQUITY", tot[1]);
@@ -325,7 +325,7 @@ public class GlReportDataService {
         Condition where = GLTRX.COMPANY_NO.eq(s.getCompanyNo()).and(GLTRX.YEAR_NO.eq(s.getYearNo()));
         where = appendJournalFilters(where, p);
 
-        List<Map<String, Object>> rows = new ArrayList<>();
+        List<Map<String, Object>> raw = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };
         try {
             dsl.select(GLTRX.SOURCE, GLTRX.JNL_NO, GLTRX.JNL_DATE,
@@ -344,6 +344,7 @@ public class GlReportDataService {
                    BigDecimal dr = z(r.get(GLTRX.DR_AMT)), cr = z(r.get(GLTRX.CR_AMT));
                    tot[0] = tot[0].add(dr); tot[1] = tot[1].add(cr);
                    Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("rowType", "data");
                    row.put("source", trim(r.get(GLTRX.SOURCE)));
                    row.put("journal", trim(r.get(GLTRX.SOURCE)) + "-" + r.get(GLTRX.JNL_NO));
                    row.put("jnlDate", localDateToSqlDate(r.get(GLTRX.JNL_DATE)));
@@ -353,14 +354,57 @@ public class GlReportDataService {
                    row.put("reference", trim(r.get(GLTRX.REF)));
                    row.put("debit", dr); row.put("credit", cr);
                    row.put("user", trim(r.get(GLTRX.AUDIT_USER_ID)));
-                   rows.add(row);
+                   raw.add(row);
                });
         } catch (Exception e) { log.error("getGeneralJournal: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
-        if (rows.isEmpty()) return warn("No journal transactions matched the selection.");
+        if (raw.isEmpty()) return warn("No journal transactions matched the selection.");
+        // Inject header + total rows between journal groups (used by both PDF and Excel jrxml).
+        List<Map<String, Object>> withTotals = injectJournalGroupRows(raw);
         Map<String, Object> params = journalParams(p);
-        params.put("SUM_DEBIT", tot[0]); params.put("SUM_CREDIT", tot[1]); params.put("ROW_COUNT", rows.size());
-        return result(rows, params);
+        params.put("SUM_DEBIT", tot[0]); params.put("SUM_CREDIT", tot[1]); params.put("ROW_COUNT", raw.size());
+        return result(withTotals, params);
     }
+
+    private static List<Map<String, Object>> injectJournalGroupRows(List<Map<String, Object>> raw) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        String prevJnl = null;
+        BigDecimal jnlDr = BigDecimal.ZERO, jnlCr = BigDecimal.ZERO;
+        java.sql.Date firstDate = null;
+        for (Map<String, Object> row : raw) {
+            String jnl = (String) row.get("journal");
+            if (!jnl.equals(prevJnl)) {
+                if (prevJnl != null) out.add(jnlTotalRow(prevJnl, jnlDr, jnlCr));
+                jnlDr = BigDecimal.ZERO; jnlCr = BigDecimal.ZERO;
+                firstDate = (java.sql.Date) row.get("jnlDate");
+                out.add(jnlHeaderRow(jnl, firstDate));
+            }
+            jnlDr = jnlDr.add(z((BigDecimal) row.get("debit")));
+            jnlCr = jnlCr.add(z((BigDecimal) row.get("credit")));
+            out.add(row);
+            prevJnl = jnl;
+        }
+        if (prevJnl != null) out.add(jnlTotalRow(prevJnl, jnlDr, jnlCr));
+        return out;
+    }
+
+    private static Map<String, Object> jnlHeaderRow(String journal, java.sql.Date date) {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("rowType", "header"); r.put("source", ""); r.put("journal", journal);
+        r.put("jnlDate", date); r.put("acctMain", ""); r.put("acctSub", "");
+        r.put("description", ""); r.put("reference", ""); r.put("debit", null);
+        r.put("credit", null); r.put("user", "");
+        return r;
+    }
+
+    private static Map<String, Object> jnlTotalRow(String journal, BigDecimal dr, BigDecimal cr) {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("rowType", "total"); r.put("source", ""); r.put("journal", journal);
+        r.put("jnlDate", null); r.put("acctMain", ""); r.put("acctSub", "");
+        r.put("description", ""); r.put("reference", ""); r.put("debit", dr);
+        r.put("credit", cr); r.put("user", "");
+        return r;
+    }
+
 
     private Map<String, Object> generalJournalSummary(AppSession s, JournalParams p) {
         Condition where = GLTRX.COMPANY_NO.eq(s.getCompanyNo()).and(GLTRX.YEAR_NO.eq(s.getYearNo()));
@@ -416,7 +460,7 @@ public class GlReportDataService {
         where = appendStringRange(where, GLTRX.ANALYSIS_CODE, p.startAnalysis(), p.endAnalysis());
         where = appendDateRange(where, GLTRX.JNL_DATE, p.startDate(), p.endDate());
 
-        List<Map<String, Object>> rows = new ArrayList<>();
+        List<Map<String, Object>> raw = new ArrayList<>();
         BigDecimal[] tot = { BigDecimal.ZERO, BigDecimal.ZERO };
         int[] lastMain = { Integer.MIN_VALUE }, lastSub = { Integer.MIN_VALUE };
         BigDecimal[] run = { BigDecimal.ZERO }; String[] drcr = { "D" };
@@ -444,6 +488,7 @@ public class GlReportDataService {
                    run[0] = "C".equals(drcr[0]) ? run[0].add(cr).subtract(dr) : run[0].add(dr).subtract(cr);
                    tot[0] = tot[0].add(dr); tot[1] = tot[1].add(cr);
                    Map<String, Object> row = new LinkedHashMap<>();
+                   row.put("rowType", "data");
                    row.put("account", acct(main, sub));
                    row.put("acctMain", acctMain(main));
                    row.put("acctSub",  acctSub(sub));
@@ -455,17 +500,65 @@ public class GlReportDataService {
                    row.put("analysisCode", trim(r.get(GLTRX.ANALYSIS_CODE)));
                    row.put("debit", dr); row.put("credit", cr); row.put("balance", run[0]);
                    row.put("user", trim(r.get(GLTRX.AUDIT_USER_ID)));
-                   rows.add(row);
+                   raw.add(row);
                });
         } catch (Exception e) { log.error("getAccountTransactions: {}", e.getMessage(), e); return warn("Query failed: " + e.getMessage()); }
-        if (rows.isEmpty()) return warn("No account transactions matched the selection.");
+        if (raw.isEmpty()) return warn("No account transactions matched the selection.");
+        // Inject header + total rows between account groups (used by both PDF and Excel jrxml).
+        List<Map<String, Object>> withTotals = injectAcctGroupRows(raw);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("ACCT_RANGE", acctRangeDesc(p.startAcct(), p.endAcct()));
         params.put("SOURCE_DESC", notBlank(p.source()) ? p.source() : "All sources");
         params.put("ANALYSIS_RANGE", rangeDesc(p.startAnalysis(), p.endAnalysis(), "analysis codes"));
         params.put("DATE_RANGE", dateDesc(p.startDate(), p.endDate()));
-        params.put("SUM_DEBIT", tot[0]); params.put("SUM_CREDIT", tot[1]); params.put("ROW_COUNT", rows.size());
-        return result(rows, params);
+        params.put("SUM_DEBIT", tot[0]); params.put("SUM_CREDIT", tot[1]); params.put("ROW_COUNT", raw.size());
+        return result(withTotals, params);
+    }
+
+    private static List<Map<String, Object>> injectAcctGroupRows(List<Map<String, Object>> raw) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        String prevAcct = null;
+        BigDecimal acctDr = BigDecimal.ZERO, acctCr = BigDecimal.ZERO, lastBal = BigDecimal.ZERO;
+        String prevMain = "", prevSub = "", prevDesc = "";
+        for (Map<String, Object> row : raw) {
+            String acct = (String) row.get("account");
+            if (!acct.equals(prevAcct)) {
+                if (prevAcct != null) out.add(acctTotalRow(prevMain, prevSub, prevDesc, acctDr, acctCr, lastBal));
+                acctDr = BigDecimal.ZERO; acctCr = BigDecimal.ZERO;
+                prevMain = (String) row.get("acctMain");
+                prevSub  = (String) row.get("acctSub");
+                prevDesc = trim((String) row.get("description"));
+                out.add(acctHeaderRow(prevMain, prevSub, prevDesc));
+            }
+            acctDr = acctDr.add(z((BigDecimal) row.get("debit")));
+            acctCr = acctCr.add(z((BigDecimal) row.get("credit")));
+            lastBal = z((BigDecimal) row.get("balance"));
+            out.add(row);
+            prevAcct = acct;
+        }
+        if (prevAcct != null) out.add(acctTotalRow(prevMain, prevSub, prevDesc, acctDr, acctCr, lastBal));
+        return out;
+    }
+
+    private static Map<String, Object> acctHeaderRow(String main, String sub, String desc) {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("rowType", "header"); r.put("account", ""); r.put("acctMain", main);
+        r.put("acctSub", sub); r.put("description", desc); r.put("jnlDate", null);
+        r.put("source", ""); r.put("journal", ""); r.put("reference", "");
+        r.put("analysisCode", ""); r.put("debit", null); r.put("credit", null);
+        r.put("balance", null); r.put("user", "");
+        return r;
+    }
+
+    private static Map<String, Object> acctTotalRow(String main, String sub, String desc,
+            BigDecimal dr, BigDecimal cr, BigDecimal bal) {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("rowType", "total"); r.put("account", ""); r.put("acctMain", main);
+        r.put("acctSub", sub); r.put("description", desc); r.put("jnlDate", null);
+        r.put("source", ""); r.put("journal", ""); r.put("reference", "");
+        r.put("analysisCode", ""); r.put("debit", dr); r.put("credit", cr);
+        r.put("balance", bal); r.put("user", "");
+        return r;
     }
 
     // ── shared filter builders ────────────────────────────────────────────────
