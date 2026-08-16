@@ -11,7 +11,10 @@
  */
 package com.landmarksoftware.desktop;
 
+import org.jooq.conf.Settings;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jooq.DefaultConfigurationCustomizer;
+import org.springframework.context.annotation.Bean;
 
 /**
  * Spring Boot configuration class — kept separate from FixedAssetsApplication
@@ -28,6 +31,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(scanBasePackages = "com.landmarksoftware")
 public class SpringConfig {
-    // No content needed — @SpringBootApplication triggers component scan,
-    // auto-configuration (DataSource, JdbcTemplate), and property binding.
+
+    // Disable schema qualification in jOOQ-generated SQL so that queries work
+    // regardless of the client's database name (lmextract, landmark, etc.).
+    // The JDBC URL in config/application.properties already points at the right DB.
+    // Note: Spring Boot's jOOQ auto-config only wires DefaultConfigurationCustomizer
+    // beans — a bare Settings bean is ignored, so this customizer is required.
+    @Bean
+    public DefaultConfigurationCustomizer jooqCustomizer() {
+        return config -> config.set(new Settings().withRenderSchema(false));
+    }
 }

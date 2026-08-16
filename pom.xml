@@ -124,6 +124,17 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- MariaDB JDBC driver — used for local dev against a MariaDB server
+         (MariaDB 10.4+/11.x/12.x advertise auth-plugin negotiation that
+         mysql-connector-j's handshake parser rejects with
+         "AuthenticationProvider.BadAuthenticationPlugin" even for
+         mysql_native_password accounts). Select via DB_DRIVER. -->
+    <dependency>
+      <groupId>org.mariadb.jdbc</groupId>
+      <artifactId>mariadb-java-client</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- jOOQ — type-safe SQL DSL with multi-dialect support.
          Open-source edition covers MySQL + MariaDB.
          Upgrade groupId to org.jooq.pro for SQL Server (commercial licence). -->
