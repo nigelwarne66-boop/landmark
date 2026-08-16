@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Reorder &amp; PO Requisitions" styleClass="sel-title"/>
-            <Label text="SMTL10 — items below minimum level" styleClass="sel-sub"/>
+            <Label text="items below minimum level" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

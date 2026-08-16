@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Cashbook Foreign Currency Match" styleClass="sel-title"/>
-            <Label text="CMTL30 — foreign currency transactions with exchange rates and revaluation" styleClass="sel-sub"/>
+            <Label text="foreign currency transactions with exchange rates and revaluation" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

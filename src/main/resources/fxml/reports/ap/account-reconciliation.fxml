@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Account Reconciliation" styleClass="sel-title"/>
-            <Label text="APRC03 — reconciliation detail, invoices matched to payments" styleClass="sel-sub"/>
+            <Label text="reconciliation detail, invoices matched to payments" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="14" left="24"/></VBox.margin>
         </VBox>
     </top>

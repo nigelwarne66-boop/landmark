@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Uninvoiced Goods Reconcile (Sundries)" styleClass="sel-title"/>
-            <Label text="POTL37 — received sundry lines not yet invoiced" styleClass="sel-sub"/>
+            <Label text="received sundry lines not yet invoiced" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

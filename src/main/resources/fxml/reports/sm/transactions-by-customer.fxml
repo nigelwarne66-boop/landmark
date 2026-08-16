@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Transactions by Customer" styleClass="sel-title"/>
-            <Label text="SMTL16 — stock movements grouped by customer" styleClass="sel-sub"/>
+            <Label text="stock movements grouped by customer" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Customer Sales by Salesperson" styleClass="sel-title"/>
-            <Label text="ARTL15 — MTD and YTD sales totals grouped by salesperson" styleClass="sel-sub"/>
+            <Label text="MTD and YTD sales totals grouped by salesperson" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

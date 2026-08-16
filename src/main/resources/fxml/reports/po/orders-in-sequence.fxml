@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Purchase Orders in Sequence" styleClass="sel-title"/>
-            <Label text="POTL22 — one list, choose the sort sequence" styleClass="sel-sub"/>
+            <Label text="one list, choose the sort sequence" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

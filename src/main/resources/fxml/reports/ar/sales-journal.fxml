@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Sales Journal" styleClass="sel-title"/>
-            <Label text="ARTL05 — Chronological listing of AR sales journal entries" styleClass="sel-sub"/>
+            <Label text="Chronological listing of AR sales journal entries" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

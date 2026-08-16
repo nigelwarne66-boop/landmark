@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Customer Sales by Year" styleClass="sel-title"/>
-            <Label text="SMTL38 — five trailing-year sales totals per customer" styleClass="sel-sub"/>
+            <Label text="five trailing-year sales totals per customer" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

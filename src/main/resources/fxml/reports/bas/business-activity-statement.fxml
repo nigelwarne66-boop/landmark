@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Business Activity Statement" styleClass="sel-title"/>
-            <Label text="CPBA12 — GST and PAYG summary for a BAS period" styleClass="sel-sub"/>
+            <Label text="GST and PAYG summary for a BAS period" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

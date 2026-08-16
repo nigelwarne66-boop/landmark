@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Item Availability" styleClass="sel-title"/>
-            <Label text="SMTL26 — on hand, allocated, available" styleClass="sel-sub"/>
+            <Label text="on hand, allocated, available" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

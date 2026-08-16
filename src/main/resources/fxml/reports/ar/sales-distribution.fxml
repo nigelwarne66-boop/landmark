@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Sales Distribution" styleClass="sel-title"/>
-            <Label text="ARTL10 — MTD/YTD sales by sub-ledger and sales code, this year vs last year" styleClass="sel-sub"/>
+            <Label text="MTD/YTD sales by sub-ledger and sales code, this year vs last year" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

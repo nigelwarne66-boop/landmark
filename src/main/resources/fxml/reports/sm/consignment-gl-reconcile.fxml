@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Consignment Stock GL Reconcile" styleClass="sel-title"/>
-            <Label text="SMTL36 — consignment stock at cost" styleClass="sel-sub"/>
+            <Label text="consignment stock at cost" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

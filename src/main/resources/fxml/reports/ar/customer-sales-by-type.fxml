@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Customer Sales by Customer Type" styleClass="sel-title"/>
-            <Label text="ARTL06 — YTD sales / cost / profit grouped by customer type" styleClass="sel-sub"/>
+            <Label text="YTD sales / cost / profit grouped by customer type" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

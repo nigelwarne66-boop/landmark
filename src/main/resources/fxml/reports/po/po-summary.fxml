@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Purchase Order Summary" styleClass="sel-title"/>
-            <Label text="POTL20 — one row per PO with ordered, invoiced, delivered and outstanding values" styleClass="sel-sub"/>
+            <Label text="one row per PO with ordered, invoiced, delivered and outstanding values" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

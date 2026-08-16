@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="BAS by GL Account" styleClass="sel-title"/>
-            <Label text="CPBA16 — BAS amounts aggregated by GL clearing account and BAS code" styleClass="sel-sub"/>
+            <Label text="BAS amounts aggregated by GL clearing account and BAS code" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

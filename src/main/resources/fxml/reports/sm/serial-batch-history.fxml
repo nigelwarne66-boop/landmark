@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Serial / Batch History" styleClass="sel-title"/>
-            <Label text="SMTL27 — movement history by serial/batch" styleClass="sel-sub"/>
+            <Label text="movement history by serial/batch" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

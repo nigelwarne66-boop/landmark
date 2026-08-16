@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Sundries Reconcile" styleClass="sel-title"/>
-            <Label text="POTL39 — AP purchase documents: matched value and adjustments" styleClass="sel-sub"/>
+            <Label text="AP purchase documents: matched value and adjustments" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

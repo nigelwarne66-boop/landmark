@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Customer Sales by Sub Ledger" styleClass="sel-title"/>
-            <Label text="ARTL27 — YTD sales / cost / profit grouped by sub ledger" styleClass="sel-sub"/>
+            <Label text="YTD sales / cost / profit grouped by sub ledger" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

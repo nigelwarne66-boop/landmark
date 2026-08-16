@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Inventory Valuation" styleClass="sel-title"/>
-            <Label text="SMTL07 — stock on hand at cost" styleClass="sel-sub"/>
+            <Label text="stock on hand at cost" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

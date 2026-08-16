@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Cash Requirements" styleClass="sel-title"/>
-            <Label text="APTL01 — outstanding transactions due for payment" styleClass="sel-sub"/>
+            <Label text="outstanding transactions due for payment" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

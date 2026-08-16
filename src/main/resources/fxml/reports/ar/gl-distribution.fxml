@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="GL Distribution" styleClass="sel-title"/>
-            <Label text="ARTL02 — GL account distribution summary for a period-ending date" styleClass="sel-sub"/>
+            <Label text="GL account distribution summary for a period-ending date" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Sales History" styleClass="sel-title"/>
-            <Label text="SMTL06 — sales by item and customer" styleClass="sel-sub"/>
+            <Label text="sales by item and customer" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

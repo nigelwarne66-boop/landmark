@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Document Number Register" styleClass="sel-title"/>
-            <Label text="ARTL20 — Document register with optional date / customer / source filter" styleClass="sel-sub"/>
+            <Label text="Document register with optional date / customer / source filter" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

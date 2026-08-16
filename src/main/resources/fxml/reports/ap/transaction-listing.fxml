@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Transaction Listing" styleClass="sel-title"/>
-            <Label text="APRC05 — AP transactions with optional distribution lines and PO matches" styleClass="sel-sub"/>
+            <Label text="AP transactions with optional distribution lines and PO matches" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

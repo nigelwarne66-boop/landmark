@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Inventory Movements Summary" styleClass="sel-title"/>
-            <Label text="SMTL02 — net movement per item" styleClass="sel-sub"/>
+            <Label text="net movement per item" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

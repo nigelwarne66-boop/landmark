@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Unbalanced Reconciliation" styleClass="sel-title"/>
-            <Label text="ARRC04 — reconciliations out of balance" styleClass="sel-sub"/>
+            <Label text="reconciliations out of balance" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
         </VBox>
     </top>

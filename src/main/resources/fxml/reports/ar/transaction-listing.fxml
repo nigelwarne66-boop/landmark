@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Transaction Listing" styleClass="sel-title"/>
-            <Label text="ARRC05 — AR transactions by customer, with optional distribution lines" styleClass="sel-sub"/>
+            <Label text="AR transactions by customer, with optional distribution lines" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

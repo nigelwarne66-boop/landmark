@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Period Summary" styleClass="sel-title"/>
-            <Label text="APTL06 — opening, movements and closing per AP sub ledger" styleClass="sel-sub"/>
+            <Label text="opening, movements and closing per AP sub ledger" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
         </VBox>
     </top>

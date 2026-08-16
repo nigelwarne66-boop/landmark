@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Supplier Purchase History" styleClass="sel-title"/>
-            <Label text="APTL09 — period and YTD purchases, this year vs last year" styleClass="sel-sub"/>
+            <Label text="period and YTD purchases, this year vs last year" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
         </VBox>
     </top>

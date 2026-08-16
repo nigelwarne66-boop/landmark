@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Commission Report" styleClass="sel-title"/>
-            <Label text="ARTL04 — Commission amounts and rates by salesperson for a date range" styleClass="sel-sub"/>
+            <Label text="Commission amounts and rates by salesperson for a date range" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

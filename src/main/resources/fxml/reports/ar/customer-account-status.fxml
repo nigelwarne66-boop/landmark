@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Customer Account Status" styleClass="sel-title"/>
-            <Label text="ARTL21 — Customers by account status with opening balances" styleClass="sel-sub"/>
+            <Label text="Customers by account status with opening balances" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

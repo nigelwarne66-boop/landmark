@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Debtors Control" styleClass="sel-title"/>
-            <Label text="ARTL11 — Customer account balances and period sales" styleClass="sel-sub"/>
+            <Label text="Customer account balances and period sales" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

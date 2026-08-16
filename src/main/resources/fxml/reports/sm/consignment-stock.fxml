@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Consignment Stock" styleClass="sel-title"/>
-            <Label text="SMTL53 — one list, choose the sort sequence" styleClass="sel-sub"/>
+            <Label text="one list, choose the sort sequence" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

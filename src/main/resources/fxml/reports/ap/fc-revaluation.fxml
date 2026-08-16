@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Foreign Currency Revaluation" styleClass="sel-title"/>
-            <Label text="APRC11 — FC transactions with revaluation gain/loss" styleClass="sel-sub"/>
+            <Label text="FC transactions with revaluation gain/loss" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

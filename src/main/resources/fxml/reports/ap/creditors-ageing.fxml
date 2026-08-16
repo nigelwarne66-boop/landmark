@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Creditors Ageing" styleClass="sel-title"/>
-            <Label text="APTL07 — Aged Trial Balance with configurable ageing periods" styleClass="sel-sub"/>
+            <Label text="Aged Trial Balance with configurable ageing periods" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

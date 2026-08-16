@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Purchase Index" styleClass="sel-title"/>
-            <Label text="POTL33 — per-line ordered / delivered / invoiced values with AP document count" styleClass="sel-sub"/>
+            <Label text="per-line ordered / delivered / invoiced values with AP document count" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Document Listing" styleClass="sel-title"/>
-            <Label text="CMTL18 — cashbook document listing with amount paid and outstanding" styleClass="sel-sub"/>
+            <Label text="cashbook document listing with amount paid and outstanding" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

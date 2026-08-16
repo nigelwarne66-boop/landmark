@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Period Summary" styleClass="sel-title"/>
-            <Label text="ARTL03 — Sub-ledger opening / movements / closing for a period" styleClass="sel-sub"/>
+            <Label text="Sub-ledger opening / movements / closing for a period" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

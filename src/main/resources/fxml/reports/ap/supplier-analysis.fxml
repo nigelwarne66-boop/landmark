@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Supplier Analysis" styleClass="sel-title"/>
-            <Label text="APTL10 — N-month transaction analysis by supplier (Excel only)" styleClass="sel-sub"/>
+            <Label text="N-month transaction analysis by supplier (Excel only)" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="14" left="24"/></VBox.margin>
         </VBox>
     </top>

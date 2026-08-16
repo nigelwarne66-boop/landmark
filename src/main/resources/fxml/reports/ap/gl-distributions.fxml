@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="GL Distributions Summary" styleClass="sel-title"/>
-            <Label text="APTL05 — AP GL postings by account, control vs expense" styleClass="sel-sub"/>
+            <Label text="AP GL postings by account, control vs expense" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
         </VBox>
     </top>

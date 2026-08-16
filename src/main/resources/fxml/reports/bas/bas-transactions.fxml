@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="BAS Transactions" styleClass="sel-title"/>
-            <Label text="CPBA06 — BAS transaction listing with date range and GST code filter" styleClass="sel-sub"/>
+            <Label text="BAS transaction listing with date range and GST code filter" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Cashbook by Type" styleClass="sel-title"/>
-            <Label text="CMTL35 — cashbook transactions grouped by transaction type" styleClass="sel-sub"/>
+            <Label text="cashbook transactions grouped by transaction type" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

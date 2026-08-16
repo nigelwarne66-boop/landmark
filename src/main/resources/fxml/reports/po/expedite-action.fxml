@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Expedite Action" styleClass="sel-title"/>
-            <Label text="POTL30 — overdue / undelivered purchase order lines" styleClass="sel-sub"/>
+            <Label text="overdue / undelivered purchase order lines" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

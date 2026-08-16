@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Salesperson Profitability" styleClass="sel-title"/>
-            <Label text="ARTL16 — Sales, cost and gross profit per salesperson for a date range" styleClass="sel-sub"/>
+            <Label text="Sales, cost and gross profit per salesperson for a date range" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
         </VBox>
     </top>

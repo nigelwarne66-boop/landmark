@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Detailed BAS" styleClass="sel-title"/>
-            <Label text="CPBA13 — BAS transactions by code, summary or full detail" styleClass="sel-sub"/>
+            <Label text="BAS transactions by code, summary or full detail" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

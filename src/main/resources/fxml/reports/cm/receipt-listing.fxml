@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Receipt Listing" styleClass="sel-title"/>
-            <Label text="CMTL08 — list receipts by bank, document number range and date range" styleClass="sel-sub"/>
+            <Label text="list receipts by bank, document number range and date range" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>

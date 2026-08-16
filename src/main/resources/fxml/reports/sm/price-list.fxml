@@ -13,7 +13,7 @@
     <top>
         <VBox styleClass="sel-header">
             <Label text="Price List" styleClass="sel-title"/>
-            <Label text="SMTL08 — recommended and wholesale prices" styleClass="sel-sub"/>
+            <Label text="recommended and wholesale prices" styleClass="sel-sub"/>
             <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>
