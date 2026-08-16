@@ -11,16 +11,25 @@
  */
 package com.landmarksoftware.desktop;
 
+import com.landmarksoftware.ui.LandmarkLogo;
 import com.landmarksoftware.ui.LoginController;
 import com.landmarksoftware.ui.MainMenuController;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+
+import java.util.List;
 
 /**
  * Landmark — JavaFX entry point wired to Spring Boot.
@@ -46,9 +55,18 @@ public class FixedAssetsApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        // Landmark Design System — register the IBM Plex faces before the
+        // first Scene is shown (landmark-theme.css §6.2 / theme file header).
+        loadDesignSystemFonts();
+
+        // Landmark pin-mark — multi-size for title bar, taskbar and Alt+Tab.
+        List<Image> icons = landmarkWindowIcons();
+        primaryStage.getIcons().addAll(icons);
+
         // Show login screen first (MENU00)
         LoginController login = springContext.getBean(LoginController.class);
         Stage loginStage = new Stage();
+        loginStage.getIcons().addAll(icons);
         loginStage.setOnCloseRequest(e -> Platform.exit());
 
         boolean authenticated = login.showAndWait(loginStage);
@@ -65,6 +83,61 @@ public class FixedAssetsApplication extends Application {
         } else {
             showMainMenu(primaryStage);
         }
+    }
+
+    /**
+     * Registers the five Landmark Design System type faces (IBM Plex Sans
+     * Regular/Medium/SemiBold + IBM Plex Mono Regular/SemiBold) with the
+     * JavaFX font system. Must run before any Scene is shown — see
+     * landmark-theme.css header comment and DESIGN_SYSTEM.md §6.2.
+     * Falls back silently (Segoe UI per the theme's fallback stack) if a
+     * face fails to load.
+     */
+    private static void loadDesignSystemFonts() {
+        String[] faces = {
+            "/com/landmarksoftware/ui/fonts/IBMPlexSans-Regular.ttf",
+            "/com/landmarksoftware/ui/fonts/IBMPlexSans-Medium.ttf",
+            "/com/landmarksoftware/ui/fonts/IBMPlexSans-SemiBold.ttf",
+            "/com/landmarksoftware/ui/fonts/IBMPlexMono-Regular.ttf",
+            "/com/landmarksoftware/ui/fonts/IBMPlexMono-SemiBold.ttf",
+        };
+        for (String face : faces) {
+            try (java.io.InputStream in = FixedAssetsApplication.class.getResourceAsStream(face)) {
+                if (in != null) {
+                    Font.loadFont(in, 14);
+                } else {
+                    System.err.println("Design system font not found on classpath: " + face);
+                }
+            } catch (Exception ex) {
+                System.err.println("Failed to load design system font: " + face + " — " + ex.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Returns multi-size pin-mark icons for the Stage.  Providing sizes at
+     * 16 / 32 / 48 / 64 px lets Windows pick the sharpest rendering for each
+     * context (title bar, taskbar, Alt+Tab).  Smallest size first per JavaFX
+     * convention (the first entry in the list is the fallback).
+     */
+    static List<Image> landmarkWindowIcons() {
+        SnapshotParameters sp = new SnapshotParameters();
+        sp.setFill(Color.TRANSPARENT);
+        int[] sizes = {16, 32, 48, 64};
+        List<Image> icons = new java.util.ArrayList<>();
+        for (int size : sizes) {
+            Node mark = LandmarkLogo.iconMark(size);
+            new Scene(new Group(mark)).setFill(Color.TRANSPARENT);
+            // Must snapshot into an explicit SQUARE WritableImage — the pin's
+            // source viewBox (264x248) isn't square, so scaling by height
+            // alone (LandmarkLogo.wrapAndScale) leaves a slightly wider than
+            // tall auto-sized image when snapshot() is given a null target.
+            // Windows silently rejects non-square Stage icons and falls back
+            // to the default javaw.exe icon instead of erroring — matches
+            // the proven-working pattern in GenerateLandmarkIco.java.
+            icons.add(mark.snapshot(sp, new javafx.scene.image.WritableImage(size, size)));
+        }
+        return icons;
     }
 
     private void showMainMenu(Stage primaryStage) {
@@ -97,9 +170,13 @@ public class FixedAssetsApplication extends Application {
 
             Scene scene = new Scene(root, 1000, 680);
             scene.getStylesheets().add(
+                getClass().getResource("/css/landmark.css").toExternalForm());
+            scene.getStylesheets().add(
                 getClass().getResource("/css/fixedassets.css").toExternalForm());
             scene.getStylesheets().add(
                 getClass().getResource("/css/reporting.css").toExternalForm());
+            scene.getStylesheets().add(
+                getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
 
             primaryStage.setTitle("Landmark Reports");
             primaryStage.setScene(scene);

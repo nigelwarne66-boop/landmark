@@ -8,21 +8,43 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.landmarksoftware.ui.reports.GlGeneralJournalController"
     styleClass="sel-root"
-    prefWidth="560">
+    prefWidth="640" prefHeight="480">
 
     <top>
         <VBox styleClass="sel-header">
             <Label text="General Journal" styleClass="sel-title"/>
-            <Label text="All posted journal entries" styleClass="sel-sub"/>
-            <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
+            <Label text="All posted GL journal entries" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>
 
     <center>
-        <VBox styleClass="sel-body" spacing="14">
-            <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
-            <fx:include fx:id="periodSelector" source="GlPeriodSelector.fxml"/>
-        </VBox>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <Label text="Selection" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Source" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="source" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Journal no from / to" styleClass="sel-label" minWidth="140"/>
+                    <TextField fx:id="startJnl" promptText="blank = all" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <TextField fx:id="endJnl"   promptText="to"          HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Journal date from / to" styleClass="sel-label" minWidth="140"/>
+                    <DatePicker fx:id="startDate" promptText="blank = all" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="endDate"   promptText="to"          HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Mode" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="mode" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
     </center>
 
     <bottom>

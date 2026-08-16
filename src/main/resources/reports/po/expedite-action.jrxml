@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="expedite-action"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="LOC_DESC"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SUPP_RANGE"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="DATE_RANGE"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer" isForPrompting="false"/>
+
+  <field name="poNo"           class="java.lang.Integer"/>
+  <field name="lineNo"         class="java.lang.Integer"/>
+  <field name="supplierNo"     class="java.lang.String"/>
+  <field name="supplierName"   class="java.lang.String"/>
+  <field name="stockCode"      class="java.lang.String"/>
+  <field name="description"    class="java.lang.String"/>
+  <field name="delivDate"      class="java.sql.Date"/>
+  <field name="qtyOrdered"     class="java.math.BigDecimal"/>
+  <field name="recvdQty"       class="java.math.BigDecimal"/>
+  <field name="qtyOutstanding" class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="58">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Expedite Action]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  •  " + $P{LOC_DESC}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$P{SUPP_RANGE} + "  •  Delivery dates: " + $P{DATE_RANGE}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="46"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[PO No]]></text></staticText>
+      <staticText><reportElement x="50"  y="4" width="26"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Ln]]></text></staticText>
+      <staticText><reportElement x="76"  y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier]]></text></staticText>
+      <staticText><reportElement x="146" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Stock Code]]></text></staticText>
+      <staticText><reportElement x="226" y="4" width="210" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="436" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Delivery Date]]></text></staticText>
+      <staticText><reportElement x="506" y="4" width="88"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Qty Ordered]]></text></staticText>
+      <staticText><reportElement x="594" y="4" width="88"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Received]]></text></staticText>
+      <staticText><reportElement x="682" y="4" width="96"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Outstanding]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="13">
+      <textField pattern="#0"><reportElement x="4" y="1" width="46" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
+      <textField pattern="#0"><reportElement x="50" y="1" width="26" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="76" y="1" width="70" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="146" y="1" width="80" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="226" y="1" width="210" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="436" y="1" width="70" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{delivDate}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="506" y="1" width="88" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyOrdered}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="594" y="1" width="88" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{recvdQty}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="682" y="1" width="96" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyOutstanding}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="22">
+      <rectangle><reportElement x="0" y="0" width="782" height="22" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="5" width="400" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s) requiring follow-up"]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

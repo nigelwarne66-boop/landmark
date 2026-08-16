@@ -40,6 +40,11 @@ Captured iteratively during Wave 3 — small COBOL details that bit us once and 
   2. `pagroup.paid_thru_to_X > 0` (has history). Then `next = paid_thru_to_X + period` (1mth / 28d / 15d / 14d / 7d).
 - **Bootstrap path for a brand-new company / paygroup with no history:** validate=Y in the Select Paygroups dialog now prompts to attach with `payrun.end_date` defaults for all 5 frequencies. validate=N still skips (COBOL-accurate).
 - **PAEM01 read-only state columns** — `paid_thru_to_date`, `timesheets_to_date`, `last_payrun_no`, `current_payrun_no`, retainer/commission running totals on pastaff are **owned by PAPP01 / PAPP28**. PAEM01 must NOT include them in UPDATE — round-trip them in memory only. (The 2026-05-22 backfill respects this.)
+- **LandmarkVision OCCURS depth cap — verified 2026-05-29:**
+  - **Works**: OCCURS on an elementary field directly (e.g. `glrptab`: `07 GLRPTAB-REPORT-DATE PIC 9(6) COMP-3 OCCURS 366 TIMES`). Reference as `<table>-<field>-001`.
+  - **Works**: OCCURS on a level-07 group containing level-09 elementary fields (e.g. `glrphed`: `07 GLRPHED-COLUMN-HEADINGS OCCURS 100 TIMES` → `09 GLRPHED-COLUMN-HEADING-1`). Reference as `<table>-<field>-001`.
+  - **Fails silently**: OCCURS on a level-09 group nested inside a level-07 non-OCCURS group, with level-11 elementary fields (e.g. `glrpsel`: `07 GLRPSEL-REPORT-DATES-GRP` → `09 GLRPSEL-REPORT-DATES-TABLE OCCURS 5 TIMES` → `11 GLRPSEL-DATE-TABLE`). LandmarkVision returns no values for those fields — they produce "No value specified for parameter N" on INSERT. Strip them from the extract SQL; don't attempt to load them.
+  - **Expansion order** (multi-field OCCURS): field-first, not occurrence-first. All occurrences of field 1 (`_001..N`), then all of field 2, etc. Confirmed from `glrphed_select.sql`.
 - **ABA employer-side fields come from `cmbanks`**, not session.companyName. Pick the row where `eft_pa_flag='Y'` and not inactive. `user_no` (6-digit APCA), `eft_bank_code` (3-char abbreviation), `eft_name` (26-char), `branch_no`+`bank_acct_no` (trace), `pay_serv_remitter_name` (16-char). See `CmBanksService.findPayrollBank`.
 
 ## Working style
@@ -61,9 +66,10 @@ Captured iteratively during Wave 3 — small COBOL details that bit us once and 
 
 MySQL, schema `lmextract`, port 3306. Main payroll table: `pastaff` (PK: `company_no, employee_no INT`).
 
-The MySQL schema is generated from the COBOL extract pipeline at `C:\landmark_extract\` — `sql/create/<table>_create.sql`. **Extract is intentionally lossy in two places:**
+The MySQL schema is generated from the COBOL extract pipeline at `C:\landmark_extract\` — `sql/create/<table>_create.sql`. **Extract is intentionally lossy in three places:**
 - `pataxfl` drops the OCCURS bracket columns (engine cap on OCCURS extraction).
 - `pasumry` is permanently dropped (engine produces garbage from nested COMP-3 OCCURS).
+- `glrpsel` drops the `GLRPSEL-REPORT-DATES-TABLE OCCURS 5 TIMES` group (level-09 OCCURS inside a level-07 non-OCCURS group — LandmarkVision silently returns no values for level-11 fields at that depth). Java only uses the 9 non-OCCURS scalar columns from glrpsel so the drop is safe.
 
 The COBOL canonical source for `.fd`/`.ws` is `C:\landmark\compile\` (with rare exceptions falling back to `C:\landmark\cobol\pa2\`).
 
@@ -221,17 +227,69 @@ The `pa_audit` table (option B from the chat — batch-level metadata only) sits
 
 ## Build + run
 
-- JDK 25 (compile), JRE 1.8.0_421 (legacy Hibernate at runtime).
+- **JDK**: BellSoft Liberica Full JDK 21 (`C:\Program Files\BellSoft\LibericaJDK-21-Full`) — bundles JavaFX 21 jmods, used for both dev and packaging. Set `JAVA_HOME` to that path.
+- JRE 1.8.0_421 is referenced only by the ProGuard plugin as a library jar (workaround for ProGuard 7.7.0 class-file version cap) — it is not the runtime.
 - `mvn -q compile` to build, `mvn javafx:run` to launch.
+- **`mvn javafx:run` alone does NOT recompile — verified 2026-08-13.** It's a direct plugin-goal invocation, not a lifecycle phase, so Maven skips `compile` and just launches whatever bytecode is already in `target/classes`. Editing source and re-running `javafx:run` without an explicit `compile` first can silently launch stale code with no error — this cost real debugging time chasing a "bug" that was actually just an unbuilt change. `cl.bat`/`clreporting.bat` (the desktop launch scripts) now run `mvn clean compile javafx:run` for this reason — always compile (or let one of these scripts do it) immediately before every run rather than trusting a previous build.
 - **Reporting-only build**: `mvn javafx:run -Preporting` — same Spring context + login, swaps MENU01 for the Reports Hub (see "Reporting build" section below).
-- Maven picks up `JAVA_HOME` from env — set to `C:\Program Files\Java\latest\jdk-25` before running.
+- **Distribution build**: `mvn package -Preporting,dist` — runs ProGuard, jlink (bundled JRE), jpackage (Windows EXE installer). Requires WiX Toolset 3.x for the EXE; use `--type app-image` in pom dist profile to skip WiX and produce a plain folder instead. Output: `target/installer/`. Icon: `deploy/landmark.ico` (committed — regenerate with `mvn javafx:run -Pgenerate-ico` if logo changes).
 - ProGuard runs at `package` phase (rules in `src/main/proguard/rules.pro`) — not in normal dev cycle.
+
+## Ikonli `FontIcon` colouring gotcha — verified 2026-08-13
+
+**Never colour a `FontIcon` with `icon.setStyle("-fx-icon-color: ...")` — always use `icon.setIconColor(Paint)`.** `FontIcon.iconCode` is itself a `StyleableObjectProperty`, same as `iconColor`. Calling `Node.setStyle(...)` triggers a full CSS re-application pass across *all* the node's styleable properties — `iconCode` gets reset to its unset/default value in that pass (even though it was set correctly via the constructor a moment earlier), so the icon silently renders as a fallback glyph (observed: a solid star for one broken icon, an empty "tofu box" for another — the fallback isn't consistent, which is what made this hard to spot from a screenshot alone). Confirmed with an isolated snapshot diagnostic: identical `FontIcon("fth-percent")` renders correctly with no style call, breaks the instant `.setStyle("-fx-icon-color: ...")` is added, and renders correctly again when swapped for `.setIconColor(Color.web(...))`.
+
+This bit `ModuleCard`'s header/row icon tiles and `ListRow`'s chevron/favourite-star — all fixed to use `setIconColor(Paint)` (see `ListRow`'s `TEXT_MUTED`/`WARNING` constants, hardcoded literals mirroring `-lm-text-muted`/`-lm-warning` since a CSS lookup-color string like `"-lm-warning"` isn't a valid `Paint` for `Color.web(...)` — both theme CSS files agree on these two values today, but revisit if a theme ever diverges on them). **Before adding any new coloured `FontIcon` anywhere in the app, use `setIconColor`, not `setStyle`/CSS-class-driven `-fx-icon-color`** — the same trap is easy to reintroduce.
+
+## Per-client database configuration
+
+Client DB credentials are **never** baked into the JAR. Spring Boot's external config override path handles it:
+
+- Dev defaults live in `src/main/resources/application.properties` (MySQL localhost, `root`/`another`)
+- Production installs get `<install-dir>\config\application.properties` (created from `deploy/config/application.properties` template) with the real server/credentials
+- `spring.jooq.sql-dialect` must match the driver — `MYSQL`, `MARIADB`, or (Pro edition) `SQLSERVER`
+- **Supported databases**: MySQL and MariaDB only with the current open-source jOOQ edition. SQL Server requires upgrading to `org.jooq.pro` (commercial) — see jOOQ section below.
+
+## jOOQ — type-safe SQL + multi-dialect support
+
+jOOQ 3.21.4 open-source is wired in (`org.jooq` groupId, installed to local Maven repo from `jOOQ-3.21.4/maven-install.bat`). Spring Boot auto-configures a `DSLContext` bean. All reporting services have been migrated from `JdbcTemplate`; payroll write services still use `JdbcTemplate` (they are MySQL-only and not part of the SQL Server reporting scope).
+
+**Generated DSL classes**: `src/main/generated/com/landmarksoftware/db/` — one class per table in `lmextract`, committed to VCS so builds need no live DB. Regenerate when schema changes:
+```
+mvn generate-sources -Pjooq-codegen
+```
+
+**Reporting service migration status (all complete):**
+
+| Service | Typed DSL | Notes |
+|---|---|---|
+| `BasReportDataService` | Fully typed | Reference implementation — follow this pattern |
+| `CpCntrlService` | Fully typed | |
+| `PyDataService` | Mostly typed | `DATE_FORMAT` as `DSL.field()` inline |
+| `GlReportDataService` | Mostly typed | Dynamic period-column expressions as `DSL.field()` |
+| `PoReportDataService` | Fully typed | |
+| `CmReportDataService` | Fully typed | Aliased table JOIN pattern |
+| `GlReportWriterService` | Mostly typed | DDL + 366-col OCCURS table as `dsl.resultQuery()` |
+| `SmReportDataService` | Mostly typed | 2 runtime arithmetic conditions as `DSL.condition()` |
+| `PayReportDataService` | Fully typed | Dynamic GROUP BY/ORDER BY lists |
+| `ApReportDataService` | Partial | Complex dynamic IN/period queries as `dsl.resultQuery()` |
+| `ArReportDataService` | Partial | All queries as `dsl.resultQuery()` (raw SQL, typed params) |
+
+**`dsl.resultQuery()` cases** pass `LocalDate` bind params correctly and use jOOQ's connection management, but raw SQL strings don't get dialect translation. A future pass should convert these to typed DSL when SQL Server integration begins.
+
+**New services**: always use `DSLContext`, never `JdbcTemplate`.
+
+**SQL Server upgrade path** (when the commercial client is onboarded):
+1. Replace `spring-boot-starter-jooq` groupId with `org.jooq.pro` in pom (same version 3.21.4 — already aligned)
+2. Set `spring.jooq.sql-dialect=SQLSERVER` in the client's `config/application.properties`
+3. Run `mvn generate-sources -Pjooq-codegen` against the SQL Server schema (update jdbc block in the `jooq-codegen` pom profile)
+4. Convert remaining `dsl.resultQuery()` calls in AP/AR to typed DSL — jOOQ then renders `LIMIT`→`TOP`, `NOW()`→`GETDATE()`, etc. automatically
 
 ---
 
 ## Reporting build (-Preporting)
 
-Standalone JavaFX entry that shares the full app's Spring context, login, and DB but renders a Reports Hub instead of MENU01. Run with `mvn javafx:run -Preporting`. 5 modules / 12 Jasper reports, all wired end-to-end.
+Standalone JavaFX entry that shares the full app's Spring context, login, and DB but renders a Reports Hub instead of MENU01. Run with `mvn javafx:run -Preporting`. 9 modules. **General Ledger (5), AP (11), AR (21), Cash Management (9), BAS (4), Purchasing (9), Inventory Management (14), and Payroll (13) are fully wired end-to-end** (each: query in `Gl/Ap/Ar/Cm/Bas/Po/Sm/PyReportDataService` → controller → selection FXML → PDF jrxml + wide Excel jrxml). Fixed Assets cards are present but still `comingSoon` stubs. **All 13 payroll reports are also accessible from the main app** (MENU01 Payroll tab → Reports & Compliance card, and PayrollMenuController Reports card) via `openPyReport()` on each controller — no need to switch to the `-Preporting` build for payroll.
 
 ### Architecture
 - `AppMode.current` (set to REPORTING in `ReportingApplication.main()`) directs `FixedAssetsApplication.start()` to load `/fxml/reports-hub.fxml` instead of `MainMenuController.buildScene()`.
@@ -243,15 +301,19 @@ Standalone JavaFX entry that shares the full app's Spring context, login, and DB
 | Module | Reports | Notes |
 |---|---|---|
 | Fixed Assets | Asset Register, Depreciation, Acquired & Retired, Transaction List | No selection fields |
-| Payroll | Payroll Summary, Employee List | Gated on `MEUSERS.print_pa_from_pass = 'Y'` — module absent for users without it |
-| General Ledger | Trial Balance, Profit & Loss, Balance Sheet, General Journal, Account Transactions | Period-range selector (or single asAtPeriod for Balance Sheet) |
-| Accounts Receivable | Debtors Ageing — summary + detail | |
+| Payroll | **13 reports** — Payroll Summary (PATL10), Employee List (PATL12), Employee YTD Payments, Employee History Detail (PATL14), Employee History Summary (PATL17), Deductions & Super (PATL05/09), Department Expenses (PATL16), Period Summary (PATL07), Payrun GL Detail (PATL60), Timesheet History (PATL28), Super/Deductions Status (PATL40), Super by Fund (PASP10), Extended Superannuation (PATL26) | Gated on `MEUSERS.print_pa_from_pass = 'Y'` — module absent for users without it. Data in `PayReportDataService`. Reports also accessible from main app MENU01 and PayrollMenuController via `openPyReport()`. |
+| General Ledger | **6 reports** — Trial Balance (GLTL01), Profit & Loss (GLTL12 `pl_bs_ind='P'`), Balance Sheet (GLTL12 `pl_bs_ind='B'`), General Journal (GLTL06), Account Transactions (GLTL14/15), **Report Writer Output (GLRP40)** | Data in `GlReportDataService` (gl2 cobol). **Balance model:** `glbal.bal_01..13` are period movements, debit-positive; TB/BS closing balance as-at period N = `open_bal + Σbal_1..N`; P&L = `Σbal_from..to` (no opening). **GL transaction file is `gltrx` (NOT `gltrans`)**. GLRP40 engine model and bulk-run screen are documented in the "Current state → Wave 3" section above. Deferred: definition-edit screens, distribution packages, budget columns. |
+| Accounts Receivable | **21 reports** — Debtors Ageing (ARTL32), Transaction Listing (ARRC05), Account Reconciliation (ARRC03), Unbalanced Reconciliation (ARRC04), Detailed Transaction Listing (ARRC09), FC Revaluation (ARRC11), GL Distribution (ARTL02), Period Summary (ARTL03), Document Number (ARTL20), Adjustment Note Analysis (ARTL22), Sales Distribution (ARTL10), Sales by GL (ARTL18), Debtors Control (ARTL11), Customer Account Status (ARTL21), Customer Sales by Type (ARTL06), Customer Sales by Sub Ledger (ARTL27), Customer Sales by Salesperson (ARTL15), Salesperson Profitability (ARTL16), Sales Journal (ARTL05), Commission (ARTL04), Customer Sales by Year (SMTL38) | Data in `ArReportDataService` (reports) + `ArDataService` (ageing/KPIs). ARTL06/ARTL27 share `customer-sales.jrxml`. SMTL38 reads `smtrans` (Sales module); customer names render blank until `smsthed`/`arcusts` masters are loaded. |
 | Accounts Payable | Creditors Ageing — summary + detail | |
+| Cash Management | **9 reports** — Cashbook Transactions (CMTL10), Cashbook Listing (CMCB02), Cashbook by Type (CMTL35), Cashbook Distributions (CMTL14), Cashbook Ledger (CMTL05), Document Listing (CMTL18), Bank Reconciliation Statement (CMTL02), Receipt Listing (CMTL08), Cashbook FC Match (CMTL30) | Data in `CmReportDataService` (cm2 cobol). doc_type 1/2 = receipts (+), 3/4 = payments (−). Dropdowns: bank (cmbanks), recon-no (cmrched), GL main (glchart), tax code (cpgstcd). **CMTL02** recon detail tables (cmrcdis/cmrecln) are empty in the extract, so it lists `cmrched` header balances + the `cmtrans` reconciled under that recon-no. CM data present for companies 60/70 (and 10/999). |
+| BAS | **4 reports** — Business Activity Statement (CPBA12), Detailed BAS (CPBA13), BAS Transactions (CPBA06), BAS by GL (CPBA16) | Data in `BasReportDataService` (cp2 cobol). A BAS run = `(bas_group, bas_no)`; header in `cpbashd`, detail in `cpbastx` (the `cpbasln`/`batrans` line tables are empty and unused). CPBA12 renders the cpbashd G/1A-9 label columns as a label/amount statement. |
+| Purchasing | **9 reports** — Purchase Orders in Sequence (POTL22), PO Summary (POTL20), PO Detail (POTL21), Purchase Index (POTL33), Delivery/Invoice Variance (POTL28), Uninvoiced Goods Reconcile (POTL36), Uninvoiced Goods Sundries (POTL37), Sundries Reconcile (POTL39), Expedite Action (POTL30) | Data in `PoReportDataService` (po2 cobol). **POTL22 consolidates 9 COBOL list programs** (POTL22/23/24/25/26/27/29/42/31) into one selection screen with a `PoSequence` chooser (Order No / Supplier / Item / Delivery Date / Order Date / GL Account / Cost Ledger / BA Ledger) driving the ORDER BY. Header = `popohed`, lines = `popolin` (line_type 'C' = comment, excluded), AP match docs = `apdocno`. Dropdowns: location (smlocat), supplier (apsupps), PO no (popohed). PoUninvoicedSundries shares the `uninvoiced-goods` jrxml (line_type 'I' = goods, else sundries). **Data gaps:** `podeliv`/`popoexp` are empty in the extract and `apdocno` PO keys don't reconcile with `popolin` for company 999, so matched/delivered values may render zero until those masters load. PO data present for company 999. |
+| Inventory Management | **14 reports** covering 16 COBOL programs — Inventory Movements Detail (SMTL01), Movements Summary (SMTL02), Inventory Valuation (SMTL07), Item Availability (SMTL26), Reorder & PO Requisitions (SMTL10), Inactive Inventory (SMTL20), **Item Status (SMTL15 + SMTL24)**, Serial/Batch History (SMTL27), Consignment GL Reconcile (SMTL36), **Consignment Stock (SMTL53 + SMTL56)**, Sales History (SMTL06), Transactions by Customer (SMTL16), Purchase Analysis (SMTL12), Price List (SMTL08) | Data in `SmReportDataService` (sm2 cobol). Two consolidations via `SmSequence` chooser (same pattern as POTL22): Item Status folds SMTL24; Consignment Stock folds SMTL56. **Only `smtrans` is populated** (company 999, 433k rows) — the 5 transaction-driven reports return data; stock-master, Consignment, and Serial/Batch reports build but render empty until those tables load. AR sales in `smtrans` store qty/value/cost negative — Sales History negates them. |
 
 ### Selection screen pattern
 Card click → `/fxml/reports/<module>/<report-name>.fxml` + `com.landmarksoftware.ui.reports.<Module><Name>Controller` (`@Component @Scope("prototype")`). Controllers call:
 - `hub.runJasperReport(reportPath, extraParams, format, ownerWindow)` — for reports with static .jrxml SQL
-- `hub.runJasperReportWithDataSource(reportPath, extraParams, JRDataSource, format, owner)` — for AR/AP ageing where SQL is too dynamic for a static block; rows pre-fetched via `Ar/ApDataService.get*ListingData(...)` and wrapped in a `JRBeanCollectionDataSource`
+- `hub.runJasperReportWithDataSource(reportPath, extraParams, JRDataSource, format, owner)` — for reports where SQL is too dynamic for a static jrxml block; rows pre-fetched via service and passed as a `mapDataSource()` (never `JRBeanCollectionDataSource` — see gotchas)
 
 GL share `GlPeriodSelector.fxml` via `<fx:include>`; included controller's fields are bound by the `fx:id + "Controller"` naming convention.
 
@@ -260,6 +322,15 @@ GL share `GlPeriodSelector.fxml` via `<fx:include>`; included controller's field
 - **White-text column headers invisible in Excel**: each `<staticText>` needs `mode="Opaque" backcolor="..."` because band-level `<rectangle>` backgrounds don't translate to Excel cell fills (PDF renders both).
 - **Band order in `.jrxml`** must be `title → columnHeader → detail → pageFooter → summary` per the Jasper XSD. Putting `summary` before `pageFooter` errors with "Invalid content: pageFooter, expected noData".
 - **Group variables with `resetType="Group"`** also need `resetGroup="<groupName>"` — missing this gives "Unknown reset group 'null'" at compile.
+- **Variable/group ordering**: `<variable>` elements MUST appear BEFORE `<group>` elements in the jrxml (XSD order: field → variable → group). Declaring a variable after its group causes "invalid content" SAXParseException at the variable element line.
+- **`isStretchWithOverflow` band rendering bug (Jasper 6.21)**: In any detail/group band containing at least one `<textField isStretchWithOverflow="true">`, ALL other `<textField>` elements in that SAME band that do NOT have `isStretchWithOverflow="true"` are silently skipped during the stretch rendering pass — their values appear blank. **Rule**: add `isStretchWithOverflow="true"` to every `<textField>` in any band that has at least one stretch element.
+- **Three-band `printWhenExpression` PDF bug**: When `<detail>` contains 3+ bands each with `printWhenExpression`, and the first TWO bands both evaluate false for a row, Jasper silently skips the third band in PDF output (it never renders). **Pattern that breaks**: `[header|data|total]` bands → total rows have bands 1+2 both false → total band never renders. **Fix**: collapse to 2 bands — one for `!"total".equals(...)` (combined header+data, with element-level `printWhenExpression` inside the band to differentiate header vs data content) and one for `"total".equals(...)`. Only one false evaluation precedes the total band so it renders correctly. See `general-journal.jrxml` and `account-transactions.jrxml`.
+- **Jasper group footer unreliable when group has BOTH header and footer**: Native Jasper group footers fail to render in PDF when the group definition includes both `<groupHeader>` and `<groupFooter>`. Groups with only `<groupFooter>` (like P&L) work fine. **Fix**: remove the native group entirely and inject synthetic header/total rows from the service (same injected-rows pattern). See `GlReportDataService.getAccountTransactions`.
+- **`JRBeanCollectionDataSource` must never be used with `List<Map<String,Object>>` rows** — Apache BeanUtils field-access fails silently (returns null for every field), causing "report failed" on the first typed field (e.g. `java.sql.Date`). Use `mapDataSource()` instead — it calls `map.get(field.getName())` directly. This helper is in **every** report controller across all modules (AP, AR, CM, GL, BAS, PO, SM, PY). `calculation="Sum"` variables also won't accumulate without it — pre-compute group totals in the service.
+- **Excel phantom blank column from title band width mismatch** — Jasper builds the Excel column grid from x-breakpoints across ALL bands (including `title`, even if excluded from display). If the title band's element width is less than `columnWidth`, it inserts a spurious x-breakpoint inside a data column, creating a blank phantom column in the output. **Rule**: the title band element `width=` must equal the report's `columnWidth` exactly. This was found and fixed in all 85 Excel jrxml files across every module (2026-06-01).
+- **`JasperReportService.compile()` cache** — now uses `resource.lastModified()` vs `.jasper` mtime to auto-recompile stale files. Previously used any existing `.jasper` unconditionally; edits to jrxml had no effect while the app was running.
+- **`style` attribute on `<reportElement>`**, not on `<textField>` — `<textField style="myStyle">` is invalid per Jasper XSD; use `<reportElement style="myStyle" .../>` inside the textField.
+- **Conditional styles don't reset PDF graphic state** — if a conditional sets `forecolor="#ffffff"` (white) for one row kind, and the next row kind has no explicit forecolor in any conditional, the PDF renderer keeps white as the current colour. Always add an explicit conditional for every row kind you intend to render (including the "default" data rows).
 - **Feather, not Tabler** for Ikonli icons — Tabler isn't bundled with Ikonli. Prefix is `fth-` (e.g. `fth-package`, `fth-users`, `fth-bar-chart-2`).
 - **GLDATES periods are 13 separate `period_end_01..period_end_13` columns** (COBOL OCCURS-style), not normalised rows. Unpivot in Java — see `GlPeriodService.loadPeriods()`. Use **`year_no` (4-digit calendar)** not `yr_no` (sequence PK) for matching.
 - **CPCNTRL is a single global row** even though the PK is `company_no` — query with `LIMIT 1`, ignore the PK.
@@ -267,9 +338,16 @@ GL share `GlPeriodSelector.fxml` via `<fx:include>`; included controller's field
 ### Per-report .jrxml lookup
 `ReportsHubController.openSelectionScreen(report, moduleId)` tries to load `/fxml/reports/<moduleId>/<report.getName()>.fxml`. If the FXML doesn't exist (e.g. a future report card you haven't built yet), it falls back to the "Coming soon" alert — so adding a new report just means adding the FXML + controller, no hub registry edits beyond a `ReportDef.withParams(...)`.
 
+**`setRunner()` is dead code** — every report card's click handler calls `openSelectionScreen` directly. The runner lambda set via `setRunner(fmt -> comingSoon(...))` is never invoked in the current code path; it was an earlier design that was superseded by FXML auto-discovery. Don't waste time setting runners — just create the FXML.
+
+### Main menu (MENU01) — hub-style sidebar (2026-06-02)
+`MainMenuController.buildSidebar()` now renders the same module-row style as the reporting hub: colored icon badges (`module-icon-badge` + `icon-XX` CSS), FontIcon glyphs, `module-item` / `module-item-active` CSS. Clicking a row calls `selectSidebarModule(id)` which highlights the row and switches the content area. The top navigation bar tabs have been removed. Logo is pin-mark only (no wordmark). Module rows: Fixed Assets, Payroll, GL, AR, AP, CM, PO, Inventory, BAS, System.
+
+### jOOQ inline SQL — table alias must match what jOOQ renders
+When using `DSL.field(expr, type)` with raw SQL fragments referencing a joined table (e.g. `COALESCE(b.open_bal,0)`), the alias in the string must be the table's actual SQL name as jOOQ renders it. `leftJoin(GLBAL)` renders as `glbal` (no alias). Writing `"b."` in the expression → MySQL "Unknown column 'b.open_bal'". Fix: use `"glbal."` in the fragment. Affected `GlReportDataService` methods: `getTrialBalance`, `getProfitLoss`, `getBalanceSheet` (all fixed 2026-06-01).
+
 ### Deferred
 - `GlReportWriterService` migration (custom report-builder feature — cc-migration.md note #2)
-- Excel report-time filter wires on the .jrxml are now complete for all 12 reports (filter UI matches what the SQL actually uses).
 
 ## Wave 2 detail — Batch operations
 
@@ -311,6 +389,42 @@ Both are wired into both menus (PayrollMenuController + MainMenuController) and 
 
 ### MenuEntry note (carried from Wave 1)
 `MainMenuController` has its own quick-launch grid separate from `PayrollMenuController`. When wiring a new program, add a `MenuEntry` to both lists. Wave 2 added a third grid row to PayrollMenuController ("Mass Update" + "Batch Operations" cards). MainMenuController gained the same two cards at row 2.
+
+## BAS module (CP2 COBOL conversion) — 2026-08-13
+
+Converted CPBA01/CPBA02/CPBA07/CPBA10 from `C:\landmark\cobol\cp2\` end-to-end (maintenance + the full BAS run/calculation engine). All four are wired into `MainMenuController`'s BAS/Tax tab (`buildBasContent()`) and `allEntries` (module code `"BAS"`).
+
+| Program | What it is | Java entry point |
+|---|---|---|
+| **CPBA01** | BAS Report Group Maintenance — `cpbasgr` header, `cpbasco` member companies, `cpsubcy` GL account config (15 GL account pairs incl. tax-paid/variance on the owner). Owner-row auto-create/re-key on company change, GST-consolidation exclusivity checks against `cpgstgr`, delete guard against `cpbashd`. | `com.landmarksoftware.ui.bas.BasGroupMaintenanceController` |
+| **CPBA02** | BAS Reason Codes — `cpbascd` restricted to `T4`/`F4` categories (income tax / FBT instalment variation codes). | `com.landmarksoftware.ui.bas.BasReasonCodeMaintenanceController` |
+| **CPBA07** | BAS Transactions — manual add/edit/delete of `cpbastx` lines (the ones not posted automatically by AR/AP/CM/Payroll). Company→BAS-group cascade-and-confirm, 2-tier delete guard, batch-friendly Add loop. | `com.landmarksoftware.ui.bas.BasTransactionMaintenanceController` |
+| **CPBA10** | BAS Processing — the actual BAS run engine: Create (pulls unposted `cpbastx` lines, GST consolidation across groups, synthetic F/7A/7C/7D lines, full G1–G20/1A–9 roll-up), Edit (GST/Other Taxes tabs, T1–T4→5A and F1–F4→6A live recalc, transaction drill-down), Delete/Cancel, Inquire (read-only). Status state machine: draft (blank) → posted (`C`, locked) / cancelled (`D`, locked). | `com.landmarksoftware.ui.bas.BasProcessingController` |
+
+**`cpsubcy.company_no` vs `company_no_2` — verified 2026-08-13, read this before touching `cpsubcy` again.** The COBOL `.fd` has only ONE company field (`CPSUBCY-COMPANY-NO`); `company_no_2` is purely an extract-pipeline artifact (the tool's generic `companyNoRequired=Y` auto-injected column). For every pre-existing extracted row, `company_no` is `0` and the row's **real** company number is in `company_no_2` (confirmed for all 8 seed rows: `company_no=0, company_no_2=10/20/.../999`) — `cpsubcy` was evidently extracted as a single company-agnostic pass rather than per-company, so the tool's injected `company_no` never got a real value. **All lookups/matches against `cpsubcy` must filter on `COMPANY_NO_2`, never `COMPANY_NO`** — `BasGroupService` and `BasProcessingService` do this correctly as of this fix; if you add another `cpsubcy` query, match on `COMPANY_NO_2`. (Inserts still also set `COMPANY_NO` to the real value for whatever it's worth — harmless, just don't rely on it for reads.) Symptom when this is wrong: GL account fields silently blank on Edit screens, and every Save creates a fresh all-zero duplicate row instead of updating the real one.
+
+**P1 lists are NOT company-scoped.** Unlike almost every other master-file list in this app, `BasGroupService.findAll()` (CPBA01's group list) intentionally does not filter by `company_no` — a BAS group's entire purpose is consolidating potentially several companies, so restricting the list to the session company would hide groups the user needs to see/manage. Confirmed by user testing 2026-08-13.
+
+**CPBA10 P1 (BAS run list) is company-agnostic and draft-only** — per user direction 2026-08-13: `BasProcessingService.findRuns()`/`getBasGroups()` no longer take a `companyNo` (same cross-company rationale as CPBA01), and `findRuns()` filters to `bas_status = ''` (draft) only — committed (`C`) and cancelled (`D`) runs are historical and drop off the working list. `GroupOption` now carries the group's own `companyNo` (from `cpbasgr`, not the session) so Create/lookup can use the right one. The status label for `C` was renamed **"Posted" → "Committed"** everywhere (`BasProcessingService.statusLabel`, `BasEditScreen.statusText`, `BasRun.isPosted()`→`isCommitted()`, and the "Statement posted/Current BAS not posted" guard messages → "committed") to avoid confusion with the separate "unposted `cpbastx`" concept (an unrelated idea — whether a transaction line has been claimed by a BAS yet, `bas_no=0`, which keeps its original "unposted" wording).
+
+**CPBA10 transaction-line delete must UNLINK, not physically delete — fixed 2026-08-13** per real screenshots + user confirmation. `BasProcessingService.deleteLine` now takes a `deleteEntirely` flag: an ordinary transaction (posted by AR/AP/CM/Payroll, `trx_status <> 'U'`) is ALWAYS just unlinked (`bas_no` reset to 0) so it's picked up again next time a BAS is created — never physically deleted. Only a synthetic line (`trx_status = 'U'`, i.e. one this program created itself) may be truly deleted, and only when the user explicitly confirms a second "delete entirely?" prompt after the first "remove from this BAS?" confirm — matches the original COBOL S5 "REMOVE TRANSACTION FROM THIS BAS?" / "DELETE THIS TRANSACTION ENTIRELY?" two-tier prompt documented in the original research but not correctly wired into the first implementation.
+
+**CPBA10 Withholding/Income-Tax/FBT is ONE screen, not three — fixed 2026-08-13** per real screenshots. Clicking amount label **4, 5A, or 6A** on the "Other Taxes" tab all open the SAME window (`BasWithholdingInstalmentsDialog`, replacing the separate `BasIncomeTaxDialog`/`BasFbtDialog` + P4-unfiltered-drill for "4"), matching the real "BAS CALCULATION SHEET - WITHHOLDING TAXES" screen which shows Withholding (W1-W4), Income Tax Instalment (T1-T4), and FBT Instalment (F1-F4) together. Critically, **W1-W4 are plain directly-editable header fields** (typed values overwrite `cpbashd.w1_total_wages` etc. straight up) — NOT a click-to-drill-to-transaction-list target as first built. This matches the schema: `cpbashd` has `bas_7a_cpbastx_key`/`bas_7c_cpbastx_key`/`bas_7d_cpbastx_key`/`f_cpbastx_key`/`t_cpbastx_key` synthetic-line-backing columns for 7A/7C/7D/F/T, but **no `w*_cpbastx_key` columns exist** — so there's no mechanism for W-values to be backed by a synthetic line the way 7A/7C/7D are; a manual W1-W4 entry is a bare overwrite of the header field, and `BasProcessingService.updateWithholdingAndInstalments` is one combined `@Transactional` method covering all three groups (replacing the separate `updateIncomeTax`/`updateFbt`).
+
+**CPBA01 S2 (member company) does NOT have Tax Paid / Variance GL account fields — verified against `cpba01s2.sd` 2026-08-13.** Those two accounts are S1-only (the BAS group's own owner-level fields, written from `cpbasgr`'s S1 dialog). S2 exposes exactly 12 GL account pairs, in this on-screen order: **1C-1D, 1E-1F, 1G, 4, 5A-5B, 6A-6B, 7, 7A, 7C-7D, Inter-Co**, then a "Subsidiary company accounting:" section with **HO Loan, Sub Loan**. The initial port incorrectly added Tax Paid/Variance to S2 (11 pairs became 13, wrong order, wrong captions) — this got caught by user testing because the real data only has 3 pairs populated (Tax Paid/Variance/Inter-Co, all owner-level via S1) and the wrongly-included Tax Paid/Variance fields on S2 were about to silently zero those out on save. Fixed: removed from `BasGroupMember` model and `BasGroupService.upsertCpsubcyFull` entirely (S2's cpsubcy write never touches `tax_paid_acct_*`/`variance_acct_*`, same treatment as `non_land_acct_*`), and the S2 dialog now matches the real field order/captions from `cpba01s2.sd` exactly.
+
+**Architecture**: `com.landmarksoftware.service.bas` (jOOQ `DSLContext` — the first non-payroll module to use jOOQ for *writes*, not just reporting reads; established the write idiom since none existed before: `dsl.insertInto/update/deleteFrom`, `@Transactional` per write method) + `com.landmarksoftware.ui.bas` (pure-Java `Scene`/`Stage`, no FXML, matching `PayCodeMaintenanceController` conventions) + `com.landmarksoftware.model.bas`. `BasCalculationEngine` is a separate pure-logic class (no Spring/DB) holding `classify`/`recalculate`/`calcIncomeTax`/`calcFbt` — the CLASSIFY-GST-TRX and BAS-CALCULATIONS COBOL paragraphs — kept isolated from DB orchestration for readability. `GlAccountLookupDialog` (`ui.bas`) is a new shared GL-account picker (modelled on `FundLookupDialog`), reused by all three screens that validate GL accounts.
+
+**Schema fix required**: `cpsubcy`'s extract pipeline was missing 9 of the COBOL's 15 GL account pairs (1C-1D, 1E-1F, 1G, 4, 5A-5B, 6A-6B, 7, 7A, 7C-7D — CPBA01's member-company GL config). Added via `ALTER TABLE` on the live dev DB + updated `C:\landmark_extract\sql\create\cpsubcy_create.sql` / `insert\cpsubcy_{insert,select,values}.sql` to match, so a future re-extract stays in sync. Also appended the missing-but-already-populated BAS tables (`cpbasgr`, `cpbasco`, `cpsubcy`, `cpbashd`, `cpbastx`, `cpbascd`, `cpglcod`, `cpcofor`, `cpbatch`, `cpimprt`) to `list/module/cpfiles.txt`, which had drifted out of sync with the actual extract SQL some time before this session.
+
+**jOOQ codegen pom.xml fix**: the `jooq-codegen` Maven profile pointed at a schema named `lmextract` that doesn't exist on this dev machine — codegen was silently completely broken (`Unknown database`). Fixed to point at the real live schema `landmarkdb` (confirmed via `application.properties` + live data), while keeping generated class/package names as `Lmextract`/`lmextract` via a `<schemata><outputSchema>` mapping so the fix doesn't ripple into every already-committed generated file. **Read the caution comment above that profile before ever running `mvn generate-sources -Pjooq-codegen` again** — on 2026-08-13 this local `landmarkdb` was missing entire modules (all payroll `pa*` tables, all `ar*` tables, `user_account`/`user_role` tables) that the committed generated code depends on; a blind full regen deletes those tables' Java classes and breaks the build. The `cpsubcy` column additions in this session were applied by hand-editing the generated `Cpsubcy.java`/`CpsubcyRecord.java`/`Keys.java`, not by regenerating, specifically to avoid that blast radius.
+
+**Deferred / simplified vs. the COBOL**:
+- No heavyweight JSON-snapshot audit table for BAS yet (mirrors how `pafuaud`/`papcaud` were deferred in payroll until their CRUD screens existed) — every write still stamps the per-row `audit_user_id/date/time*` columns, just no separate change-history table.
+- CPBA10's ~13 COBOL sub-screens (S2A/S2B/S3/S3A/S3B/S4A-H/S5/S7) were deliberately consolidated into a smaller set of JavaFX screens (one tabbed Edit/Inquire screen, one shared transaction list+dialog+filter) rather than a 1:1 screen port — every validation/calculation rule was preserved, only the screen *count* was reduced.
+- CPBA07/CPBA10's transaction filter screens collapse the COBOL's 9-pair start/end range screen into one clean optional-filter form — a deliberate simplification, not a fidelity gap.
+- CPBA10's "4" (PAYG withheld) drill-down opens the transaction list unfiltered (it aggregates W1/W3/W4, not a single `bas_code`) rather than filtered to one code, unlike the 1:1-mapped labels.
+- F4 (FBT variation reason code) has no UI at BAS-creation time yet — only via the Edit screen's 6A dialog after creation.
 
 ## Things deferred / open
 

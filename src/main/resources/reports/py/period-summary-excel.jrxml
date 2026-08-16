@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="period-summary-excel"
+              pageWidth="1600" pageHeight="595" orientation="Landscape"
+              columnWidth="1600" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="title"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="DATE_RANGE"   class="java.lang.String" isForPrompting="false"/>
+  <parameter name="GRAND_TOTAL"  class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="paygroup"   class="java.lang.String"/>
+  <field name="payrunNo"   class="java.lang.Integer"/>
+  <field name="payrunDate" class="java.sql.Date"/>
+  <field name="normalPay"  class="java.math.BigDecimal"/>
+  <field name="overtime"   class="java.math.BigDecimal"/>
+  <field name="leavePay"   class="java.math.BigDecimal"/>
+  <field name="super_"     class="java.math.BigDecimal"/>
+  <field name="tax"        class="java.math.BigDecimal"/>
+  <field name="deductions" class="java.math.BigDecimal"/>
+  <field name="payrollTax" class="java.math.BigDecimal"/>
+  <field name="total"      class="java.math.BigDecimal"/>
+  <field name="empCount"   class="java.lang.Integer"/>
+
+  <title>
+    <band height="30">
+      <staticText><reportElement x="0" y="0" width="1600" height="16"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Period Summary]]></text></staticText>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="18" width="1600" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   " + $P{DATE_RANGE}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <staticText><reportElement x="0"    y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Group]]></text></staticText>
+      <staticText><reportElement x="80"   y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Run No]]></text></staticText>
+      <staticText><reportElement x="150"  y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Date]]></text></staticText>
+      <staticText><reportElement x="240"  y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Employees]]></text></staticText>
+      <staticText><reportElement x="300"  y="0" width="180" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Normal Pay]]></text></staticText>
+      <staticText><reportElement x="480"  y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Overtime]]></text></staticText>
+      <staticText><reportElement x="620"  y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Leave Pay]]></text></staticText>
+      <staticText><reportElement x="760"  y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Super]]></text></staticText>
+      <staticText><reportElement x="900"  y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Tax]]></text></staticText>
+      <staticText><reportElement x="1040" y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Deductions]]></text></staticText>
+      <staticText><reportElement x="1180" y="0" width="140" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Payroll Tax]]></text></staticText>
+      <staticText><reportElement x="1320" y="0" width="280" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Total]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField isStretchWithOverflow="true"><reportElement x="0"    y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paygroup}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="80"   y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunNo}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="150"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrunDate}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="240"  y="0" width="60"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{empCount}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="300"  y="0" width="180" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{normalPay}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="480"  y="0" width="140" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{overtime}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="620"  y="0" width="140" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{leavePay}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="760"  y="0" width="140" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{super_}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="900"  y="0" width="140" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{tax}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="1040" y="0" width="140" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{deductions}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="1180" y="0" width="140" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payrollTax}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="1320" y="0" width="280" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{total}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter><band height="0"/></pageFooter>
+
+  <summary>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="1600" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="4" width="1320" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " payrun(s)   Grand Total:"]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="1320" y="4" width="280" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

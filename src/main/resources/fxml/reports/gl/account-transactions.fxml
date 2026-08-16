@@ -8,29 +8,44 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.landmarksoftware.ui.reports.GlAccountTransactionsController"
     styleClass="sel-root"
-    prefWidth="560">
+    prefWidth="640" prefHeight="530">
 
     <top>
         <VBox styleClass="sel-header">
             <Label text="Account Transactions" styleClass="sel-title"/>
-            <Label text="Drilldown transactions for one account" styleClass="sel-sub"/>
-            <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
+            <Label text="GL transactions with running balance per account" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>
 
     <center>
-        <VBox styleClass="sel-body" spacing="14">
-            <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
 
-            <fx:include fx:id="periodSelector" source="GlPeriodSelector.fxml"/>
+                <Label text="Selection" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Account from / to" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="startAcct" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endAcct"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Source" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="source" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Analysis code from / to" styleClass="sel-label" minWidth="140"/>
+                    <TextField fx:id="startAnalysis" promptText="blank = all" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <TextField fx:id="endAnalysis"   promptText="to"          HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Date from / to" styleClass="sel-label" minWidth="140"/>
+                    <DatePicker fx:id="startDate" promptText="blank = all" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="endDate"   promptText="to"          HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
 
-            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                <Label text="Account no" styleClass="sel-label" minWidth="120"/>
-                <TextField fx:id="acctNoField" promptText="e.g. 1100 or % for all"
-                           text="%" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-            </HBox>
-
-        </VBox>
+            </VBox>
+        </ScrollPane>
     </center>
 
     <bottom>

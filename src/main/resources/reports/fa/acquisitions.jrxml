@@ -9,9 +9,7 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
   <parameter name="COMPANY_NO"    class="java.lang.Integer"/>
   <parameter name="COMPANY_NAME"  class="java.lang.String"/>
@@ -19,39 +17,83 @@
   <parameter name="YR_START_DATE" class="java.sql.Date"/>
   <parameter name="YR_END_DATE"   class="java.sql.Date"/>
 
+  <!-- FATL03 — assets acquired AND retired in the period. Acquisitions match on
+       acqn_date; retirements match on retmt_date and carry the stored disposal
+       proceeds and book profit/loss (retmt_bk_profit_val). -->
   <queryString>
     <![CDATA[
-      SELECT a.asset_no, a.desc_1, a.acqn_date, a.acqn_type,
+      SELECT '1' AS section, 'Acquired' AS section_label,
+             a.asset_no, a.desc_1, a.acqn_date AS event_date, a.acqn_type AS event_type,
              COALESCE(g.desc1, a.grp_code) AS grp_desc,
              COALESCE(l.desc1, a.loc_code) AS loc_desc,
-             a.actual_cost, a.tax_depn_cost, a.book_depn_cost,
-             a.supp_name, a.supp_inv_no, a.asset_status
+             a.actual_cost,
+             CAST(NULL AS DECIMAL(12,2)) AS proceeds,
+             CAST(NULL AS DECIMAL(12,2)) AS profit_loss,
+             a.supp_name, a.supp_inv_no
       FROM FAASSET a
       LEFT JOIN FACODGR g ON g.company_no=a.company_no AND g.grp_code=a.grp_code
       LEFT JOIN FACODLO l ON l.company_no=a.company_no AND l.loc_code=a.loc_code
       WHERE a.company_no = $P{COMPANY_NO}
         AND a.acqn_date BETWEEN $P{YR_START_DATE} AND $P{YR_END_DATE}
         AND a.asset_status IN ('', 'U')
-      ORDER BY a.acqn_date, a.asset_no
+      UNION ALL
+      SELECT '2' AS section, 'Retired' AS section_label,
+             a.asset_no, a.desc_1, a.retmt_date AS event_date, '' AS event_type,
+             COALESCE(g.desc1, a.grp_code) AS grp_desc,
+             COALESCE(l.desc1, a.loc_code) AS loc_desc,
+             a.actual_cost,
+             a.retmt_proceeds_val AS proceeds,
+             a.retmt_bk_profit_val AS profit_loss,
+             NULL AS supp_name, NULL AS supp_inv_no
+      FROM FAASSET a
+      LEFT JOIN FACODGR g ON g.company_no=a.company_no AND g.grp_code=a.grp_code
+      LEFT JOIN FACODLO l ON l.company_no=a.company_no AND l.loc_code=a.loc_code
+      WHERE a.company_no = $P{COMPANY_NO}
+        AND a.retmt_date BETWEEN $P{YR_START_DATE} AND $P{YR_END_DATE}
+      ORDER BY 1, 5, 3
     ]]>
   </queryString>
 
+  <field name="section"       class="java.lang.String"/>
+  <field name="section_label" class="java.lang.String"/>
   <field name="asset_no"      class="java.lang.String"/>
   <field name="desc_1"        class="java.lang.String"/>
-  <field name="acqn_date"     class="java.sql.Date"/>
-  <field name="acqn_type"     class="java.lang.String"/>
+  <field name="event_date"    class="java.sql.Date"/>
+  <field name="event_type"    class="java.lang.String"/>
   <field name="grp_desc"      class="java.lang.String"/>
   <field name="loc_desc"      class="java.lang.String"/>
   <field name="actual_cost"   class="java.math.BigDecimal"/>
-  <field name="tax_depn_cost" class="java.math.BigDecimal"/>
-  <field name="book_depn_cost" class="java.math.BigDecimal"/>
+  <field name="proceeds"      class="java.math.BigDecimal"/>
+  <field name="profit_loss"   class="java.math.BigDecimal"/>
   <field name="supp_name"     class="java.lang.String"/>
   <field name="supp_inv_no"   class="java.lang.String"/>
-  <field name="asset_status"  class="java.lang.String"/>
 
-  <variable name="TOTAL_COST" class="java.math.BigDecimal" calculation="Sum">
-    <variableExpression><![CDATA[$F{actual_cost}]]></variableExpression>
-  </variable>
+  <variable name="SEC_COST"     class="java.math.BigDecimal" resetType="Group" resetGroup="SectionGroup" calculation="Sum"><variableExpression><![CDATA[$F{actual_cost}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="SEC_PROCEEDS" class="java.math.BigDecimal" resetType="Group" resetGroup="SectionGroup" calculation="Sum"><variableExpression><![CDATA[$F{proceeds}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="SEC_PL"       class="java.math.BigDecimal" resetType="Group" resetGroup="SectionGroup" calculation="Sum"><variableExpression><![CDATA[$F{profit_loss}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="SEC_COUNT"    class="java.lang.Integer"    resetType="Group" resetGroup="SectionGroup" calculation="Count"><variableExpression><![CDATA[$F{asset_no}]]></variableExpression></variable>
+  <variable name="GT_COST"     class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{actual_cost}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GT_PROCEEDS" class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{proceeds}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GT_PL"       class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{profit_loss}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+
+  <group name="SectionGroup">
+    <groupExpression><![CDATA[$F{section}]]></groupExpression>
+    <groupHeader>
+      <band height="20">
+        <rectangle><reportElement x="0" y="2" width="782" height="16" backcolor="#dbe2ef"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField><reportElement x="4" y="3" width="400" height="14" mode="Opaque" backcolor="#dbe2ef"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{section_label}]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="18">
+        <rectangle><reportElement x="0" y="0" width="782" height="18" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="3" width="316" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{section_label} + " total (" + $V{SEC_COUNT} + ")"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="484" y="3" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_COST}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="562" y="3" width="66" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_PROCEEDS}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="3" width="66" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SEC_PL}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
 
   <title>
     <band height="50">
@@ -64,37 +106,41 @@
   <columnHeader>
     <band height="20">
       <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
-      <staticText><reportElement x="4"   y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Asset No]]></text></staticText>
-      <staticText><reportElement x="88"  y="4" width="160" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
-      <staticText><reportElement x="252" y="4" width="65"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Acqn Date]]></text></staticText>
-      <staticText><reportElement x="321" y="4" width="30"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
-      <staticText><reportElement x="355" y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Group]]></text></staticText>
-      <staticText><reportElement x="459" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Location]]></text></staticText>
-      <staticText><reportElement x="543" y="4" width="95"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Cost]]></text></staticText>
-      <staticText><reportElement x="642" y="4" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Status]]></text></staticText>
-      <staticText><reportElement x="686" y="4" width="96"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Supplier / Invoice]]></text></staticText>
+      <staticText><reportElement x="4"   y="4" width="64"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Asset No]]></text></staticText>
+      <staticText><reportElement x="72"  y="4" width="150" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="226" y="4" width="56"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+      <staticText><reportElement x="286" y="4" width="30"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="320" y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Group]]></text></staticText>
+      <staticText><reportElement x="414" y="4" width="66"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Location]]></text></staticText>
+      <staticText><reportElement x="484" y="4" width="74"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Cost]]></text></staticText>
+      <staticText><reportElement x="562" y="4" width="66"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Proceeds]]></text></staticText>
+      <staticText><reportElement x="632" y="4" width="66"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Profit/Loss]]></text></staticText>
+      <staticText><reportElement x="702" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="7" isBold="true"/></textElement><text><![CDATA[Supplier / Invoice]]></text></staticText>
     </band>
   </columnHeader>
 
   <detail>
-    <band height="15">
-      <textField><reportElement x="4"   y="1" width="80"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{asset_no}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true"><reportElement x="88" y="1" width="160" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{desc_1}]]></textFieldExpression></textField>
-      <textField pattern="dd/MM/yyyy"><reportElement x="252" y="1" width="65" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acqn_date}]]></textFieldExpression></textField>
-      <textField><reportElement x="321" y="1" width="30"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acqn_type}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true"><reportElement x="355" y="1" width="100" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{grp_desc}]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true"><reportElement x="459" y="1" width="80" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{loc_desc}]]></textFieldExpression></textField>
-      <textField pattern="#,##0.00"><reportElement x="543" y="1" width="95" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{actual_cost}]]></textFieldExpression></textField>
-      <textField><reportElement x="642" y="1" width="40"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA["U".equals($F{asset_status}) ? "Unpstd" : "Active"]]></textFieldExpression></textField>
-      <textField isStretchWithOverflow="true"><reportElement x="686" y="1" width="96" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[($F{supp_name} != null ? $F{supp_name}.trim() : "") + ($F{supp_inv_no} != null && !$F{supp_inv_no}.isBlank() ? " / " + $F{supp_inv_no}.trim() : "")]]></textFieldExpression></textField>
+    <band height="14">
+      <textField><reportElement x="4"   y="1" width="64"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{asset_no}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="72" y="1" width="150" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{desc_1}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="226" y="1" width="56" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{event_date}]]></textFieldExpression></textField>
+      <textField><reportElement x="286" y="1" width="30"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{event_type}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="320" y="1" width="90" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{grp_desc}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="414" y="1" width="66" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{loc_desc}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="484" y="1" width="74" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{actual_cost}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="562" y="1" width="66" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{proceeds}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="1" width="66" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{profit_loss}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="702" y="1" width="80" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[($F{supp_name} != null ? $F{supp_name}.trim() : "") + ($F{supp_inv_no} != null && !$F{supp_inv_no}.isBlank() ? " / " + $F{supp_inv_no}.trim() : "")]]></textFieldExpression></textField>
     </band>
   </detail>
 
   <summary>
-    <band height="28">
-      <line><reportElement x="543" y="2" width="95" height="1" forecolor="#1e2d45"/><graphicElement><pen lineWidth="1.5"/></graphicElement></line>
-      <staticText><reportElement x="4" y="8" width="539" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[TOTAL ACQUISITIONS]]></text></staticText>
-      <textField pattern="#,##0.00"><reportElement x="547" y="8" width="91" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{TOTAL_COST}]]></textFieldExpression></textField>
+    <band height="30">
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4" y="8" width="316" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[GRAND TOTAL (cost / proceeds / P&L)]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="484" y="8" width="74" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_COST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="562" y="8" width="66" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_PROCEEDS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="632" y="8" width="66" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GT_PL}]]></textFieldExpression></textField>
     </band>
   </summary>
 

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="employee-list-excel"
+              pageWidth="1600" pageHeight="595" orientation="Landscape"
+              columnWidth="1600" leftMargin="0" rightMargin="0"
+              topMargin="0" bottomMargin="0"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="title"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="DEPT"         class="java.lang.String"  isForPrompting="false">
+    <defaultValueExpression><![CDATA["%"]]></defaultValueExpression>
+  </parameter>
+  <parameter name="EMP_STATUS"   class="java.lang.String"  isForPrompting="false">
+    <defaultValueExpression><![CDATA["A"]]></defaultValueExpression>
+  </parameter>
+
+  <queryString>
+    <![CDATA[
+      SELECT e.employee_no, e.surname, e.first_name, e.dept,
+             e.employee_status, e.pay_freq, e.std_rate_per_hr, e.annual_salary,
+             e.date_started, e.email_address,
+             COALESCE(NULLIF(e.dept,''), 'Unassigned') AS dept_display
+      FROM pastaff e
+      WHERE e.company_no = $P{COMPANY_NO}
+        AND e.dept LIKE $P{DEPT}
+        AND ($P{EMP_STATUS} = '' OR COALESCE(NULLIF(e.employee_status,''),'A') = $P{EMP_STATUS})
+      ORDER BY e.dept, e.surname, e.first_name
+    ]]>
+  </queryString>
+
+  <field name="employee_no"     class="java.lang.Integer"/>
+  <field name="surname"         class="java.lang.String"/>
+  <field name="first_name"      class="java.lang.String"/>
+  <field name="dept_display"    class="java.lang.String"/>
+  <field name="pay_freq"        class="java.lang.String"/>
+  <field name="std_rate_per_hr" class="java.math.BigDecimal"/>
+  <field name="annual_salary"   class="java.math.BigDecimal"/>
+  <field name="date_started"    class="java.sql.Date"/>
+  <field name="email_address"   class="java.lang.String"/>
+
+  <variable name="TOTAL_COUNT" class="java.lang.Integer" calculation="Count"><variableExpression><![CDATA[$F{employee_no}]]></variableExpression></variable>
+
+  <title>
+    <band height="30">
+      <staticText><reportElement x="0" y="0" width="1600" height="16"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Employee List]]></text></staticText>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="18" width="1600" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <staticText><reportElement x="0"    y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Department]]></text></staticText>
+      <staticText><reportElement x="120"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Employee No]]></text></staticText>
+      <staticText><reportElement x="200"  y="0" width="300" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Name]]></text></staticText>
+      <staticText><reportElement x="500"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Freq]]></text></staticText>
+      <staticText><reportElement x="580"  y="0" width="180" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Hourly Rate]]></text></staticText>
+      <staticText><reportElement x="760"  y="0" width="180" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Annual Salary]]></text></staticText>
+      <staticText><reportElement x="940"  y="0" width="130" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Start Date]]></text></staticText>
+      <staticText><reportElement x="1070" y="0" width="530" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Email]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField isStretchWithOverflow="true"><reportElement x="0"    y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{dept_display}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="120"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{employee_no}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="200"  y="0" width="300" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{surname} + ", " + $F{first_name}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="500"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{pay_freq}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.0000"><reportElement x="580"  y="0" width="180" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{std_rate_per_hr}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="760"  y="0" width="180" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{annual_salary}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="940"  y="0" width="130" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{date_started}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="1070" y="0" width="530" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{email_address}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter><band height="0"/></pageFooter>
+
+  <summary>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="1600" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="4" width="1600" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Total: " + $V{TOTAL_COUNT} + " employee(s)"]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

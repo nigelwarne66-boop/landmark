@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="gl-distribution"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NO"       class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME"     class="java.lang.String"/>
+  <parameter name="PERIOD_END"       class="java.lang.String" isForPrompting="false"/>
+  <parameter name="SUB_LEDGER_DESC"  class="java.lang.String" isForPrompting="false"/>
+  <parameter name="TOTAL_CONTROL"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="TOTAL_SALES"      class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"        class="java.lang.Integer" isForPrompting="false"/>
+
+  <field name="glAcctMain" class="java.lang.Integer"/>
+  <field name="glAcctSub"  class="java.lang.Integer"/>
+  <field name="glDesc"     class="java.lang.String"/>
+  <field name="acctType"   class="java.lang.String"/>
+  <field name="subLedger"  class="java.lang.String"/>
+  <field name="amt"        class="java.math.BigDecimal"/>
+
+  <variable name="SUM_AMT" class="java.math.BigDecimal" calculation="Sum">
+    <variableExpression><![CDATA[$F{amt}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+
+  <title>
+    <band height="56">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[GL Distribution]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA["Sub ledger: " + $P{SUB_LEDGER_DESC}]]></textFieldExpression></textField>
+      <staticText><reportElement x="600" y="22" width="80"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><text><![CDATA[Period end:]]></text></staticText>
+      <textField><reportElement x="682" y="22" width="100" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{PERIOD_END}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="38" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="2"   y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[GL Main]]></text></staticText>
+      <staticText><reportElement x="54"  y="4" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[GL Sub]]></text></staticText>
+      <staticText><reportElement x="96"  y="4" width="280" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="378" y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account Type]]></text></staticText>
+      <staticText><reportElement x="480" y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub Ledger]]></text></staticText>
+      <staticText><reportElement x="582" y="4" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="2"   y="1" width="50"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcctMain}]]></textFieldExpression></textField>
+      <textField><reportElement x="54"  y="1" width="40"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcctSub}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="96"  y="1" width="280" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glDesc}]]></textFieldExpression></textField>
+      <textField><reportElement x="378" y="1" width="100" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acctType}]]></textFieldExpression></textField>
+      <textField><reportElement x="480" y="1" width="100" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedger}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="582" y="1" width="200" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amt}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="50">
+      <rectangle><reportElement x="0" y="0" width="782" height="50" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="2" y="8" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " row(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="380" y="8" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total Control:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{TOTAL_CONTROL}]]></textFieldExpression></textField>
+      <staticText><reportElement x="380" y="24" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total Sales:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="482" y="24" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{TOTAL_SALES}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

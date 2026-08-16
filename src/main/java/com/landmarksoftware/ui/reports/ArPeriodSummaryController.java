@@ -1,0 +1,125 @@
+package com.landmarksoftware.ui.reports;
+
+import com.landmarksoftware.model.AppSession;
+import com.landmarksoftware.service.ar.ArReportDataService;
+import com.landmarksoftware.service.ar.ArReportDataService.PeriodSummaryParams;
+import com.landmarksoftware.ui.ReportsHubController;
+import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.control.*;
+import javafx.stage.Stage;
+import javafx.stage.Window;
+import javafx.util.StringConverter;
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JRField;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import java.net.URL;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
+
+/**
+ * ARTL03 — Period Summary selection screen.
+ *
+ * <p>One row per sub-ledger with opening balance, period movements (invoices, credit notes,
+ * debit notes, receipts, void cheques, discounts, fluctuation) and closing balance.
+ */
+@Component
+@Scope("prototype")
+public class ArPeriodSummaryController implements Initializable {
+
+    private static final String PDF_PATH   = "ar/period-summary";
+    private static final String EXCEL_PATH = "ar/period-summary-excel";
+
+    @Autowired private ReportsHubController hub;
+    @Autowired private AppSession           session;
+    @Autowired private ArReportDataService  arReports;
+
+    @FXML private ComboBox<LocalDate>                    periodEndDate;
+    @FXML private ComboBox<ArReportDataService.CodeName> startSubLedger;
+    @FXML private ComboBox<ArReportDataService.CodeName> endSubLedger;
+
+    private StringConverter<LocalDate> dateConv() {
+        return new StringConverter<>() {
+            @Override public String toString(LocalDate d)   { return d == null ? "" : d.toString(); }
+            @Override public LocalDate fromString(String s) { return null; }
+        };
+    }
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        periodEndDate.setConverter(dateConv());
+        periodEndDate.setItems(FXCollections.observableArrayList(arReports.getPeriodEndDates(session)));
+        if (!periodEndDate.getItems().isEmpty()) periodEndDate.getSelectionModel().selectFirst();
+
+        List<ArReportDataService.CodeName> ledgers = arReports.getSubLedgers(session);
+        startSubLedger.setItems(FXCollections.observableArrayList(ledgers));
+        endSubLedger.setItems(FXCollections.observableArrayList(ledgers));
+        startSubLedger.getSelectionModel().selectFirst();
+        endSubLedger.getSelectionModel().selectFirst();
+    }
+
+    @FXML private void onPdf(ActionEvent e)    { run(e, "pdf"); }
+    @FXML private void onExcel(ActionEvent e)  { run(e, "excel"); }
+    @FXML private void onCancel(ActionEvent e) { close(e); }
+
+    @SuppressWarnings("unchecked")
+    private void run(ActionEvent e, String format) {
+        LocalDate pe = periodEndDate.getSelectionModel().getSelectedItem();
+        if (pe == null) {
+            alert(Alert.AlertType.WARNING, "No period selected", "Choose a period-ending date before running the report.");
+            return;
+        }
+        PeriodSummaryParams params = new PeriodSummaryParams(pe, code(startSubLedger), code(endSubLedger));
+
+        Map<String, Object> data = arReports.getPeriodSummaryData(session, params);
+        if (data.get("warning") != null) {
+            alert(Alert.AlertType.WARNING, "Nothing to list", (String) data.get("warning"));
+            return;
+        }
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) data.get("rows");
+        if (rows == null || rows.isEmpty()) {
+            alert(Alert.AlertType.INFORMATION, "No data", "No period-summary data matched the selection.");
+            return;
+        }
+        Map<String, Object> jasperParams = new HashMap<>((Map<String, Object>) data.get("params"));
+        String reportPath = "excel".equals(format) ? EXCEL_PATH : PDF_PATH;
+        Window owner = ((Node) e.getSource()).getScene().getWindow();
+        hub.runJasperReportWithDataSource(reportPath, jasperParams,
+            mapDataSource(rows), format, owner);
+        close(e);
+    }
+
+    private static String code(ComboBox<ArReportDataService.CodeName> cb) {
+        ArReportDataService.CodeName c = cb.getSelectionModel().getSelectedItem();
+        String v = c == null ? null : c.code();
+        return (v == null || v.isBlank()) ? null : v;
+    }
+
+    private void alert(Alert.AlertType type, String header, String msg) {
+        Alert a = new Alert(type);
+        a.setTitle(header); a.setHeaderText(header); a.setContentText(msg);
+        a.showAndWait();
+    }
+
+    private void close(ActionEvent e) {
+        ((Stage) ((Node) e.getSource()).getScene().getWindow()).close();
+    }
+
+    private static JRDataSource mapDataSource(java.util.List<java.util.Map<String, Object>> rows) {
+        return new JRDataSource() {
+            private final java.util.Iterator<java.util.Map<String, Object>> it = rows.iterator();
+            private java.util.Map<String, Object> current;
+            @Override public boolean next() { if (!it.hasNext()) return false; current = it.next(); return true; }
+            @Override public Object getFieldValue(JRField f) { return current.get(f.getName()); }
+        };
+    }
+}

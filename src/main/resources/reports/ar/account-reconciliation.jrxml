@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="account-reconciliation"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="CUST_DESC"    class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="AMT_BASIS"    class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="GRAND_TOTAL"  class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="custNo"           class="java.lang.String"/>
+  <field name="name"             class="java.lang.String"/>
+  <field name="reconNo"          class="java.lang.Integer"/>
+  <field name="seqNo"            class="java.lang.String"/>
+  <field name="docType"          class="java.lang.String"/>
+  <field name="docNo"            class="java.lang.String"/>
+  <field name="docDate"          class="java.sql.Date"/>
+  <field name="forCurrCode"      class="java.lang.String"/>
+  <field name="gross"            class="java.math.BigDecimal"/>
+  <field name="retentAmt"        class="java.math.BigDecimal"/>
+  <field name="amtPaid"          class="java.math.BigDecimal"/>
+  <field name="discTaken"        class="java.math.BigDecimal"/>
+  <field name="net"              class="java.math.BigDecimal"/>
+  <field name="reconOutstanding" class="java.math.BigDecimal"/>
+  <field name="reconGross"       class="java.math.BigDecimal"/>
+  <field name="reconClaim"       class="java.math.BigDecimal"/>
+
+  <variable name="RECON_NET" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="reconGroup">
+    <variableExpression><![CDATA[$F{net}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+  <variable name="CUST_NET" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="custGroup">
+    <variableExpression><![CDATA[$F{net}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+
+  <group name="custGroup">
+    <groupExpression><![CDATA[$F{custNo}]]></groupExpression>
+    <groupHeader>
+      <band height="16">
+        <rectangle><reportElement x="0" y="1" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="700" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{custNo} + "  " + ($F{name}==null?"":$F{name})]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="14">
+        <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="300" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["Customer " + $F{custNo} + " total outstanding"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="676" y="2" width="80" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{CUST_NET}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <group name="reconGroup">
+    <groupExpression><![CDATA[$F{custNo} + "-" + ($F{reconNo}==null?"0":$F{reconNo}.toString())]]></groupExpression>
+    <groupHeader>
+      <band height="13">
+        <textField><reportElement x="4" y="1" width="400" height="11" forecolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["Recon " + ($F{reconNo}==null||$F{reconNo}==0?"(none)":$F{reconNo}.toString())]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="420" y="1" width="72" height="11"/><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{reconOutstanding}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="494" y="1" width="72" height="11"/><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{reconGross}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="568" y="1" width="72" height="11"/><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{reconClaim}]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="13">
+        <rectangle><reportElement x="0" y="0" width="782" height="13" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <staticText><reportElement x="334" y="2" width="84" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[Recon outstanding:]]></text></staticText>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="676" y="2" width="80" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{RECON_NET}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="52">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Account Reconciliation]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="500" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$P{CUST_DESC} + "  •  " + ($P{AMT_BASIS}==null?"":$P{AMT_BASIS})]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <rectangle><reportElement x="0" y="0" width="782" height="18" backcolor="#3a4a63"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="3" width="44"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Seq]]></text></staticText>
+      <staticText><reportElement x="50"  y="3" width="40"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="92"  y="3" width="110" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Doc No]]></text></staticText>
+      <staticText><reportElement x="204" y="3" width="58"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Doc Date]]></text></staticText>
+      <staticText><reportElement x="264" y="3" width="38"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Curr]]></text></staticText>
+      <staticText><reportElement x="304" y="3" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Gross]]></text></staticText>
+      <staticText><reportElement x="376" y="3" width="68"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Retent]]></text></staticText>
+      <staticText><reportElement x="446" y="3" width="68"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amt Paid]]></text></staticText>
+      <staticText><reportElement x="516" y="3" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Disc]]></text></staticText>
+      <staticText><reportElement x="578" y="3" width="98"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Net]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="12">
+      <textField><reportElement x="4" y="1" width="44" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{seqNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="50" y="1" width="40" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
+      <textField><reportElement x="92" y="1" width="110" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="204" y="1" width="58" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="264" y="1" width="38" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{forCurrCode}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="304" y="1" width="70" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{gross}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="376" y="1" width="68" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentAmt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="446" y="1" width="68" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtPaid}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="516" y="1" width="60" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{discTaken}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="578" y="1" width="98" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{net}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="30">
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="6" width="400" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " row(s) listed"]]></textFieldExpression></textField>
+      <staticText><reportElement x="500" y="6" width="176" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand total outstanding:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="6" width="76" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

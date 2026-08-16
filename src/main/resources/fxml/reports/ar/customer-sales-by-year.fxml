@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.ArCustomerSalesByYearController"
+    styleClass="sel-root"
+    prefWidth="640" prefHeight="600">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Customer Sales by Year" styleClass="sel-title"/>
+            <Label text="SMTL38 — five trailing-year sales totals per customer" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <Label text="Year 1 date range (years 2–5 trail by 1–4 years)" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Date from / to" styleClass="sel-label" minWidth="140"/>
+                    <DatePicker fx:id="startDate" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="endDate" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+                <Label text="Ranges (blank = all)" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Customer from / to" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="startCustomer" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endCustomer" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Sub ledger from / to" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="startSubLedger" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endSubLedger" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Customer type from / to" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="startCustType" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endCustType" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Product type from / to" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="startProductType" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endProductType" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Salesperson from / to" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="startSalesman" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endSalesman" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Cancel" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel"  styleClass="sel-btn-excel"  onAction="#onExcel"/>
+            <Button text="PDF"    styleClass="sel-btn-pdf"    onAction="#onPdf"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

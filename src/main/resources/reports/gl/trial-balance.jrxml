@@ -1,10 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ═══════════════════════════════════════════════════════════
-     GL Trial Balance — Landmark Reports
-     Parameters: COMPANY_NO (Integer), YEAR_NO (Integer),
-                 COMPANY_NAME (String), YEAR_DESC (String)
-     Query: GLACCNT + GLTRANS aggregated by account
-     ═══════════════════════════════════════════════════════════ -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
               xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
@@ -15,183 +9,68 @@
               topMargin="20" bottomMargin="20"
               whenNoDataType="AllSectionsNoDetail">
 
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
-  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
 
-  <!-- ── Parameters ──────────────────────────────────────────── -->
-  <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
-  <parameter name="YEAR_NO"      class="java.lang.Integer"/>
-  <parameter name="COMPANY_NAME" class="java.lang.String"/>
-  <parameter name="YEAR_DESC"    class="java.lang.String"/>
+  <parameter name="COMPANY_NAME" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="AS_AT_DESC"   class="java.lang.String" isForPrompting="false"/>
+  <parameter name="ACCT_RANGE"   class="java.lang.String" isForPrompting="false"/>
+  <parameter name="ZERO_DESC"    class="java.lang.String" isForPrompting="false"/>
+  <parameter name="SUM_DEBIT"    class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_CREDIT"   class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer"    isForPrompting="false"/>
 
-  <!-- ── Query ───────────────────────────────────────────────── -->
-  <queryString>
-    <![CDATA[
-      SELECT
-        CAST(a.acct_main_no AS CHAR) AS acct_no,
-        CAST(a.acct_sub_no AS CHAR) AS sub_acct_no,
-        a.desc1 AS acct_desc,
-        a.acct_type,
-        COALESCE(SUM(t.dr_amt),  0) AS total_debit,
-        COALESCE(SUM(t.cr_amt), 0) AS total_credit,
-        COALESCE(SUM(t.cr_amt) - SUM(t.dr_amt), 0) AS balance
-      FROM glchart a
-      LEFT JOIN gltrx t ON t.company_no = a.company_no
-                          AND t.acct_main_no = a.acct_main_no
-                          AND t.acct_sub_no = a.acct_sub_no
-                          AND t.year_no = $P{YEAR_NO}
-      WHERE a.company_no = $P{COMPANY_NO}
-      GROUP BY a.acct_main_no, a.acct_sub_no, a.desc1, a.acct_type
-      HAVING (total_debit <> 0 OR total_credit <> 0)
-      ORDER BY a.acct_main_no, a.acct_sub_no
-    ]]>
-  </queryString>
+  <field name="acctMain"    class="java.lang.String"/>
+  <field name="acctSub"     class="java.lang.String"/>
+  <field name="description" class="java.lang.String"/>
+  <field name="section"     class="java.lang.String"/>
+  <field name="debit"       class="java.math.BigDecimal"/>
+  <field name="credit"      class="java.math.BigDecimal"/>
 
-  <!-- ── Fields ──────────────────────────────────────────────── -->
-  <field name="acct_no"      class="java.lang.String"/>
-  <field name="sub_acct_no"  class="java.lang.String"/>
-  <field name="acct_desc"    class="java.lang.String"/>
-  <field name="acct_type"    class="java.lang.String"/>
-  <field name="total_debit"  class="java.math.BigDecimal"/>
-  <field name="total_credit" class="java.math.BigDecimal"/>
-  <field name="balance"      class="java.math.BigDecimal"/>
-
-  <!-- ── Variables ───────────────────────────────────────────── -->
-  <variable name="TOTAL_DEBIT"  class="java.math.BigDecimal" calculation="Sum">
-    <variableExpression><![CDATA[$F{total_debit}]]></variableExpression>
-  </variable>
-  <variable name="TOTAL_CREDIT" class="java.math.BigDecimal" calculation="Sum">
-    <variableExpression><![CDATA[$F{total_credit}]]></variableExpression>
-  </variable>
-  <variable name="TOTAL_BALANCE" class="java.math.BigDecimal" calculation="Sum">
-    <variableExpression><![CDATA[$F{balance}]]></variableExpression>
-  </variable>
-
-  <!-- ── Title band ───────────────────────────────────────────── -->
   <title>
-    <band height="60">
-      <staticText>
-        <reportElement x="0" y="0" width="782" height="22"/>
-        <textElement><font size="14" isBold="true"/></textElement>
-        <text><![CDATA[Trial Balance]]></text>
-      </staticText>
-      <textField>
-        <reportElement x="0" y="22" width="500" height="16"/>
-        <textElement><font size="10"/></textElement>
-        <textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{YEAR_DESC}]]></textFieldExpression>
-      </textField>
-      <textField pattern="dd/MM/yyyy HH:mm">
-        <reportElement x="600" y="22" width="182" height="16"/>
-        <textElement textAlignment="Right"><font size="9"/></textElement>
-        <textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
-      </textField>
+    <band height="40">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Trial Balance]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  " + $P{AS_AT_DESC}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
     </band>
   </title>
 
-  <!-- ── Column header ────────────────────────────────────────── -->
   <columnHeader>
-    <band height="24" splitType="Stretch">
-      <rectangle>
-        <reportElement x="0" y="0" width="782" height="24" backcolor="#1e2d45" forecolor="#1e2d45"/>
-        <graphicElement><pen lineWidth="0"/></graphicElement>
-      </rectangle>
-      <staticText>
-        <reportElement x="4"   y="4" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
-        <textElement><font size="9" isBold="true"/></textElement>
-        <text><![CDATA[Acct No]]></text>
-      </staticText>
-      <staticText>
-        <reportElement x="80"  y="4" width="380" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
-        <textElement><font size="9" isBold="true"/></textElement>
-        <text><![CDATA[Description]]></text>
-      </staticText>
-      <staticText>
-        <reportElement x="460" y="4" width="50"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
-        <textElement><font size="9" isBold="true"/></textElement>
-        <text><![CDATA[Type]]></text>
-      </staticText>
-      <staticText>
-        <reportElement x="514" y="4" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
-        <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
-        <text><![CDATA[Debit]]></text>
-      </staticText>
-      <staticText>
-        <reportElement x="600" y="4" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
-        <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
-        <text><![CDATA[Credit]]></text>
-      </staticText>
-      <staticText>
-        <reportElement x="686" y="4" width="92"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/>
-        <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
-        <text><![CDATA[Balance]]></text>
-      </staticText>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="0"   y="4" width="56"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Account]]></text></staticText>
+      <staticText><reportElement x="58"  y="4" width="26"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub]]></text></staticText>
+      <staticText><reportElement x="88"  y="4" width="280" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="372" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Section]]></text></staticText>
+      <staticText><reportElement x="540" y="4" width="116" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Debit]]></text></staticText>
+      <staticText><reportElement x="662" y="4" width="116" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Credit]]></text></staticText>
     </band>
   </columnHeader>
 
-  <!-- ── Detail band ──────────────────────────────────────────── -->
   <detail>
-    <band height="18" splitType="Stretch">
-      <textField>
-        <reportElement x="4"   y="2" width="70"  height="14"/>
-        <textElement><font size="9"/></textElement>
-        <textFieldExpression><![CDATA[$F{acct_no} + ($F{sub_acct_no}.isBlank() ? "" : "/" + $F{sub_acct_no})]]></textFieldExpression>
-      </textField>
-      <textField isStretchWithOverflow="true">
-        <reportElement x="80"  y="2" width="376" height="14"/>
-        <textElement><font size="9"/></textElement>
-        <textFieldExpression><![CDATA[$F{acct_desc}]]></textFieldExpression>
-      </textField>
-      <textField>
-        <reportElement x="460" y="2" width="50"  height="14"/>
-        <textElement><font size="9"/></textElement>
-        <textFieldExpression><![CDATA[$F{acct_type}]]></textFieldExpression>
-      </textField>
-      <textField pattern="#,##0.00">
-        <reportElement x="514" y="2" width="80"  height="14"/>
-        <textElement textAlignment="Right"><font size="9"/></textElement>
-        <textFieldExpression><![CDATA[$F{total_debit}]]></textFieldExpression>
-      </textField>
-      <textField pattern="#,##0.00">
-        <reportElement x="600" y="2" width="80"  height="14"/>
-        <textElement textAlignment="Right"><font size="9"/></textElement>
-        <textFieldExpression><![CDATA[$F{total_credit}]]></textFieldExpression>
-      </textField>
-      <textField pattern="#,##0.00">
-        <reportElement x="686" y="2" width="92"  height="14"/>
-        <textElement textAlignment="Right"><font size="9"/></textElement>
-        <textFieldExpression><![CDATA[$F{balance}]]></textFieldExpression>
-      </textField>
+    <band height="13">
+      <textField><reportElement x="0"   y="1" width="56"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acctMain}]]></textFieldExpression></textField>
+      <textField><reportElement x="58"  y="1" width="26"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acctSub}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="88" y="1" width="280" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+      <textField><reportElement x="372" y="1" width="80"  height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{section}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="540" y="1" width="116" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{debit}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="662" y="1" width="116" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{credit}]]></textFieldExpression></textField>
     </band>
   </detail>
 
-  <!-- ── Summary (totals) ─────────────────────────────────────── -->
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
   <summary>
-    <band height="30">
-      <line>
-        <reportElement x="514" y="2" width="264" height="1"/>
-        <graphicElement><pen lineWidth="1" lineColor="#1e2d45"/></graphicElement>
-      </line>
-      <staticText>
-        <reportElement x="80" y="8" width="200" height="16"/>
-        <textElement><font size="9" isBold="true"/></textElement>
-        <text><![CDATA[TOTALS]]></text>
-      </staticText>
-      <textField pattern="#,##0.00">
-        <reportElement x="514" y="8" width="80" height="16"/>
-        <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
-        <textFieldExpression><![CDATA[$V{TOTAL_DEBIT}]]></textFieldExpression>
-      </textField>
-      <textField pattern="#,##0.00">
-        <reportElement x="600" y="8" width="80" height="16"/>
-        <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
-        <textFieldExpression><![CDATA[$V{TOTAL_CREDIT}]]></textFieldExpression>
-      </textField>
-      <textField pattern="#,##0.00">
-        <reportElement x="686" y="8" width="92" height="16"/>
-        <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
-        <textFieldExpression><![CDATA[$V{TOTAL_BALANCE}]]></textFieldExpression>
-      </textField>
+    <band height="28">
+      <rectangle><reportElement x="0" y="4" width="782" height="22" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " account(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="380" y="8" width="156" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="540" y="8" width="116" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_DEBIT}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="662" y="8" width="116" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_CREDIT}]]></textFieldExpression></textField>
     </band>
   </summary>
 

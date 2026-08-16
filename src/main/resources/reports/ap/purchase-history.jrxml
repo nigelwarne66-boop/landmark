@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="purchase-history"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"    class="java.lang.String"/>
+  <parameter name="PERIOD_END"      class="java.lang.String" isForPrompting="false"/>
+  <parameter name="SUB_LEDGER_DESC" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="GT_PER_THIS" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_PER_LAST" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_PER_VAR"  class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_YTD_THIS" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_YTD_LAST" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_YTD_VAR"  class="java.math.BigDecimal" isForPrompting="false"/>
+
+  <field name="subLedger"     class="java.lang.String"/>
+  <field name="subLedgerName" class="java.lang.String"/>
+  <field name="supplierNo"    class="java.lang.String"/>
+  <field name="name"          class="java.lang.String"/>
+  <field name="perThis"       class="java.math.BigDecimal"/>
+  <field name="perLast"       class="java.math.BigDecimal"/>
+  <field name="perVar"        class="java.math.BigDecimal"/>
+  <field name="perVarPct"     class="java.math.BigDecimal"/>
+  <field name="ytdThis"       class="java.math.BigDecimal"/>
+  <field name="ytdLast"       class="java.math.BigDecimal"/>
+  <field name="ytdVar"        class="java.math.BigDecimal"/>
+  <field name="ytdVarPct"     class="java.math.BigDecimal"/>
+
+  <variable name="GP_PER_THIS" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="slGroup"><variableExpression><![CDATA[$F{perThis}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GP_PER_LAST" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="slGroup"><variableExpression><![CDATA[$F{perLast}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GP_PER_VAR"  class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="slGroup"><variableExpression><![CDATA[$F{perVar}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GP_YTD_THIS" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="slGroup"><variableExpression><![CDATA[$F{ytdThis}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GP_YTD_LAST" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="slGroup"><variableExpression><![CDATA[$F{ytdLast}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="GP_YTD_VAR"  class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="slGroup"><variableExpression><![CDATA[$F{ytdVar}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+
+  <group name="slGroup">
+    <groupExpression><![CDATA[$F{subLedger}]]></groupExpression>
+    <groupHeader>
+      <band height="18">
+        <rectangle><reportElement x="0" y="2" width="782" height="15" backcolor="#dbe2ef"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField><reportElement x="4" y="3" width="600" height="13" mode="Opaque" backcolor="#dbe2ef"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Sub ledger " + ($F{subLedger}==null?"":$F{subLedger}) + "  " + ($F{subLedgerName}==null?"":$F{subLedgerName})]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="15">
+        <rectangle><reportElement x="0" y="0" width="782" height="15" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="200" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA["Sub ledger " + $F{subLedger} + " total"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="230" y="2" width="70" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_THIS}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="300" y="2" width="70" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_LAST}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="370" y="2" width="70" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_PER_VAR}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="488" y="2" width="74" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_THIS}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="564" y="2" width="74" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_LAST}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="640" y="2" width="74" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_YTD_VAR}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="54">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Supplier Purchase History]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="500" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA["For the period ending " + $P{PERIOD_END} + "  •  " + $P{SUB_LEDGER_DESC}]]></textFieldExpression></textField>
+      <staticText><reportElement x="230" y="0" width="252" height="10"/><textElement textAlignment="Center"><font size="7"/></textElement><text><![CDATA[──── PERIOD ────]]></text></staticText>
+      <staticText><reportElement x="488" y="0" width="270" height="10"/><textElement textAlignment="Center"><font size="7"/></textElement><text><![CDATA[──── YEAR TO DATE ────]]></text></staticText>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier]]></text></staticText>
+      <staticText><reportElement x="76"  y="4" width="150" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Name]]></text></staticText>
+      <staticText><reportElement x="230" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[This Yr]]></text></staticText>
+      <staticText><reportElement x="300" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Last Yr]]></text></staticText>
+      <staticText><reportElement x="370" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Variance]]></text></staticText>
+      <staticText><reportElement x="440" y="4" width="44"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[% Var]]></text></staticText>
+      <staticText><reportElement x="488" y="4" width="74"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[This Yr]]></text></staticText>
+      <staticText><reportElement x="564" y="4" width="74"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Last Yr]]></text></staticText>
+      <staticText><reportElement x="640" y="4" width="74"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Variance]]></text></staticText>
+      <staticText><reportElement x="716" y="4" width="44"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[% Var]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="13">
+      <textField><reportElement x="4" y="1" width="70" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="76" y="1" width="150" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
+      <textField pattern="#,##0;(#,##0)"><reportElement x="230" y="1" width="70" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{perThis}]]></textFieldExpression></textField>
+      <textField pattern="#,##0;(#,##0)"><reportElement x="300" y="1" width="70" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{perLast}]]></textFieldExpression></textField>
+      <textField pattern="#,##0;(#,##0)"><reportElement x="370" y="1" width="70" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{perVar}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0"><reportElement x="440" y="1" width="44" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{perVarPct}]]></textFieldExpression></textField>
+      <textField pattern="#,##0;(#,##0)"><reportElement x="488" y="1" width="74" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdThis}]]></textFieldExpression></textField>
+      <textField pattern="#,##0;(#,##0)"><reportElement x="564" y="1" width="74" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdLast}]]></textFieldExpression></textField>
+      <textField pattern="#,##0;(#,##0)"><reportElement x="640" y="1" width="74" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdVar}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0"><reportElement x="716" y="1" width="44" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdVarPct}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="24">
+      <rectangle><reportElement x="0" y="0" width="782" height="24" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4" y="6" width="220" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[ALL SUB LEDGERS]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="230" y="6" width="70" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_THIS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="300" y="6" width="70" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_LAST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="370" y="6" width="70" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_PER_VAR}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="488" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_THIS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="564" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_LAST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0;(#,##0)"><reportElement x="640" y="6" width="74" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_YTD_VAR}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

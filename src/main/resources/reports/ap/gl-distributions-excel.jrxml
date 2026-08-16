@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="gl-distributions-excel"
+              pageWidth="960" pageHeight="595" orientation="Landscape"
+              columnWidth="920" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="PERIOD_END"   class="java.lang.String" isForPrompting="false"/>
+  <parameter name="GT_CONTROL" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="GT_EXPENSE" class="java.math.BigDecimal" isForPrompting="false"/>
+
+  <field name="subLedger"     class="java.lang.String"/>
+  <field name="subLedgerName" class="java.lang.String"/>
+  <field name="acctType"      class="java.lang.String"/>
+  <field name="glAcctMain"    class="java.lang.Integer"/>
+  <field name="glAcctSub"     class="java.lang.Integer"/>
+  <field name="glAcct"        class="java.lang.String"/>
+  <field name="glDesc"        class="java.lang.String"/>
+  <field name="amount"        class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="22">
+      <textField><reportElement x="0" y="0" width="920" height="16"/><textElement><font size="11" isBold="true"/></textElement><textFieldExpression><![CDATA["GL Distributions Summary — " + $P{COMPANY_NAME} + "  (period ending " + $P{PERIOD_END} + ")"]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="16">
+      <staticText><reportElement x="0"   y="0" width="60"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub Ledger]]></text></staticText>
+      <staticText><reportElement x="60"  y="0" width="180" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub Ledger Name]]></text></staticText>
+      <staticText><reportElement x="240" y="0" width="90"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Acct Type]]></text></staticText>
+      <staticText><reportElement x="330" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[GL Main Acct]]></text></staticText>
+      <staticText><reportElement x="400" y="0" width="60"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[GL Sub Acct]]></text></staticText>
+      <staticText><reportElement x="460" y="0" width="90"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[GL Account]]></text></staticText>
+      <staticText><reportElement x="550" y="0" width="260" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="810" y="0" width="110" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="0"   y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedger}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="60" y="0" width="180" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedgerName}]]></textFieldExpression></textField>
+      <textField><reportElement x="240" y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{acctType}]]></textFieldExpression></textField>
+      <textField><reportElement x="330" y="0" width="70"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcctMain}]]></textFieldExpression></textField>
+      <textField><reportElement x="400" y="0" width="60"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcctSub}]]></textFieldExpression></textField>
+      <textField><reportElement x="460" y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcct}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="550" y="0" width="260" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glDesc}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="810" y="0" width="110" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="40">
+      <staticText><reportElement x="550" y="4"  width="260" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total Control Accounts:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="810" y="4" width="110" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_CONTROL}]]></textFieldExpression></textField>
+      <staticText><reportElement x="550" y="20" width="260" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total Distribution Accounts:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="810" y="20" width="110" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GT_EXPENSE}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

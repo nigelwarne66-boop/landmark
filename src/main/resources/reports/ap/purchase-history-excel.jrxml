@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="purchase-history-excel"
+              pageWidth="1100" pageHeight="595" orientation="Landscape"
+              columnWidth="1060" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="PERIOD_END"   class="java.lang.String" isForPrompting="false"/>
+
+  <field name="subLedger"     class="java.lang.String"/>
+  <field name="subLedgerName" class="java.lang.String"/>
+  <field name="supplierNo"    class="java.lang.String"/>
+  <field name="name"          class="java.lang.String"/>
+  <field name="perThis"       class="java.math.BigDecimal"/>
+  <field name="perLast"       class="java.math.BigDecimal"/>
+  <field name="perVar"        class="java.math.BigDecimal"/>
+  <field name="perVarPct"     class="java.math.BigDecimal"/>
+  <field name="ytdThis"       class="java.math.BigDecimal"/>
+  <field name="ytdLast"       class="java.math.BigDecimal"/>
+  <field name="ytdVar"        class="java.math.BigDecimal"/>
+  <field name="ytdVarPct"     class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="22">
+      <textField><reportElement x="0" y="0" width="1060" height="16"/><textElement><font size="11" isBold="true"/></textElement><textFieldExpression><![CDATA["Supplier Purchase History — " + $P{COMPANY_NAME} + "  (period ending " + $P{PERIOD_END} + ")"]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="16">
+      <staticText><reportElement x="0"   y="0" width="50"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub Ledger]]></text></staticText>
+      <staticText><reportElement x="50"  y="0" width="140" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub Ledger Name]]></text></staticText>
+      <staticText><reportElement x="190" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier]]></text></staticText>
+      <staticText><reportElement x="260" y="0" width="180" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Name]]></text></staticText>
+      <staticText><reportElement x="440" y="0" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Period This Year]]></text></staticText>
+      <staticText><reportElement x="520" y="0" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Period Last Year]]></text></staticText>
+      <staticText><reportElement x="600" y="0" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Period Variance]]></text></staticText>
+      <staticText><reportElement x="680" y="0" width="50"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[% Variance]]></text></staticText>
+      <staticText><reportElement x="730" y="0" width="90"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[YTD This Year]]></text></staticText>
+      <staticText><reportElement x="820" y="0" width="90"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[YTD Last Year]]></text></staticText>
+      <staticText><reportElement x="910" y="0" width="90"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[YTD Variance]]></text></staticText>
+      <staticText><reportElement x="1000" y="0" width="50" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[% Variance]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="0"   y="0" width="50"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedger}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="50" y="0" width="140" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedgerName}]]></textFieldExpression></textField>
+      <textField><reportElement x="190" y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="260" y="0" width="180" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="440" y="0" width="80" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{perThis}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="520" y="0" width="80" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{perLast}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="600" y="0" width="80" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{perVar}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0"><reportElement x="680" y="0" width="50" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{perVarPct}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="730" y="0" width="90" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdThis}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="820" y="0" width="90" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdLast}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="910" y="0" width="90" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdVar}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0"><reportElement x="1000" y="0" width="50" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdVarPct}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+</jasperReport>

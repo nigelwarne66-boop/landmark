@@ -8,8 +8,13 @@ application-local.properties
 # Build/IDE outputs
 *.zip
 
+# jOOQ vendor download folder — JARs installed to local Maven repo via maven-install.bat
+jOOQ-*/
+
 # ATO source files (live in ops directory, not source) and load outputs
 *.xlsx
+# COBOL reference outputs (kept locally for engine parity verification, not source)
+*.xls
 TAXSCALES.csv
 
 # MVR / OZEDI test outputs
@@ -18,3 +23,12 @@ land*.pdf
 
 # Local OZEDI credentials override (env var pattern is the source of truth)
 ozedi-local.properties
+
+# Session scratch files
+.mcp.json
+.tmp_cp.txt
+.tmp_zip/
+cc.txt
+cl.bat
+JrxmlValidate.java
+test-ytd-*.pdf

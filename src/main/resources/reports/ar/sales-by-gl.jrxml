@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="sales-by-gl"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NO"   class="java.lang.Integer"/>
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="PERIOD_END"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="THIS_YR"      class="java.lang.Integer" isForPrompting="false"/>
+  <parameter name="LAST_YR"      class="java.lang.Integer" isForPrompting="false"/>
+  <parameter name="SUM_MTD_THIS" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_MTD_LAST" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_YTD_THIS" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_YTD_LAST" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer" isForPrompting="false"/>
+
+  <field name="glAcctMain" class="java.lang.Integer"/>
+  <field name="glAcctSub"  class="java.lang.Integer"/>
+  <field name="glDesc"     class="java.lang.String"/>
+  <field name="mtdThis"    class="java.math.BigDecimal"/>
+  <field name="mtdLast"    class="java.math.BigDecimal"/>
+  <field name="mtdVar"     class="java.math.BigDecimal"/>
+  <field name="mtdVarPct"  class="java.math.BigDecimal"/>
+  <field name="ytdThis"    class="java.math.BigDecimal"/>
+  <field name="ytdLast"    class="java.math.BigDecimal"/>
+  <field name="ytdVar"     class="java.math.BigDecimal"/>
+  <field name="ytdVarPct"  class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="58">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Sales by GL]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA["MTD/YTD " + $P{THIS_YR} + " vs " + $P{LAST_YR}]]></textFieldExpression></textField>
+      <staticText><reportElement x="600" y="22" width="80"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><text><![CDATA[Period end:]]></text></staticText>
+      <textField><reportElement x="682" y="22" width="100" height="12"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{PERIOD_END}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="38" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="2"   y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[GL Main]]></text></staticText>
+      <staticText><reportElement x="54"  y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[GL Sub]]></text></staticText>
+      <staticText><reportElement x="106" y="4" width="136" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="244" y="4" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[MTD This]]></text></staticText>
+      <staticText><reportElement x="313" y="4" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[MTD Last]]></text></staticText>
+      <staticText><reportElement x="382" y="4" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[MTD Var]]></text></staticText>
+      <staticText><reportElement x="451" y="4" width="55"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[MTD Var%]]></text></staticText>
+      <staticText><reportElement x="508" y="4" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[YTD This]]></text></staticText>
+      <staticText><reportElement x="577" y="4" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[YTD Last]]></text></staticText>
+      <staticText><reportElement x="646" y="4" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[YTD Var]]></text></staticText>
+      <staticText><reportElement x="715" y="4" width="65"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[YTD Var%]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="2"   y="1" width="50"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcctMain}]]></textFieldExpression></textField>
+      <textField><reportElement x="54"  y="1" width="50"  height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcctSub}]]></textFieldExpression></textField>
+      <textField textAdjust="StretchHeight"><reportElement x="106" y="1" width="136" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glDesc}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="244" y="1" width="67"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{mtdThis}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="313" y="1" width="67"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{mtdLast}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="382" y="1" width="67"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{mtdVar}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="451" y="1" width="55"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{mtdVarPct}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="508" y="1" width="67"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdThis}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="577" y="1" width="67"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdLast}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="646" y="1" width="67"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdVar}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00"><reportElement x="715" y="1" width="65"  height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{ytdVarPct}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="34">
+      <rectangle><reportElement x="0" y="0" width="782" height="34" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="2" y="8" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{ROW_COUNT} + " row(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="106" y="8" width="136" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Totals:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="244" y="8" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MTD_THIS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="313" y="8" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_MTD_LAST}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="508" y="8" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_YTD_THIS}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="577" y="8" width="67"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_YTD_LAST}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

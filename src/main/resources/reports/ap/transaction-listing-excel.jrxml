@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="transaction-listing-excel"
+              pageWidth="3000" pageHeight="595" orientation="Landscape"
+              columnWidth="2960" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageHeader"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
+
+  <!-- Blank (not the literal "null") for any null field value. -->
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"    class="java.lang.String"/>
+  <parameter name="DATE_BASIS_DESC" class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="GRAND_NO"        class="java.lang.Integer"    isForPrompting="false"/>
+  <parameter name="GRAND_TOTAL"     class="java.math.BigDecimal" isForPrompting="false"/>
+
+  <field name="rowType"     class="java.lang.String"/>
+  <field name="suppNo"      class="java.lang.String"/>
+  <field name="name"        class="java.lang.String"/>
+  <field name="subLedger"   class="java.lang.String"/>
+  <field name="subLedgerName" class="java.lang.String"/>
+  <field name="docDate"     class="java.sql.Date"/>
+  <field name="postDate"    class="java.sql.Date"/>
+  <field name="auditDate"   class="java.sql.Date"/>
+  <field name="docType"     class="java.lang.String"/>
+  <field name="retentFlag"  class="java.lang.String"/>
+  <field name="docNo"       class="java.lang.String"/>
+  <field name="seqNo"       class="java.lang.String"/>
+  <field name="amt"         class="java.math.BigDecimal"/>
+  <field name="retentAmt"   class="java.math.BigDecimal"/>
+  <field name="debit"       class="java.math.BigDecimal"/>
+  <field name="credit"      class="java.math.BigDecimal"/>
+  <field name="amtPaid"     class="java.math.BigDecimal"/>
+  <field name="discTaken"   class="java.math.BigDecimal"/>
+  <field name="balance"     class="java.math.BigDecimal"/>
+  <field name="taxAmt"      class="java.math.BigDecimal"/>
+  <field name="paidFlag"    class="java.lang.String"/>
+  <field name="paidDocDate" class="java.sql.Date"/>
+  <field name="paidPostDate" class="java.sql.Date"/>
+  <field name="batchNo"     class="java.lang.Integer"/>
+  <field name="reconNo"     class="java.lang.Integer"/>
+  <field name="archiveFlag" class="java.lang.String"/>
+  <field name="auditUser"   class="java.lang.String"/>
+  <field name="auditTime"   class="java.lang.String"/>
+  <field name="poNo"        class="java.lang.String"/>
+  <field name="lineNo"      class="java.lang.Integer"/>
+  <field name="lineType"    class="java.lang.String"/>
+  <field name="glAcctMain"  class="java.lang.Integer"/>
+  <field name="glAcctSub"   class="java.lang.Integer"/>
+  <field name="qty"         class="java.math.BigDecimal"/>
+  <field name="unitPer"     class="java.lang.String"/>
+  <field name="unitCost"    class="java.math.BigDecimal"/>
+  <field name="amtExTax"    class="java.math.BigDecimal"/>
+  <field name="taxCode"     class="java.lang.String"/>
+  <field name="lineTaxAmt"  class="java.math.BigDecimal"/>
+  <field name="amtIncTax"   class="java.math.BigDecimal"/>
+  <field name="fcAmt"       class="java.math.BigDecimal"/>
+  <field name="description" class="java.lang.String"/>
+  <field name="reference"   class="java.lang.String"/>
+
+  <title>
+    <band height="22">
+      <textField><reportElement x="0" y="0" width="2960" height="16"/><textElement><font size="11" isBold="true"/></textElement><textFieldExpression><![CDATA["Transaction Listing — " + $P{COMPANY_NAME} + "  (" + $P{DATE_BASIS_DESC} + ")"]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="16">
+      <staticText><reportElement x="0"    y="0" width="60"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier No]]></text></staticText>
+      <staticText><reportElement x="60"   y="0" width="150" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier Name]]></text></staticText>
+      <staticText><reportElement x="210"  y="0" width="50"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub Ledger]]></text></staticText>
+      <staticText><reportElement x="260"  y="0" width="120" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Sub Ledger Name]]></text></staticText>
+      <staticText><reportElement x="380"  y="0" width="64"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Document Date]]></text></staticText>
+      <staticText><reportElement x="444"  y="0" width="64"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Posting Date]]></text></staticText>
+      <staticText><reportElement x="508"  y="0" width="64"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Audit Date]]></text></staticText>
+      <staticText><reportElement x="572"  y="0" width="44"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="616"  y="0" width="32"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Retention?]]></text></staticText>
+      <staticText><reportElement x="648"  y="0" width="90"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Document No]]></text></staticText>
+      <staticText><reportElement x="738"  y="0" width="48"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Seq]]></text></staticText>
+      <staticText><reportElement x="786"  y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+      <staticText><reportElement x="860"  y="0" width="66"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Retention Amount]]></text></staticText>
+      <staticText><reportElement x="926"  y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Debit Amount]]></text></staticText>
+      <staticText><reportElement x="1000" y="0" width="74"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Credit Amount]]></text></staticText>
+      <staticText><reportElement x="1074" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount Paid]]></text></staticText>
+      <staticText><reportElement x="1144" y="0" width="64"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Discount Taken]]></text></staticText>
+      <staticText><reportElement x="1208" y="0" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Outstanding]]></text></staticText>
+      <staticText><reportElement x="1288" y="0" width="64"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Tax Amount]]></text></staticText>
+      <staticText><reportElement x="1352" y="0" width="36"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Paid?]]></text></staticText>
+      <staticText><reportElement x="1388" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Paid Doc Date]]></text></staticText>
+      <staticText><reportElement x="1458" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Paid Post Date]]></text></staticText>
+      <staticText><reportElement x="1528" y="0" width="56"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Batch]]></text></staticText>
+      <staticText><reportElement x="1584" y="0" width="56"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Recon No]]></text></staticText>
+      <staticText><reportElement x="1640" y="0" width="44"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Archived?]]></text></staticText>
+      <staticText><reportElement x="1684" y="0" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Audit User]]></text></staticText>
+      <staticText><reportElement x="1764" y="0" width="60"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Audit Time]]></text></staticText>
+      <staticText><reportElement x="1824" y="0" width="80"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[PO No]]></text></staticText>
+      <staticText><reportElement x="1904" y="0" width="44"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Line No]]></text></staticText>
+      <staticText><reportElement x="1948" y="0" width="44"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[LineTyp]]></text></staticText>
+      <staticText><reportElement x="1992" y="0" width="64"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[GL Main Acct]]></text></staticText>
+      <staticText><reportElement x="2056" y="0" width="56"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[GL Sub Acct]]></text></staticText>
+      <staticText><reportElement x="2112" y="0" width="56"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Quantity]]></text></staticText>
+      <staticText><reportElement x="2168" y="0" width="40"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Per]]></text></staticText>
+      <staticText><reportElement x="2208" y="0" width="64"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Unit Cost]]></text></staticText>
+      <staticText><reportElement x="2272" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount Excl Tax]]></text></staticText>
+      <staticText><reportElement x="2342" y="0" width="44"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Tax Code]]></text></staticText>
+      <staticText><reportElement x="2386" y="0" width="64"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Line Tax Amount]]></text></staticText>
+      <staticText><reportElement x="2450" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount Incl Tax]]></text></staticText>
+      <staticText><reportElement x="2520" y="0" width="70"  height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[FC Amount]]></text></staticText>
+      <staticText><reportElement x="2590" y="0" width="160" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="2750" y="0" width="120" height="16" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Reference]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="0"    y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{suppNo}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="60" y="0" width="150" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{name}]]></textFieldExpression></textField>
+      <textField><reportElement x="210"  y="0" width="50"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedger}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="260" y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{subLedgerName}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="380" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="444" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{postDate}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="508" y="0" width="64" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{auditDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="572"  y="0" width="44"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
+      <textField><reportElement x="616"  y="0" width="32"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentFlag}]]></textFieldExpression></textField>
+      <textField><reportElement x="648"  y="0" width="90"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="738"  y="0" width="48"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{seqNo}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="786"  y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="860"  y="0" width="66" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{retentAmt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="926"  y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{debit}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1000" y="0" width="74" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{credit}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1074" y="0" width="70" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtPaid}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1144" y="0" width="64" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{discTaken}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1208" y="0" width="80" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{balance}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1288" y="0" width="64" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{taxAmt}]]></textFieldExpression></textField>
+      <textField><reportElement x="1352" y="0" width="36"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paidFlag}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="1388" y="0" width="70" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paidDocDate}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="1458" y="0" width="70" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paidPostDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="1528" y="0" width="56"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{batchNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="1584" y="0" width="56"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reconNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="1640" y="0" width="44"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{archiveFlag}]]></textFieldExpression></textField>
+      <textField><reportElement x="1684" y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{auditUser}]]></textFieldExpression></textField>
+      <textField><reportElement x="1764" y="0" width="60"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{auditTime}]]></textFieldExpression></textField>
+      <textField><reportElement x="1824" y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="1904" y="0" width="44"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="1948" y="0" width="44"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineType}]]></textFieldExpression></textField>
+      <textField><reportElement x="1992" y="0" width="64"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcctMain}]]></textFieldExpression></textField>
+      <textField><reportElement x="2056" y="0" width="56"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{glAcctSub}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="2112" y="0" width="56" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qty}]]></textFieldExpression></textField>
+      <textField><reportElement x="2168" y="0" width="40"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{unitPer}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0000"><reportElement x="2208" y="0" width="64" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{unitCost}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="2272" y="0" width="70" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtExTax}]]></textFieldExpression></textField>
+      <textField><reportElement x="2342" y="0" width="44"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{taxCode}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="2386" y="0" width="64" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineTaxAmt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="2450" y="0" width="70" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtIncTax}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="2520" y="0" width="70" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{fcAmt}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="2590" y="0" width="160" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="2750" y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="20">
+      <textField><reportElement x="0" y="4" width="786" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA["Transactions: " + ($P{GRAND_NO}==null?0:$P{GRAND_NO}) + "   Grand total:"]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="786" y="4" width="74" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

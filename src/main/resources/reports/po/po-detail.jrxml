@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="po-detail"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="LOC_DESC"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="PO_RANGE"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SUPP_RANGE"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="DATE_RANGE"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="STATUS_DESC"  class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SEQ_DESC"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SUM_EXT"      class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_TAX"      class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="poNo"         class="java.lang.Integer"/>
+  <field name="lineNo"       class="java.lang.Integer"/>
+  <field name="poDate"       class="java.sql.Date"/>
+  <field name="supplierNo"   class="java.lang.String"/>
+  <field name="supplierName" class="java.lang.String"/>
+  <field name="poStatus"     class="java.lang.String"/>
+  <field name="stockCode"    class="java.lang.String"/>
+  <field name="description"  class="java.lang.String"/>
+  <field name="lineType"     class="java.lang.String"/>
+  <field name="delivDate"    class="java.sql.Date"/>
+  <field name="qtyOrdered"   class="java.math.BigDecimal"/>
+  <field name="recvdQty"     class="java.math.BigDecimal"/>
+  <field name="invQty"       class="java.math.BigDecimal"/>
+  <field name="unitCost"     class="java.math.BigDecimal"/>
+  <field name="extAmt"       class="java.math.BigDecimal"/>
+  <field name="taxAmt"       class="java.math.BigDecimal"/>
+
+  <variable name="GRP_EXT" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="poGroup">
+    <variableExpression><![CDATA[$F{extAmt}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+  <variable name="GRP_TAX" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="poGroup">
+    <variableExpression><![CDATA[$F{taxAmt}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+
+  <group name="poGroup">
+    <groupExpression><![CDATA[$F{poNo}]]></groupExpression>
+    <groupHeader>
+      <band height="16">
+        <rectangle><reportElement x="0" y="0" width="782" height="16" backcolor="#dde3ec"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField pattern="#0"><reportElement x="4" y="2" width="50" height="12"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["PO " + $F{poNo}]]></textFieldExpression></textField>
+        <textField><reportElement x="60" y="2" width="120" height="12"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{supplierNo} + "  " + $F{supplierName}]]></textFieldExpression></textField>
+        <textField pattern="dd/MM/yyyy"><reportElement x="440" y="2" width="80" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poDate}]]></textFieldExpression></textField>
+        <textField><reportElement x="530" y="2" width="60" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poStatus}]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="14">
+        <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <staticText><reportElement x="440" y="2" width="120" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="7" isBold="true"/></textElement><text><![CDATA[PO total ext / tax:]]></text></staticText>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="560" y="2" width="110" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_EXT}]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="670" y="2" width="112" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GRP_TAX}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="58">
+      <staticText><reportElement x="0" y="0" width="500" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Purchase Order Detail]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "  —  by " + $P{SEQ_DESC} + "  •  " + $P{LOC_DESC} + "  •  " + $P{STATUS_DESC}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="560" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA[$P{PO_RANGE} + "  •  " + $P{SUPP_RANGE} + "  •  " + $P{DATE_RANGE}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="36"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Line]]></text></staticText>
+      <staticText><reportElement x="40"  y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Stock]]></text></staticText>
+      <staticText><reportElement x="130" y="4" width="200" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="330" y="4" width="30"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="360" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Deliv Date]]></text></staticText>
+      <staticText><reportElement x="430" y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Qty Ord]]></text></staticText>
+      <staticText><reportElement x="480" y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Recvd]]></text></staticText>
+      <staticText><reportElement x="530" y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Inv Qty]]></text></staticText>
+      <staticText><reportElement x="580" y="4" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Unit Cost]]></text></staticText>
+      <staticText><reportElement x="640" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Ext Amt]]></text></staticText>
+      <staticText><reportElement x="710" y="4" width="72"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Tax]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="13">
+      <textField pattern="#0"><reportElement x="4" y="1" width="36" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="40" y="1" width="90" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="130" y="1" width="200" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+      <textField><reportElement x="330" y="1" width="30" height="11"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineType}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="360" y="1" width="70" height="11"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[$F{delivDate}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="430" y="1" width="50" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyOrdered}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="480" y="1" width="50" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{recvdQty}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="530" y="1" width="50" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{invQty}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.0000"><reportElement x="580" y="1" width="60" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{unitCost}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="640" y="1" width="70" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{extAmt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="710" y="1" width="72" height="11"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{taxAmt}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="30">
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="500" y="8" width="140" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Total ext / tax:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="640" y="8" width="70" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_EXT}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="710" y="8" width="72" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_TAX}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

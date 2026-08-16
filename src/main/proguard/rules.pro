@@ -50,15 +50,20 @@
 -keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable
 
 # Retain runtime-visible attributes Spring/JavaFX rely on.
--keepattributes *Annotation*,Signature,Exceptions,InnerClasses,EnclosingMethod
+-keepattributes *Annotation*,Signature,Exceptions,InnerClasses,EnclosingMethod,StackMapTable
 -keepattributes RuntimeVisibleParameterAnnotations,RuntimeInvisibleParameterAnnotations
 
 # ══════════════════════════════════════════════════════════════════════
 # Application entry points
 # ══════════════════════════════════════════════════════════════════════
 
-# JavaFX Application launcher.
+# JavaFX Application launchers — both entry points must survive obfuscation
+# because jpackage hardcodes the class name in the native launcher.
 -keep public class com.landmarksoftware.desktop.FixedAssetsApplication {
+    public static void main(java.lang.String[]);
+    public *;
+}
+-keep public class com.landmarksoftware.desktop.ReportingApplication {
     public static void main(java.lang.String[]);
     public *;
 }

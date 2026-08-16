@@ -164,9 +164,9 @@ public final class FaSql {
      */
     public static final String FIND_DEPN_DETAILS_BY_ASSET = """
             SELECT book_depn_method, book_depn_code, book_depn_freq,
-                   book_rate_1, book_rate_2, start_depn_date,
+                   book_depn_rate_1, book_depn_rate_2, start_depn_date,
                    tax_depn_method, tax_depn_code, tax_depn_freq,
-                   tax_rate_1, tax_rate_2, start_tax_depn_date
+                   tax_depn_rate_1, tax_depn_rate_2, start_tax_depn_date
             FROM FAASSET
             WHERE company_no = ? AND asset_no = ?
             """;
@@ -184,9 +184,9 @@ public final class FaSql {
                 a.acqn_date, a.asset_status, a.leased_asset_flag,
                 a.actual_cost, a.book_depn_cost, a.tax_depn_cost,
                 a.book_depn_method, a.book_depn_code, a.book_depn_freq,
-                a.book_rate_1, a.book_rate_2,
+                a.book_depn_rate_1, a.book_depn_rate_2,
                 a.tax_depn_method, a.tax_depn_code, a.tax_depn_freq,
-                a.tax_rate_1, a.tax_rate_2,
+                a.tax_depn_rate_1, a.tax_depn_rate_2,
                 a.start_depn_date, a.start_tax_depn_date,
                 a.last_reval_val, a.last_reval_date,
                 a.last_tax_reval_val, a.last_tax_reval_date,

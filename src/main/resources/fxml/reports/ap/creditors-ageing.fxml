@@ -8,41 +8,92 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.landmarksoftware.ui.reports.ApCreditorsAgeingController"
     styleClass="sel-root"
-    prefWidth="560">
+    prefWidth="640" prefHeight="640">
 
     <top>
         <VBox styleClass="sel-header">
             <Label text="Creditors Ageing" styleClass="sel-title"/>
-            <Label text="Supplier balances aged across 6 monthly buckets" styleClass="sel-sub"/>
-            <VBox.margin><Insets top="20" right="24" bottom="16" left="24"/></VBox.margin>
+            <Label text="APTL07 — Aged Trial Balance with configurable ageing periods" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
         </VBox>
     </top>
 
     <center>
-        <VBox styleClass="sel-body" spacing="14">
-            <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
 
-            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                <Label text="Output level" styleClass="sel-label" minWidth="120"/>
-                <ComboBox fx:id="detailSummary" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-            </HBox>
+                <Label text="Range &amp; sequence" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Sub ledger from / to" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="subLedgerStart" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="subLedgerEnd" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Print sequence" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="printSeq" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Supplier from / to" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="supplierStart" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="supplierEnd" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Output level" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="detailSummary" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <CheckBox fx:id="zeroSupplier" text="Print zero-balance suppliers"/>
+                </HBox>
 
-            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                <Label text="Age by date" styleClass="sel-label" minWidth="120"/>
-                <ComboBox fx:id="dateInd" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-            </HBox>
+                <Label text="Transactions to include" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="24">
+                    <CheckBox fx:id="includePosted" text="Posted"/>
+                    <CheckBox fx:id="includeUnposted" text="Unposted"/>
+                    <CheckBox fx:id="includeOnHold" text="On hold"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="If on hold — delivered" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="fullyDelivered" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Label text="within tolerance" styleClass="sel-label" minWidth="110"/>
+                    <ComboBox fx:id="withinTolerance" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="24">
+                    <CheckBox fx:id="includeClaims" text="Include credit claims / reversals"/>
+                    <CheckBox fx:id="includeArchived" text="Include archived"/>
+                </HBox>
 
-            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                <Label text="Show amount as" styleClass="sel-label" minWidth="120"/>
-                <ComboBox fx:id="grossNet" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-            </HBox>
+                <Label text="Ageing details" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Age by date" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="dateInd" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Label text="Show amount as" styleClass="sel-label" minWidth="110"/>
+                    <ComboBox fx:id="grossNet" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Unallocated credits" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="ageUnallocCr" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
 
-            <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
-                <Label text="As at date" styleClass="sel-label" minWidth="120"/>
-                <DatePicker fx:id="asAtDate" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-            </HBox>
+                <Label text="Ageing periods" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Periods are" styleClass="sel-label" minWidth="140"/>
+                    <ComboBox fx:id="datesType" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Label text="Latest / as-at" styleClass="sel-label" minWidth="90"/>
+                    <DatePicker fx:id="anchorDate" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <Label text="Manual ageing dates (oldest → latest; used when Periods = Manual)" styleClass="sel-sub"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="8">
+                    <DatePicker fx:id="manual1" promptText="1" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="manual2" promptText="2" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="manual3" promptText="3" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="8">
+                    <DatePicker fx:id="manual4" promptText="4" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="manual5" promptText="5" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <DatePicker fx:id="manual6" promptText="6" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
 
-        </VBox>
+            </VBox>
+        </ScrollPane>
     </center>
 
     <bottom>

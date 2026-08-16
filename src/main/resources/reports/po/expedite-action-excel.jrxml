@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="expedite-action-excel"
+              pageWidth="1400" pageHeight="595" orientation="Landscape"
+              columnWidth="1360" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="title"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="LOC_DESC"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SUPP_RANGE"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="DATE_RANGE"   class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer" isForPrompting="false"/>
+
+  <field name="poNo"           class="java.lang.Integer"/>
+  <field name="lineNo"         class="java.lang.Integer"/>
+  <field name="supplierNo"     class="java.lang.String"/>
+  <field name="supplierName"   class="java.lang.String"/>
+  <field name="stockCode"      class="java.lang.String"/>
+  <field name="description"    class="java.lang.String"/>
+  <field name="delivDate"      class="java.sql.Date"/>
+  <field name="qtyOrdered"     class="java.math.BigDecimal"/>
+  <field name="recvdQty"       class="java.math.BigDecimal"/>
+  <field name="qtyOutstanding" class="java.math.BigDecimal"/>
+
+  <title>
+    <band height="34">
+      <staticText><reportElement x="0" y="0" width="1360" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Expedite Action]]></text></staticText>
+      <textField><reportElement x="0" y="20" width="1360" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   •   " + $P{LOC_DESC} + "   •   " + $P{SUPP_RANGE} + "   •   Delivery dates: " + $P{DATE_RANGE}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <staticText><reportElement x="0"    y="0" width="60"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[PO No]]></text></staticText>
+      <staticText><reportElement x="60"   y="0" width="40"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Line]]></text></staticText>
+      <staticText><reportElement x="100"  y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier No]]></text></staticText>
+      <staticText><reportElement x="190"  y="0" width="200" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier Name]]></text></staticText>
+      <staticText><reportElement x="390"  y="0" width="120" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Stock Code]]></text></staticText>
+      <staticText><reportElement x="510"  y="0" width="260" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="770"  y="0" width="90"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Delivery Date]]></text></staticText>
+      <staticText><reportElement x="860"  y="0" width="160" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Qty Ordered]]></text></staticText>
+      <staticText><reportElement x="1020" y="0" width="160" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Received]]></text></staticText>
+      <staticText><reportElement x="1180" y="0" width="180" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Outstanding]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField pattern="#0"><reportElement x="0" y="0" width="60" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
+      <textField pattern="#0"><reportElement x="60" y="0" width="40" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="100" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="190" y="0" width="200" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierName}]]></textFieldExpression></textField>
+      <textField><reportElement x="390" y="0" width="120" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
+      <textField><reportElement x="510" y="0" width="260" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="770" y="0" width="90" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{delivDate}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="860" y="0" width="160" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyOrdered}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="1020" y="0" width="160" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{recvdQty}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.000"><reportElement x="1180" y="0" width="180" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{qtyOutstanding}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="20">
+      <textField><reportElement x="0" y="3" width="1360" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s) requiring follow-up"]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

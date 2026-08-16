@@ -19,8 +19,10 @@
 
   <properties>
     <java.version>21</java.version>
-    <javafx.version>23.0.1</javafx.version>
+    <javafx.version>21.0.11</javafx.version>
     <poi.version>5.2.5</poi.version>
+    <!-- Override Spring Boot's managed 3.19.8 — local install matches Pro edition version -->
+    <jooq.version>3.21.4</jooq.version>
   </properties>
 
   <dependencies>
@@ -53,8 +55,11 @@
       <version>${javafx.version}</version>
     </dependency>
 
-    <!-- Ikonli — icon font support for JavaFX. Used by ReportsHubController
-         (module + report icon badges) via FontIcon + Tabler icon names. -->
+    <!-- Ikonli — icon font support for JavaFX.
+         Desktop uses ikonli-feather-pack (Feather icons, fth-* prefix).
+         Tabler icon names in DESIGN_SYSTEM.md are the canonical set for the web
+         app; Feather equivalents are used here until ikonli-tabler-pack is
+         available in Maven Central. -->
     <dependency>
       <groupId>org.kordamp.ikonli</groupId>
       <artifactId>ikonli-javafx</artifactId>
@@ -63,6 +68,14 @@
     <dependency>
       <groupId>org.kordamp.ikonli</groupId>
       <artifactId>ikonli-feather-pack</artifactId>
+      <version>12.3.1</version>
+    </dependency>
+    <!-- Feather is outline-only by design (no filled glyph variants) — this
+         pack supplies just the solid/filled star (mat2-star) for the
+         favourite toggle's "selected" state (mat2-* prefix). -->
+    <dependency>
+      <groupId>org.kordamp.ikonli</groupId>
+      <artifactId>ikonli-material2-pack</artifactId>
       <version>12.3.1</version>
     </dependency>
 
@@ -111,6 +124,14 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- jOOQ — type-safe SQL DSL with multi-dialect support.
+         Open-source edition covers MySQL + MariaDB.
+         Upgrade groupId to org.jooq.pro for SQL Server (commercial licence). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jooq</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -141,6 +162,26 @@
             <option>java.base/java.lang=ALL-UNNAMED</option>
           </options>
         </configuration>
+      </plugin>
+
+      <!-- src/main/generated holds jOOQ-generated table/column DSL classes.
+           Always registered as a source root so normal builds compile without
+           needing a live DB. Re-generate with: mvn generate-sources -Pjooq-codegen -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-jooq-sources</id>
+            <phase>generate-sources</phase>
+            <goals><goal>add-source</goal></goals>
+            <configuration>
+              <sources>
+                <source>src/main/generated</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- ProGuard obfuscation — runs in the package phase after maven-jar-plugin.
@@ -200,6 +241,270 @@
   </build>
 
   <profiles>
+    <!-- jOOQ code generation:  mvn generate-sources -Pjooq-codegen
+         Connects to the local MySQL dev DB and regenerates the type-safe
+         table/column DSL classes into src/main/generated/.
+         Re-run whenever the physical schema changes.
+         To upgrade to SQL Server (commercial): change the jdbc block to point
+         at the SQL Server DB, change database name to
+         org.jooq.meta.sqlserver.SQLServerDatabase, and change groupId of
+         spring-boot-starter-jooq dependency to org.jooq.pro edition.
+
+         2026-08-13: the live schema on this box is actually named `landmarkdb`
+         (application.properties matches), NOT `lmextract` as CLAUDE.md/older
+         comments say — that name was stale and codegen was silently broken
+         (schema didn't exist) until this was pointed at landmarkdb. The
+         <schemata><outputSchema>lmextract</outputSchema> mapping below keeps
+         generated class/package names (Lmextract.java etc.) unchanged so this
+         doesn't ripple into every committed generated file.
+
+         CAUTION before running this: `landmarkdb` on a fresh/partial dev
+         restore may be MISSING entire modules that other generated code
+         depends on (observed: all payroll pa* tables, all ar* tables,
+         user_account/user_role tables were absent on this box on 2026-08-13).
+         Because codegen does a full `includes=.*` sweep, running it against
+         an incomplete DB will DELETE those tables' generated Java classes and
+         break the build. Always check `git status` and `git diff` (stat mode)
+         on src/main/generated after running this — if it proposes deleting
+         table classes you didn't intend to remove, do NOT commit; restore
+         with `git checkout HEAD src/main/generated` and investigate why
+         those tables are missing from the DB before re-running. -->
+    <profile>
+      <id>jooq-codegen</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq-codegen-maven</artifactId>
+            <version>${jooq.version}</version>
+            <executions>
+              <execution>
+                <goals><goal>generate</goal></goals>
+              </execution>
+            </executions>
+            <configuration>
+              <jdbc>
+                <driver>com.mysql.cj.jdbc.Driver</driver>
+                <url>jdbc:mysql://localhost:3306/landmarkdb?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Australia/Perth</url>
+                <user>root</user>
+                <password>another</password>
+              </jdbc>
+              <generator>
+                <database>
+                  <name>org.jooq.meta.mysql.MySQLDatabase</name>
+                  <outputSchemaToDefault>false</outputSchemaToDefault>
+                  <schemata>
+                    <schema>
+                      <inputSchema>landmarkdb</inputSchema>
+                      <outputSchema>lmextract</outputSchema>
+                    </schema>
+                  </schemata>
+                  <includes>.*</includes>
+                </database>
+                <generate>
+                  <records>true</records>
+                  <pojos>false</pojos>
+                  <daos>false</daos>
+                </generate>
+                <target>
+                  <packageName>com.landmarksoftware.db</packageName>
+                  <directory>src/main/generated</directory>
+                </target>
+              </generator>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
+                <version>8.3.0</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- Distribution build:  mvn package -Preporting,dist
+         Requires Liberica Full JDK 21 as JAVA_HOME (bundles JavaFX jmods).
+         Produces target/installer/Landmark Reporting-1.0.0.exe (needs WiX 3.x).
+         For a folder-only output (no WiX needed), change type to app-image. -->
+    <profile>
+      <id>dist</id>
+      <build>
+        <plugins>
+
+          <!-- Dist pre-work: clean stale jlink dirs; stage obf JAR after ProGuard -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>clean-runtime-dir</id>
+                <phase>prepare-package</phase>
+                <goals><goal>run</goal></goals>
+                <configuration>
+                  <target>
+                    <delete dir="${project.build.directory}/runtime"   failonerror="false"/>
+                    <delete dir="${project.build.directory}/installer" failonerror="false"/>
+                  </target>
+                </configuration>
+              </execution>
+              <!-- Copy obf JAR over thin JAR in dist-input so jpackage uses the obfuscated build -->
+              <execution>
+                <id>stage-obf-jar</id>
+                <phase>package</phase>
+                <goals><goal>run</goal></goals>
+                <configuration>
+                  <target>
+                    <copy file="${project.build.directory}/${project.build.finalName}-obf.jar"
+                          tofile="${project.build.directory}/dist-input/${project.build.finalName}.jar"
+                          overwrite="true"/>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- Copy all runtime dependency JARs into dist-input for jpackage classpath -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-runtime-deps</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-dependencies</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/dist-input</outputDirectory>
+                  <includeScope>runtime</includeScope>
+                  <overWriteReleases>false</overWriteReleases>
+                  <overWriteSnapshots>false</overWriteSnapshots>
+                  <overWriteIfNewer>true</overWriteIfNewer>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.3.0</version>
+            <executions>
+
+              <!-- Step 1: jlink — create minimal bundled JRE with JavaFX -->
+              <execution>
+                <id>jlink</id>
+                <phase>package</phase>
+                <goals><goal>exec</goal></goals>
+                <configuration>
+                  <executable>jlink</executable>
+                  <arguments>
+                    <argument>--module-path</argument>
+                    <argument>${java.home}/jmods</argument>
+                    <argument>--add-modules</argument>
+                    <argument>java.base,java.sql,java.naming,java.management,java.logging,java.desktop,java.net.http,java.xml,java.security.jgss,java.instrument,javafx.controls,javafx.fxml,javafx.graphics,javafx.base</argument>
+                    <argument>--output</argument>
+                    <argument>${project.build.directory}/runtime</argument>
+                    <argument>--compress=2</argument>
+                    <argument>--no-header-files</argument>
+                    <argument>--no-man-pages</argument>
+                    <argument>--strip-debug</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+
+              <!-- Step 2: jpackage — wrap JAR + runtime into Windows installer -->
+              <execution>
+                <id>jpackage</id>
+                <phase>package</phase>
+                <goals><goal>exec</goal></goals>
+                <configuration>
+                  <executable>jpackage</executable>
+                  <arguments>
+                    <argument>--name</argument>
+                    <argument>Landmark Reporting</argument>
+                    <argument>--app-version</argument>
+                    <argument>1.0.0</argument>
+                    <argument>--input</argument>
+                    <argument>${project.build.directory}/dist-input</argument>
+                    <argument>--main-jar</argument>
+                    <argument>${project.build.finalName}.jar</argument>
+                    <argument>--main-class</argument>
+                    <argument>com.landmarksoftware.desktop.ReportingApplication</argument>
+                    <argument>--runtime-image</argument>
+                    <argument>${project.build.directory}/runtime</argument>
+                    <argument>--java-options</argument>
+                    <argument>--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</argument>
+                    <argument>--java-options</argument>
+                    <argument>--add-opens=java.base/java.lang=ALL-UNNAMED</argument>
+                    <argument>--type</argument>
+                    <argument>app-image</argument>
+                    <argument>--icon</argument>
+                    <argument>${project.basedir}/deploy/landmark.ico</argument>
+                    <argument>--dest</argument>
+                    <argument>${project.build.directory}/installer</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+
+            </executions>
+          </plugin>
+
+          <!-- Copy per-client config template into dist-input so it lands in app/config/ -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-dist-inputs</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-resources</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/dist-input</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/deploy</directory>
+                      <includes>
+                        <include>config/**</include>
+                      </includes>
+                      <filtering>false</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- ICO generator:  mvn javafx:run -Pgenerate-ico
+         Renders the Landmark pin-mark at 16/32/48/256 px and writes
+         deploy/landmark.ico for use by jpackage (icon arg) in the dist profile.
+         Run once; commit the resulting ICO file. -->
+    <profile>
+      <id>generate-ico</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-maven-plugin</artifactId>
+            <configuration>
+              <mainClass>com.landmarksoftware.util.GenerateLandmarkIco</mainClass>
+              <options>
+                <option>--add-opens</option>
+                <option>javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</option>
+                <option>--add-opens</option>
+                <option>java.base/java.lang=ALL-UNNAMED</option>
+                <option>--add-modules</option>
+                <option>java.desktop</option>
+              </options>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!-- Reporting-only build:  mvn javafx:run -Preporting
          Boots the same Spring context + login, then branches on AppMode
          to load /fxml/reports-hub.fxml instead of MainMenuController. -->

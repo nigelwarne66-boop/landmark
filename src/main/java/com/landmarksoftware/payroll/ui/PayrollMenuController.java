@@ -12,14 +12,25 @@
 package com.landmarksoftware.payroll.ui;
 
 import com.landmarksoftware.model.AppSession;
+import com.landmarksoftware.payroll.model.Employee;
+import com.landmarksoftware.payroll.service.EmployeeService;
+import com.landmarksoftware.payroll.service.PayCodeService;
+import com.landmarksoftware.ui.components.CueGrid;
+import com.landmarksoftware.ui.components.CueTile;
+import javafx.application.Platform;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.*;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Payroll Module Menu — the top-level hub for all PY programs.
@@ -63,6 +74,18 @@ public class PayrollMenuController {
     private final PayRunProcessingController       papp01;
     private final AbaPaymentController             pabk02;
     private final AppSession                       appSession;
+    private final ApplicationContext               springContext;
+    private final EmployeeService                  employeeService;
+    private final PayCodeService                   payCodeService;
+
+    // Wave 6 — module dashboard cues (§7.10) read pre-aggregated counts off
+    // the JavaFX thread, same pattern as PayCodeMaintenanceController's
+    // loadList().
+    private final ExecutorService cueExec = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "py-menu-cues");
+        t.setDaemon(true);
+        return t;
+    });
 
     public PayrollMenuController(PayCodeMaintenanceController pacd01,
                                   EmployeeMaintenanceController paem01,
@@ -80,7 +103,10 @@ public class PayrollMenuController {
                                   TimesheetEntryController patm01,
                                   PayRunProcessingController papp01,
                                   AbaPaymentController pabk02,
-                                  AppSession appSession) {
+                                  AppSession appSession,
+                                  ApplicationContext springContext,
+                                  EmployeeService employeeService,
+                                  PayCodeService payCodeService) {
         this.pacd01       = pacd01;
         this.paem01       = paem01;
         this.papg01       = papg01;
@@ -96,8 +122,11 @@ public class PayrollMenuController {
         this.papc01       = papc01;
         this.patm01       = patm01;
         this.papp01       = papp01;
-        this.pabk02       = pabk02;
-        this.appSession   = appSession;
+        this.pabk02        = pabk02;
+        this.appSession    = appSession;
+        this.springContext = springContext;
+        this.employeeService = employeeService;
+        this.payCodeService  = payCodeService;
     }
 
     // ── Entry point ───────────────────────────────────────────────────────
@@ -109,13 +138,59 @@ public class PayrollMenuController {
     public Scene buildScene(Stage stage) {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color:#F2F1EC;");
-        root.setTop(buildPageHeader());
+        root.setTop(new VBox(buildPageHeader(), buildCueRow(stage)));
         root.setCenter(buildGrid(stage));
 
         Scene scene = new Scene(root, 880, 580);
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
+        // Wave 6 — landmark-theme.css carries the .lm-cue / .lm-cue-value /
+        // .lm-cue-label classes the module dashboard cue row (§7.10) uses.
+        scene.getStylesheets().add(
+            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
         return scene;
+    }
+
+    // ── Module dashboard cues — DESIGN_SYSTEM.md §7.10 ──────────────────────
+
+    /**
+     * Row of cue tiles opening the Payroll module landing page: total
+     * employees, active employees, pay codes configured. Each drills into
+     * the maintenance screen it summarises. Counts load off the JavaFX
+     * thread — {@code EmployeeService}/{@code PayCodeService} hit the DB —
+     * tiles show "…" until the background load completes.
+     */
+    private HBox buildCueRow(Stage parentStage) {
+        CueTile tileEmployees   = CueTile.of("…", "Total employees",   () -> openEmployeeMaintenance(parentStage));
+        CueTile tileActive      = CueTile.of("…", "Active employees",  () -> openEmployeeMaintenance(parentStage));
+        CueTile tilePayCodes    = CueTile.of("…", "Pay codes configured", () -> openPayCodeMaintenance(parentStage));
+
+        HBox row = CueGrid.of(tileEmployees, tileActive, tilePayCodes);
+        row.setPadding(new Insets(0, 24, 20, 24));
+
+        int companyNo = appSession.getCompanyNo();
+        cueExec.submit(() -> {
+            try {
+                List<Employee> employees = employeeService.findAll(companyNo);
+                long activeCount = employees.stream()
+                    .filter(e -> "A".equals(e.employeeStatus))
+                    .count();
+                int payCodeCount = payCodeService.findAll(companyNo).size();
+                Platform.runLater(() -> {
+                    tileEmployees.setValue(String.valueOf(employees.size()));
+                    tileActive.setValue(String.valueOf(activeCount));
+                    tilePayCodes.setValue(String.valueOf(payCodeCount));
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    tileEmployees.setValue("—");
+                    tileActive.setValue("—");
+                    tilePayCodes.setValue("—");
+                });
+            }
+        });
+
+        return row;
     }
 
     // ── Page header ───────────────────────────────────────────────────────
@@ -201,16 +276,49 @@ public class PayrollMenuController {
             "Payroll summaries and compliance",
             List.of(
                 new PayrollMenuEntry("PATL10", "Payroll Summary",
-                    "Pay run summary by employee",
-                    false, null),
-                new PayrollMenuEntry("PATL12", "Employee Listing",
-                    "Full employee details report",
-                    false, null),
+                    "Gross, tax, super and net by pay run",
+                    true, () -> openPyReport(parentStage, "payroll-summary", "Payroll Summary — PATL10")),
+                new PayrollMenuEntry("PATL12", "Employee List",
+                    "All staff with rate and current status",
+                    true, () -> openPyReport(parentStage, "employee-list", "Employee List — PATL12")),
+                new PayrollMenuEntry("PATL??", "Employee YTD Payments",
+                    "Year-to-date payment amounts by pay code per employee",
+                    true, () -> openPyReport(parentStage, "employee-ytd-payments", "Employee YTD Payments")),
+                new PayrollMenuEntry("PATL14", "Employee History Detail",
+                    "Full posted payroll history per employee",
+                    true, () -> openPyReport(parentStage, "employee-history-detail", "Employee History Detail — PATL14")),
+                new PayrollMenuEntry("PATL17", "Employee History Summary",
+                    "Summarised payroll history with sort option",
+                    true, () -> openPyReport(parentStage, "employee-history-summary", "Employee History Summary — PATL17")),
+                new PayrollMenuEntry("PATL05", "Deductions & Superannuation",
+                    "YTD deductions and super by pay code or fund",
+                    true, () -> openPyReport(parentStage, "deductions-super", "Deductions & Superannuation — PATL05/09")),
+                new PayrollMenuEntry("PATL16", "Department Expenses",
+                    "Payroll cost distribution by department for a period",
+                    true, () -> openPyReport(parentStage, "dept-expenses", "Department Expenses — PATL16")),
+                new PayrollMenuEntry("PATL07", "Period Summary",
+                    "Payroll totals by type for each pay run",
+                    true, () -> openPyReport(parentStage, "period-summary", "Period Summary — PATL07")),
+                new PayrollMenuEntry("PATL60", "Payrun GL Detail",
+                    "Full GL line detail for a single posted payrun",
+                    true, () -> openPyReport(parentStage, "payrun-gl-detail", "Payrun GL Detail — PATL60")),
+                new PayrollMenuEntry("PATL28", "Timesheet History",
+                    "Payroll history by paygroup and employee",
+                    true, () -> openPyReport(parentStage, "timesheet-history", "Timesheet History — PATL28")),
+                new PayrollMenuEntry("PATL40", "Super/Deductions Status",
+                    "Deduction and super payment status by pay code",
+                    true, () -> openPyReport(parentStage, "super-deductions-status", "Super/Deductions Status — PATL40")),
+                new PayrollMenuEntry("PASP10", "Super by Fund",
+                    "YTD super contributions grouped by fund",
+                    true, () -> openPyReport(parentStage, "super-by-fund", "Super by Fund — PASP10")),
+                new PayrollMenuEntry("PATL26", "Extended Superannuation",
+                    "Detailed super history with fund details and masked TFN",
+                    true, () -> openPyReport(parentStage, "extended-super", "Extended Superannuation — PATL26")),
                 new PayrollMenuEntry("PAST10", "Single Touch Payroll",
-                    "STP submission to ATO",
+                    "STP Phase 2 submission to ATO — requires ATO developer sandbox",
                     false, null),
                 new PayrollMenuEntry("PAPS26", "Payment Summaries",
-                    "Annual payment summary (PAYG)",
+                    "Annual payment summary (PAYG) — deferred to Wave 4",
                     false, null)
             )), 0, 1);
 
@@ -387,6 +495,33 @@ public class PayrollMenuController {
         s.show();
     }
 
+
+    private void openPyReport(Stage parentStage, String fxmlName, String title) {
+        String path = "/fxml/reports/py/" + fxmlName + ".fxml";
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(path));
+            loader.setControllerFactory(springContext::getBean);
+            Parent root = loader.load();
+            Stage dialog = new Stage();
+            dialog.initOwner(parentStage);
+            dialog.initModality(Modality.WINDOW_MODAL);
+            Scene scene = new Scene(root);
+            scene.getStylesheets().add(getClass().getResource("/css/fixedassets.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/css/reporting.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
+            dialog.setScene(scene);
+            dialog.setTitle(title);
+            dialog.setResizable(false);
+            dialog.show();
+        } catch (Exception ex) {
+            Platform.runLater(() -> {
+                Alert a = new Alert(Alert.AlertType.ERROR, ex.getMessage(), ButtonType.OK);
+                a.setHeaderText("Could not open " + title);
+                a.initOwner(parentStage);
+                a.showAndWait();
+            });
+        }
+    }
 
     private void stubInfo(Stage parentStage, String title, String body) {
         Alert a = new Alert(Alert.AlertType.INFORMATION, body, ButtonType.OK);

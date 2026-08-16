@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="bank-reconciliation-excel"
+              pageWidth="1100" pageHeight="595" orientation="Landscape"
+              columnWidth="1060" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="title"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"    class="java.lang.String"/>
+  <parameter name="BANK_DESC"       class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="RECON_NO"        class="java.lang.Integer"    isForPrompting="false"/>
+  <parameter name="STMNT_OPEN_DATE" class="java.lang.String"     isForPrompting="false"/>
+  <parameter name="STMNT_CLOSE_DATE" class="java.lang.String"    isForPrompting="false"/>
+  <parameter name="CSHBK_OPEN_BAL" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="STMNT_OPEN_BAL" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="STMNT_CLOSE_BAL" class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="DRS_ENTERED"     class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="CRS_ENTERED"     class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_RECONCILED"  class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"       class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="docDate" class="java.sql.Date"/>
+  <field name="docType" class="java.lang.String"/>
+  <field name="docNo"   class="java.lang.Integer"/>
+  <field name="payee"   class="java.lang.String"/>
+  <field name="amount"  class="java.math.BigDecimal"/>
+  <field name="status"  class="java.lang.String"/>
+
+  <title>
+    <band height="110">
+      <staticText><reportElement x="0" y="0" width="1060" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Bank Reconciliation Statement]]></text></staticText>
+      <textField><reportElement x="0" y="18" width="1060" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   " + $P{BANK_DESC}]]></textFieldExpression></textField>
+
+      <staticText><reportElement x="0" y="36" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Reconciliation No:]]></text></staticText>
+      <textField><reportElement x="160" y="36" width="120" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$P{RECON_NO}]]></textFieldExpression></textField>
+      <staticText><reportElement x="300" y="36" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Statement open:]]></text></staticText>
+      <textField><reportElement x="460" y="36" width="140" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$P{STMNT_OPEN_DATE}]]></textFieldExpression></textField>
+      <staticText><reportElement x="600" y="36" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Statement close:]]></text></staticText>
+      <textField><reportElement x="760" y="36" width="140" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$P{STMNT_CLOSE_DATE}]]></textFieldExpression></textField>
+
+      <staticText><reportElement x="0" y="52" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Cashbook opening bal:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="160" y="52" width="120" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$P{CSHBK_OPEN_BAL}]]></textFieldExpression></textField>
+      <staticText><reportElement x="300" y="52" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Statement opening bal:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="460" y="52" width="120" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$P{STMNT_OPEN_BAL}]]></textFieldExpression></textField>
+      <staticText><reportElement x="600" y="52" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Statement closing bal:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="760" y="52" width="120" height="12"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{STMNT_CLOSE_BAL}]]></textFieldExpression></textField>
+
+      <staticText><reportElement x="0" y="68" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Debits entered:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="160" y="68" width="120" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$P{DRS_ENTERED}]]></textFieldExpression></textField>
+      <staticText><reportElement x="300" y="68" width="160" height="12"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Credits entered:]]></text></staticText>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="460" y="68" width="120" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$P{CRS_ENTERED}]]></textFieldExpression></textField>
+
+      <staticText><reportElement x="0" y="90" width="300" height="12"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Reconciled transactions:]]></text></staticText>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <staticText><reportElement x="0"   y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Date]]></text></staticText>
+      <staticText><reportElement x="70"  y="0" width="80"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="150" y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Document No]]></text></staticText>
+      <staticText><reportElement x="220" y="0" width="520" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Payee]]></text></staticText>
+      <staticText><reportElement x="740" y="0" width="160" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+      <staticText><reportElement x="900" y="0" width="160" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Status]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0"   y="0" width="70"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField><reportElement x="70"  y="0" width="80"  height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
+      <textField pattern="#0"><reportElement x="150" y="0" width="70"  height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="220" y="0" width="520" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payee}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="740" y="0" width="160" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
+      <textField><reportElement x="900" y="0" width="160" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{status}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="20">
+      <textField><reportElement x="0" y="3" width="740" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " reconciled transaction(s)"]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="740" y="3" width="160" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{SUM_RECONCILED}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

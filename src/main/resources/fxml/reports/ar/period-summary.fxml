@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.ArPeriodSummaryController"
+    styleClass="sel-root"
+    prefWidth="560" prefHeight="340">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Period Summary" styleClass="sel-title"/>
+            <Label text="ARTL03 — Sub-ledger opening / movements / closing for a period" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="12" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="12">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Period-ending date" styleClass="sel-label" minWidth="150"/>
+                    <ComboBox fx:id="periodEndDate" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Sub ledger from / to" styleClass="sel-label" minWidth="150"/>
+                    <ComboBox fx:id="startSubLedger" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <ComboBox fx:id="endSubLedger" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Cancel" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel"  styleClass="sel-btn-excel"  onAction="#onExcel"/>
+            <Button text="PDF"    styleClass="sel-btn-pdf"    onAction="#onPdf"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

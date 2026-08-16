@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="business-activity-statement"
+              pageWidth="595" pageHeight="842" orientation="Portrait"
+              columnWidth="535" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String"/>
+  <parameter name="ENTITY_NAME"  class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="ABN"          class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="BAS_DESC"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="PERIOD"       class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="DUE_DATE"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="PAY_DATE"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer" isForPrompting="false"/>
+
+  <field name="section"     class="java.lang.String"/>
+  <field name="label"       class="java.lang.String"/>
+  <field name="description" class="java.lang.String"/>
+  <field name="amount"      class="java.math.BigDecimal"/>
+
+  <group name="sectionGroup">
+    <groupExpression><![CDATA[$F{section}]]></groupExpression>
+    <groupHeader>
+      <band height="18">
+        <rectangle><reportElement x="0" y="0" width="535" height="18" backcolor="#d0d8e8"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField><reportElement x="4" y="3" width="400" height="13"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{section}]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="4"/>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="96">
+      <rectangle><reportElement x="0" y="0" width="535" height="96" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="8" y="6" width="300" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Business Activity Statement]]></text></staticText>
+      <textField><reportElement x="8" y="28" width="519" height="14" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{ENTITY_NAME}]]></textFieldExpression></textField>
+      <textField><reportElement x="8" y="44" width="519" height="13" forecolor="#ccddee" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA["ABN: " + ($P{ABN}==null?"":$P{ABN})]]></textFieldExpression></textField>
+      <textField><reportElement x="8" y="59" width="519" height="13" forecolor="#ccddee" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA["Period: " + ($P{PERIOD}==null?"":$P{PERIOD})]]></textFieldExpression></textField>
+      <textField><reportElement x="8" y="74" width="260" height="13" forecolor="#ccddee" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA["Due: " + ($P{DUE_DATE}==null?"":$P{DUE_DATE})]]></textFieldExpression></textField>
+      <textField><reportElement x="270" y="74" width="265" height="13" forecolor="#ccddee" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA["Pay date: " + ($P{PAY_DATE}==null?"":$P{PAY_DATE})]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="535" height="20" backcolor="#3a5070"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="50"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a5070"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Label]]></text></staticText>
+      <staticText><reportElement x="60"  y="4" width="365" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a5070"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="430" y="4" width="100" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a5070"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField><reportElement x="4"   y="1" width="50"  height="12"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{label}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="60" y="1" width="365" height="12"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="430" y="1" width="100" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="413" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="30">
+      <rectangle><reportElement x="0" y="0" width="535" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)  —  BAS: " + ($P{BAS_DESC}==null?"":$P{BAS_DESC})]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

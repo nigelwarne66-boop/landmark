@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="delivery-invoice-variance-excel"
+              pageWidth="1400" pageHeight="595" orientation="Landscape"
+              columnWidth="1360" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="columnHeader"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.1" value="pageFooter"/>
+  <property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="title"/>
+  <property name="net.sf.jasperreports.export.xls.white.page.background" value="false"/>
+  <property name="net.sf.jasperreports.export.xls.ignore.page.margins" value="true"/>
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"   class="java.lang.String"/>
+  <parameter name="LOC_DESC"       class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SUPP_RANGE"     class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SEQ_DESC"       class="java.lang.String"  isForPrompting="false"/>
+  <parameter name="SUM_DELIVERED"  class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_INVOICED"   class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="SUM_VARIANCE"   class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"      class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="poNo"         class="java.lang.Integer"/>
+  <field name="lineNo"       class="java.lang.Integer"/>
+  <field name="supplierNo"   class="java.lang.String"/>
+  <field name="supplierName" class="java.lang.String"/>
+  <field name="stockCode"    class="java.lang.String"/>
+  <field name="delivered"    class="java.math.BigDecimal"/>
+  <field name="invoiced"     class="java.math.BigDecimal"/>
+  <field name="variance"     class="java.math.BigDecimal"/>
+
+  <variable name="SUM_D" class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{delivered}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="SUM_I" class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{invoiced}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+  <variable name="SUM_V" class="java.math.BigDecimal" calculation="Sum"><variableExpression><![CDATA[$F{variance}]]></variableExpression><initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression></variable>
+
+  <title>
+    <band height="34">
+      <staticText><reportElement x="0" y="0" width="1360" height="18"/><textElement><font size="12" isBold="true"/></textElement><text><![CDATA[Order Delivery / Invoice Variance]]></text></staticText>
+      <textField><reportElement x="0" y="20" width="1360" height="12"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   —   by " + $P{SEQ_DESC} + "   •   " + $P{LOC_DESC} + "   •   " + $P{SUPP_RANGE}]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="18">
+      <staticText><reportElement x="0"    y="0" width="70"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[PO No]]></text></staticText>
+      <staticText><reportElement x="70"   y="0" width="50"  height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Line]]></text></staticText>
+      <staticText><reportElement x="120"  y="0" width="100" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier No]]></text></staticText>
+      <staticText><reportElement x="220"  y="0" width="280" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Supplier Name]]></text></staticText>
+      <staticText><reportElement x="500"  y="0" width="180" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Stock Code]]></text></staticText>
+      <staticText><reportElement x="680"  y="0" width="220" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Delivered]]></text></staticText>
+      <staticText><reportElement x="900"  y="0" width="220" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Invoiced]]></text></staticText>
+      <staticText><reportElement x="1120" y="0" width="240" height="18" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8" isBold="true"/></textElement><text><![CDATA[Variance]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="14">
+      <textField pattern="#0"><reportElement x="0" y="0" width="70" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{poNo}]]></textFieldExpression></textField>
+      <textField pattern="#0"><reportElement x="70" y="0" width="50" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{lineNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="120" y="0" width="100" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="220" y="0" width="280" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{supplierName}]]></textFieldExpression></textField>
+      <textField><reportElement x="500" y="0" width="180" height="14"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{stockCode}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="0" width="220" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{delivered}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="900" y="0" width="220" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{invoiced}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1120" y="0" width="240" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{variance}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <summary>
+    <band height="20">
+      <textField><reportElement x="0" y="3" width="680" height="14"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)"]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="680" y="3" width="220" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SUM_D}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="900" y="3" width="220" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SUM_I}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="1120" y="3" width="240" height="14"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{SUM_V}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

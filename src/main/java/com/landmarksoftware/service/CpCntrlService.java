@@ -1,7 +1,9 @@
 package com.landmarksoftware.service;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
+
+import static com.landmarksoftware.db.tables.Cpcntrl.CPCNTRL;
 
 /**
  * Read-only access to CPCNTRL — per-company control row.
@@ -11,11 +13,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class CpCntrlService {
 
-    private final JdbcTemplate jdbc;
+    private final DSLContext dsl;
 
-    public CpCntrlService(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
-    }
+    public CpCntrlService(DSLContext dsl) { this.dsl = dsl; }
 
     /**
      * Returns the configured local PC output dir, or empty string on miss.
@@ -24,9 +24,7 @@ public class CpCntrlService {
      */
     public String getLocalPcDir(int companyNo) {
         try {
-            String v = jdbc.queryForObject(
-                "SELECT local_pc_dir FROM cpcntrl LIMIT 1",
-                String.class);
+            String v = dsl.select(CPCNTRL.LOCAL_PC_DIR).from(CPCNTRL).limit(1).fetchOne(CPCNTRL.LOCAL_PC_DIR);
             String dir = v == null ? "" : v.trim();
             System.out.println("CpCntrl.local_pc_dir = [" + dir + "]");
             return dir;

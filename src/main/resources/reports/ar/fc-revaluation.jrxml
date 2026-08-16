@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="fc-revaluation"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME"    class="java.lang.String"/>
+  <parameter name="PRINT_SEQ_DESC"  class="java.lang.String" isForPrompting="false"/>
+  <parameter name="CUST_RANGE"      class="java.lang.String" isForPrompting="false"/>
+  <parameter name="DATE_BASIS_DESC" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="DATE_RANGE"      class="java.lang.String" isForPrompting="false"/>
+  <parameter name="GRAND_TOTAL"     class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"       class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="rowType"     class="java.lang.String"/>
+  <field name="custNo"      class="java.lang.String"/>
+  <field name="name"        class="java.lang.String"/>
+  <field name="forCurrCode" class="java.lang.String"/>
+  <field name="docNo"       class="java.lang.String"/>
+  <field name="seqNo"       class="java.lang.String"/>
+  <field name="docType"     class="java.lang.String"/>
+  <field name="docDate"     class="java.sql.Date"/>
+  <field name="postDate"    class="java.sql.Date"/>
+  <field name="amtOrig"     class="java.math.BigDecimal"/>
+  <field name="amtPaid"     class="java.math.BigDecimal"/>
+  <field name="discTaken"   class="java.math.BigDecimal"/>
+  <field name="fluctAmt"    class="java.math.BigDecimal"/>
+  <field name="balance"     class="java.math.BigDecimal"/>
+  <field name="revalDate"   class="java.sql.Date"/>
+  <field name="revalAmt"    class="java.math.BigDecimal"/>
+
+  <variable name="GP_REVAL" class="java.math.BigDecimal" calculation="Sum" resetType="Group" resetGroup="custGroup">
+    <variableExpression><![CDATA[$F{revalAmt}]]></variableExpression>
+    <initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+  </variable>
+
+  <group name="custGroup">
+    <groupExpression><![CDATA[$F{custNo}]]></groupExpression>
+    <groupHeader>
+      <band height="16">
+        <rectangle><reportElement x="0" y="1" width="782" height="14" backcolor="#dbe2ef"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="700" height="12" mode="Opaque" backcolor="#dbe2ef"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{custNo} + "  " + ($F{name}==null?"":$F{name})]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="14">
+        <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="400" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true" isItalic="true"/></textElement><textFieldExpression><![CDATA["Customer " + $F{custNo} + " revaluation"]]></textFieldExpression></textField>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="550" y="2" width="90" height="11" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$V{GP_REVAL}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+  <title>
+    <band height="54">
+      <staticText><reportElement x="0" y="0" width="600" height="20"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Foreign Currency Revaluation]]></text></staticText>
+      <textField><reportElement x="0" y="22" width="500" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME}]]></textFieldExpression></textField>
+      <textField><reportElement x="0" y="38" width="600" height="12"/><textElement><font size="8" isItalic="true"/></textElement><textFieldExpression><![CDATA["By " + ($P{PRINT_SEQ_DESC}==null?"":$P{PRINT_SEQ_DESC}) + "  •  " + ($P{CUST_RANGE}==null?"":$P{CUST_RANGE}) + "  •  " + ($P{DATE_BASIS_DESC}==null?"":$P{DATE_BASIS_DESC}) + "  •  " + ($P{DATE_RANGE}==null?"":$P{DATE_RANGE})]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="36"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Curr]]></text></staticText>
+      <staticText><reportElement x="42"  y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Doc No]]></text></staticText>
+      <staticText><reportElement x="134" y="4" width="36"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Seq]]></text></staticText>
+      <staticText><reportElement x="172" y="4" width="36"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+      <staticText><reportElement x="210" y="4" width="58"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Doc Date]]></text></staticText>
+      <staticText><reportElement x="270" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Orig Amt]]></text></staticText>
+      <staticText><reportElement x="352" y="4" width="70"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amt Paid]]></text></staticText>
+      <staticText><reportElement x="424" y="4" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Disc Taken]]></text></staticText>
+      <staticText><reportElement x="486" y="4" width="56"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Fluct Amt]]></text></staticText>
+      <staticText><reportElement x="544" y="4" width="90"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Balance]]></text></staticText>
+      <!-- R-row columns -->
+      <staticText><reportElement x="636" y="4" width="58"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Reval Date]]></text></staticText>
+      <staticText><reportElement x="696" y="4" width="82"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#3a4a63"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Reval Amt]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <!-- Transaction rows (rowType=T) -->
+  <detail>
+    <band height="12">
+      <printWhenExpression><![CDATA["T".equals($F{rowType})]]></printWhenExpression>
+      <textField><reportElement x="4"   y="1" width="36"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{forCurrCode}]]></textFieldExpression></textField>
+      <textField><reportElement x="42"  y="1" width="90"  height="10"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{docNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="134" y="1" width="36"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{seqNo}]]></textFieldExpression></textField>
+      <textField><reportElement x="172" y="1" width="36"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docType}]]></textFieldExpression></textField>
+      <textField pattern="dd/MM/yyyy"><reportElement x="210" y="1" width="58" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{docDate}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="270" y="1" width="80" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtOrig}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="352" y="1" width="70" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amtPaid}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="424" y="1" width="60" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{discTaken}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="486" y="1" width="56" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{fluctAmt}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="544" y="1" width="90" height="10"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{balance}]]></textFieldExpression></textField>
+    </band>
+    <!-- Revaluation rows (rowType=R) -->
+    <band height="11">
+      <printWhenExpression><![CDATA["R".equals($F{rowType})]]></printWhenExpression>
+      <textField pattern="dd/MM/yyyy"><reportElement x="636" y="0" width="58" height="10" forecolor="#444444"/><textElement><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{revalDate}]]></textFieldExpression></textField>
+      <textField pattern="#,##0.00;(#,##0.00)"><reportElement x="696" y="0" width="82" height="10" forecolor="#444444"/><textElement textAlignment="Right"><font size="7" isItalic="true"/></textElement><textFieldExpression><![CDATA[$F{revalAmt}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="30">
+      <rectangle><reportElement x="0" y="0" width="782" height="30" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="400" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " transaction(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="440" y="8" width="148" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand revaluation total:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="590" y="8" width="148" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>

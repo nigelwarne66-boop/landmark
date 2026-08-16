@@ -36,7 +36,8 @@ import java.util.ResourceBundle;
 @Scope("prototype")
 public class PyEmployeeListController implements Initializable {
 
-    private static final String REPORT_PATH = "py/employee-list";
+    private static final String PDF_PATH   = "py/employee-list";
+    private static final String EXCEL_PATH = "py/employee-list-excel";
     private static final String ALL_DEPTS = "(All departments)";
 
     @Autowired private ReportsHubController hub;
@@ -100,8 +101,9 @@ public class PyEmployeeListController implements Initializable {
         params.put("DEPT", deptParam);
         params.put("EMP_STATUS", statusParam);
 
+        String path = "excel".equals(format) ? EXCEL_PATH : PDF_PATH;
         Window owner = ((Node) e.getSource()).getScene().getWindow();
-        hub.runJasperReport(REPORT_PATH, params, format, owner);
+        hub.runJasperReport(path, params, format, owner);
         close(e);
     }
 

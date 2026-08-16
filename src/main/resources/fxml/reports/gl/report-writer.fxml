@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.landmarksoftware.ui.reports.GlReportWriterController"
+    styleClass="sel-root"
+    prefWidth="720" prefHeight="640">
+
+    <top>
+        <VBox styleClass="sel-header">
+            <Label text="Report Writer Output" styleClass="sel-title"/>
+            <Label text="Set the date columns once, then run any of the saved reports" styleClass="sel-sub"/>
+            <VBox.margin><Insets top="20" right="24" bottom="10" left="24"/></VBox.margin>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="sel-scroll">
+            <VBox styleClass="sel-body" spacing="10">
+                <padding><Insets top="8" right="24" bottom="8" left="24"/></padding>
+
+                <Label text="Period" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Start date" styleClass="sel-label" minWidth="160"/>
+                    <DatePicker fx:id="startDate" prefWidth="160"/>
+                    <Label text="end date" styleClass="sel-label"/>
+                    <DatePicker fx:id="endDate" prefWidth="160"/>
+                </HBox>
+                <Label fx:id="periodHint" styleClass="sel-hint"
+                       text="Default = current fiscal year (start = year-start, end = today)."/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <Label text="Options" styleClass="sel-label" minWidth="160"/>
+                    <CheckBox fx:id="zeroBalSuppress" text="Suppress zero-balance rows"/>
+                </HBox>
+
+                <Label text="Reports to run" styleClass="sel-section"/>
+                <HBox styleClass="sel-row" alignment="CENTER_LEFT" spacing="12">
+                    <CheckBox fx:id="selectAllCheck" text="Select all"/>
+                    <Label fx:id="reportsStatus" styleClass="sel-hint"
+                           text="Loading saved selections..."/>
+                </HBox>
+                <VBox fx:id="reportRows" spacing="6"/>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="sel-footer" alignment="CENTER_RIGHT" spacing="10">
+            <padding><Insets top="16" right="24" bottom="20" left="24"/></padding>
+            <Button text="Close" styleClass="sel-btn-cancel" onAction="#onCancel"/>
+            <Button text="Excel" styleClass="sel-btn-excel"  onAction="#onExcelAll"/>
+            <Button text="PDF"   styleClass="sel-btn-pdf"    onAction="#onPdfAll"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

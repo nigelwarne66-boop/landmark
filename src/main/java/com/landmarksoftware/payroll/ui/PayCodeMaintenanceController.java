@@ -16,8 +16,10 @@ import com.landmarksoftware.payroll.model.Fund;
 import com.landmarksoftware.payroll.model.PayCode;
 import com.landmarksoftware.payroll.service.FundService;
 import com.landmarksoftware.payroll.service.PayCodeService;
+import com.landmarksoftware.ui.components.CommandBar;
+import com.landmarksoftware.ui.components.LmButton;
+import com.landmarksoftware.ui.components.LmTableView;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.*;
@@ -32,7 +34,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
 
 /**
  * PACD01 — Pay Code Maintenance.
@@ -58,7 +59,7 @@ public class PayCodeMaintenanceController {
     private final AppSession     appSession;
 
     private final ObservableList<PayCode> rows = FXCollections.observableArrayList();
-    private TableView<PayCode>            table;
+    private LmTableView<PayCode>          table;
     private Label                         lblStatus;
     private int                           currentTypeFilter = 0;  // 0 = all
 
@@ -90,6 +91,11 @@ public class PayCodeMaintenanceController {
         Scene scene = new Scene(root, 880, 560);
         scene.getStylesheets().add(
             getClass().getResource("/css/fixedassets.css").toExternalForm());
+        // Wave 5 — CommandBar/LmButton (DESIGN_SYSTEM.md §7.4) classes live in
+        // the shared theme stylesheet; load it alongside the screen's existing
+        // sheet so the toolbar renders with the design-system tokens.
+        scene.getStylesheets().add(
+            getClass().getResource("/com/landmarksoftware/ui/css/landmark-theme.css").toExternalForm());
         return scene;
     }
 
@@ -115,20 +121,28 @@ public class PayCodeMaintenanceController {
     // ── Content — toolbar + table ─────────────────────────────────────────
 
     private VBox buildContent(Stage stage) {
-        table = new TableView<>(rows);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        // Wave 6 — DESIGN_SYSTEM.md §7.7 DataTable, reference implementation.
+        // LmTableView wires the .lm-table style class (header/row/hover/
+        // selection-spine) and typed column factories (col-code / col-num)
+        // in place of the previous plain TableView + ad-hoc col() helper —
+        // same columns, same data, same behaviour, new component.
+        table = new LmTableView<>(rows);
         VBox.setVgrow(table, Priority.ALWAYS);
-        table.setPlaceholder(new Label("No pay codes found for this company."));
+        table.setEmptyState("fth-file-text", "No pay codes found for this company.",
+            "+ Add pay code", () -> openDialog(null, stage));
+
+        TableColumn<PayCode, String> colCode = LmTableView.codeColumn("Code", pc -> pc.payCode, 90);
+        LmTableView.markDrillable(colCode);   // double-click on the row opens the edit dialog
 
         table.getColumns().addAll(List.of(
-            col("Code",         pc -> pc.payCode,                       90),
-            col("Description",  pc -> pc.desc1,                         220),
-            col("Payslip Desc", pc -> pc.payslipDesc,                   140),
-            col("Type",         PayCode::payTypeLabel,                  100),
-            col("Super",        pc -> "Y".equals(pc.superFlag) ? "✓" : "",  55),
-            col("Wcomp",        pc -> "Y".equals(pc.wcompFlag) ? "✓" : "",  55),
-            col("Rate",         PayCode::primaryRate,                   90),
-            col("Amount",       PayCode::primaryAmount,                 90)
+            colCode,
+            LmTableView.textColumn("Description",  pc -> pc.desc1,                         220),
+            LmTableView.textColumn("Payslip Desc",  pc -> pc.payslipDesc,                   140),
+            LmTableView.textColumn("Type",          PayCode::payTypeLabel,                  100),
+            LmTableView.textColumn("Super",         pc -> "Y".equals(pc.superFlag) ? "✓" : "",  55),
+            LmTableView.textColumn("Wcomp",         pc -> "Y".equals(pc.wcompFlag) ? "✓" : "",  55),
+            LmTableView.numColumn("Rate",           PayCode::primaryRate,                   90),
+            LmTableView.numColumn("Amount",         PayCode::primaryAmount,                 90)
         ));
 
         table.setOnMouseClicked(e -> {
@@ -136,36 +150,30 @@ public class PayCodeMaintenanceController {
                 openDialog(table.getSelectionModel().getSelectedItem(), stage);
         });
 
-        // Toolbar
-        Button btnAdd  = btnPrimary("+ Add");
-        Button btnEdit = btnSecondary("✎ Edit");
-        Button btnDel  = btnDanger("✕ Delete");
-        Button btnRef  = btnSecondary("↺");
-
-        btnAdd.setOnAction(e -> openDialog(null, stage));
-
-        btnEdit.setOnAction(e -> {
+        // Toolbar — DESIGN_SYSTEM.md §7.4 CommandBar, reference implementation
+        // (Wave 5). Same four actions as before, now built with LmButton
+        // (§7.1) inside the shared CommandBar component instead of an ad-hoc
+        // HBox of inline-styled buttons — a pure component swap, no change
+        // in behaviour.
+        Button btnAdd  = LmButton.primary("+ Add", () -> openDialog(null, stage));
+        Button btnEdit = LmButton.secondary("✎ Edit", () -> {
             PayCode sel = table.getSelectionModel().getSelectedItem();
             if (sel != null) openDialog(sel, stage);
             else showInfo("Edit", "Select a pay code to edit.");
         });
-        btnDel.setOnAction(e -> {
+        Button btnDel  = LmButton.danger("✕ Delete", () -> {
             PayCode sel = table.getSelectionModel().getSelectedItem();
             if (sel != null) confirmDelete(sel);
             else showInfo("Delete", "Select a pay code to delete.");
         });
-        btnRef.setOnAction(e -> loadList());
+        Button btnRef  = LmButton.ghost("↺ Refresh", this::loadList);
 
-        HBox toolbar = new HBox(8,
-            btnAdd, btnEdit, btnDel,
-            new Separator(Orientation.VERTICAL),
-            btnRef);
-        toolbar.setPadding(new Insets(10, 16, 10, 16));
-        toolbar.setAlignment(Pos.CENTER_LEFT);
-        toolbar.setStyle(
-            "-fx-background-color:#F8F8F6;" +
-            "-fx-border-color:transparent transparent rgba(0,0,0,.10) transparent;" +
-            "-fx-border-width:0 0 0.5 0;");
+        HBox toolbar = CommandBar.builder()
+            .primary(btnAdd)
+            .secondary(btnEdit)
+            .secondary(btnDel)
+            .ghost(btnRef)
+            .build();
 
         // Type filter tabs
         HBox typeFilter = buildTypeFilter();
@@ -1288,14 +1296,6 @@ public class PayCodeMaintenanceController {
 
     // ── UI helpers ────────────────────────────────────────────────────────
 
-    private TableColumn<PayCode, String> col(String header,
-                                              Function<PayCode, String> fn, double w) {
-        TableColumn<PayCode, String> c = new TableColumn<>(header);
-        c.setCellValueFactory(p -> new SimpleStringProperty(safe(fn.apply(p.getValue()))));
-        c.setPrefWidth(w);
-        return c;
-    }
-
     private void addFormRow(GridPane g, int row, String label, Node ctrl) {
         Label l = new Label(label);
         l.setStyle("-fx-font-size:12px;-fx-text-fill:#374151;");
@@ -1479,8 +1479,6 @@ public class PayCodeMaintenanceController {
         Alert a = new Alert(Alert.AlertType.INFORMATION, msg, ButtonType.OK);
         a.setTitle(title); a.setHeaderText(null); a.showAndWait();
     }
-
-    private static String safe(String s) { return s == null ? "" : s; }
 
     private static String decStr(BigDecimal v) {
         if (v == null || v.compareTo(BigDecimal.ZERO) == 0) return "";

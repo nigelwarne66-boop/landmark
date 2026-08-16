@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="dept-expenses"
+              pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail">
+
+  <style name="base" isDefault="true" isBlankWhenNull="true"/>
+
+  <parameter name="COMPANY_NAME" class="java.lang.String" isForPrompting="false"/>
+  <parameter name="PERIOD_DATE"  class="java.lang.String" isForPrompting="false"/>
+  <parameter name="GRAND_TOTAL"  class="java.math.BigDecimal" isForPrompting="false"/>
+  <parameter name="ROW_COUNT"    class="java.lang.Integer"    isForPrompting="false"/>
+
+  <field name="paygroup"  class="java.lang.String"/>
+  <field name="pgDesc"    class="java.lang.String"/>
+  <field name="dept"      class="java.lang.String"/>
+  <field name="deptDesc"  class="java.lang.String"/>
+  <field name="payType"   class="java.lang.Integer"/>
+  <field name="payCode"   class="java.lang.String"/>
+  <field name="codeDesc"  class="java.lang.String"/>
+  <field name="hours"     class="java.math.BigDecimal"/>
+  <field name="amount"    class="java.math.BigDecimal"/>
+
+
+  <field name="pgTotal" class="java.math.BigDecimal"/>
+
+  <group name="pgGroup" isReprintHeaderOnEachPage="true">
+    <groupExpression><![CDATA[$F{paygroup}]]></groupExpression>
+    <groupHeader>
+      <band height="16">
+        <rectangle><reportElement x="0" y="0" width="782" height="16" backcolor="#506680"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <textField isStretchWithOverflow="true"><reportElement x="4" y="2" width="600" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#506680"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["Paygroup: " + $F{paygroup} + "  —  " + $F{pgDesc}]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="14">
+        <rectangle><reportElement x="0" y="0" width="782" height="14" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+        <staticText><reportElement x="4" y="2" width="400" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Paygroup Total]]></text></staticText>
+        <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="642" y="2" width="136" height="10" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{pgTotal}]]></textFieldExpression></textField>
+      </band>
+    </groupFooter>
+  </group>
+
+
+  <group name="deptGroup">
+    <groupExpression><![CDATA[$F{paygroup} + "|" + $F{dept}]]></groupExpression>
+    <groupHeader>
+      <band height="14">
+        <textField isStretchWithOverflow="true"><reportElement x="8" y="1" width="400" height="10"/><textElement><font size="8" isBold="true"/></textElement><textFieldExpression><![CDATA["  Dept: " + $F{dept} + "  —  " + $F{deptDesc}]]></textFieldExpression></textField>
+      </band>
+    </groupHeader>
+    <groupFooter>
+      <band height="0"/>
+    </groupFooter>
+  </group>
+<title>
+    <band height="52">
+      <staticText><reportElement x="0" y="0" width="500" height="18"/><textElement><font size="13" isBold="true"/></textElement><text><![CDATA[Department Expenses]]></text></staticText>
+      <textField isStretchWithOverflow="true"><reportElement x="0" y="22" width="560" height="14"/><textElement><font size="9"/></textElement><textFieldExpression><![CDATA[$P{COMPANY_NAME} + "   Period: " + $P{PERIOD_DATE}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy HH:mm"><reportElement x="600" y="22" width="182" height="12"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+    </band>
+  </title>
+
+  <columnHeader>
+    <band height="20">
+      <rectangle><reportElement x="0" y="0" width="782" height="20" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <staticText><reportElement x="4"   y="4" width="60"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Pay Code]]></text></staticText>
+      <staticText><reportElement x="68"  y="4" width="380" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="8" isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+      <staticText><reportElement x="452" y="4" width="80"  height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Hours]]></text></staticText>
+      <staticText><reportElement x="536" y="4" width="242" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="8" isBold="true"/></textElement><text><![CDATA[Amount]]></text></staticText>
+    </band>
+  </columnHeader>
+
+  <detail>
+    <band height="12">
+      <textField isStretchWithOverflow="true"><reportElement x="4"   y="1" width="60"  height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{payCode}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="68"  y="1" width="380" height="10"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{codeDesc}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00"><reportElement x="452" y="1" width="80"  height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{hours}]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="536" y="1" width="242" height="10"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression></textField>
+    </band>
+  </detail>
+
+  <pageFooter>
+    <band height="16">
+      <textField isStretchWithOverflow="true" pattern="dd/MM/yyyy"><reportElement x="0" y="2" width="100" height="12"/><textElement><font size="7"/></textElement><textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression></textField>
+      <textField isStretchWithOverflow="true"><reportElement x="660" y="2" width="122" height="12"/><textElement textAlignment="Right"><font size="7"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField>
+    </band>
+  </pageFooter>
+
+  <summary>
+    <band height="28">
+      <rectangle><reportElement x="0" y="0" width="782" height="28" backcolor="#1e2d45"/><graphicElement><pen lineWidth="0"/></graphicElement></rectangle>
+      <textField isStretchWithOverflow="true"><reportElement x="4" y="8" width="300" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[($P{ROW_COUNT}==null?0:$P{ROW_COUNT}) + " line(s)"]]></textFieldExpression></textField>
+      <staticText><reportElement x="390" y="8" width="142" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Grand Total:]]></text></staticText>
+      <textField isStretchWithOverflow="true" pattern="#,##0.00;(#,##0.00)"><reportElement x="536" y="8" width="242" height="12" forecolor="#ffffff" mode="Opaque" backcolor="#1e2d45"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{GRAND_TOTAL}]]></textFieldExpression></textField>
+    </band>
+  </summary>
+
+</jasperReport>
